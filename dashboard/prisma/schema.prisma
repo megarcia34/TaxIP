@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model control_base {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre           String
+  email            String?           @db.VarChar
+  telefono         String?           @db.VarChar
+  activo           Boolean?          @default(true)
+  created_at       DateTime?         @default(now()) @db.Timestamp
+  updated_at       DateTime?         @default(now()) @db.Timestamp
+  vehiculos        vehiculo[]
+  chofer_vehiculo  chofer_vehiculo[]
+  viaje_solicitado viaje_solicitado[]
+}
+
+model vehiculo {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  control_base_id String?           @db.Uuid
+  patente         String            @db.VarChar
+  marca           String?           @db.VarChar
+  modelo          String?           @db.VarChar
+  anio            Int?
+  activo          Boolean?          @default(true)
+  created_at      DateTime?         @default(now()) @db.Timestamp
+  control_base    control_base?     @relation(fields: [control_base_id], references: [id])
+  chofer_vehiculo chofer_vehiculo[]
+}
+
+model chofer_vehiculo {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id            String            @db.Uuid
+  vehiculo_id           String?           @db.Uuid
+  control_base_id       String            @db.Uuid
+  estado_laboral        String?           @default("libre") @db.VarChar
+  calificacion_promedio Float?            @default(5.0)
+  total_viajes          Int?              @default(0)
+  activo                Boolean?          @default(true)
+  created_at            DateTime?         @default(now()) @db.Timestamp
+  updated_at            DateTime?         @default(now()) @db.Timestamp
+  control_base          control_base?     @relation(fields: [control_base_id], references: [id])
+  vehiculo              vehiculo?         @relation(fields: [vehiculo_id], references: [id])
+  usuario               usuario?          @relation(fields: [usuario_id], references: [id])
+}
+
+model usuario {
+  id                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  control_base_id          String?           @db.Uuid
+  tipo_usuario_id          String?           @db.Uuid
+  email                    String            @db.VarChar
+  password_hash            String            @db.Text
+  activo                   Boolean?          @default(true)
+  created_at               DateTime?         @default(now()) @db.Timestamp
+  chofer_vehiculo          chofer_vehiculo[]
+  perfil_general           perfil_general?
+  viaje_solicitado_chofer  viaje_solicitado[] @relation("chofer")
+  viaje_solicitado_pasajero viaje_solicitado[] @relation("pasajero")
+}
+
+model perfil_general {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id      String?   @db.Uuid
+  nombre          String?   @db.VarChar
+  apellido        String?   @db.VarChar
+  telefono        String?   @db.VarChar
+  documento       String?   @db.VarChar
+  foto_perfil_url String?   @db.Text
+  usuario         usuario?  @relation(fields: [usuario_id], references: [id])
+}
+
+model viaje_solicitado {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  control_base_id String?           @db.Uuid
+  pasajero_id     String?           @db.Uuid
+  chofer_id       String?           @db.Uuid
+  vehiculo_id     String?           @db.Uuid
+  estado          String?           @default("pendiente") @db.VarChar
+  precio_estimado Float?
+  precio_final    Float?
+  created_at      DateTime?         @default(now()) @db.Timestamp
+  control_base    control_base?     @relation(fields: [control_base_id], references: [id])
+  pasajero        usuario?          @relation("pasajero", fields: [pasajero_id], references: [id])
+  chofer          usuario?          @relation("chofer", fields: [chofer_id], references: [id])
+  vehiculo        vehiculo?         @relation(fields: [vehiculo_id], references: [id])
+}
+
+model factura_empresa {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresa_id  String    @db.Uuid
+  periodo     DateTime  @db.Date
+  total       Float?
+  descuento   Float?    @default(0)
+  total_final Float?
+  estado      String?   @default("pendiente") @db.VarChar
+  created_at  DateTime? @default(now()) @db.Timestamp
+  pagada_at   DateTime? @db.Timestamp
+}

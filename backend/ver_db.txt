@@ -1,0 +1,804 @@
+PS D:\ataxip\backend> python ver_db.py
+🔌 Conectando a: postgresql://postgres:***@localhost:5432/taxip_db
+✅ Conexión exitosa!
+================================================================================
+🔍 DIAGNÓSTICO COMPLETO DE BASE DE DATOS (REAL)
+================================================================================
+
+📋 TABLAS EN SCHEMA 'public':
+ 1. comercio
+ 2. escaneo_qr
+ 3. geography_columns
+ 4. geometry_columns
+ 5. spatial_ref_sys
+
+================================================================================
+📊 ESTRUCTURA DETALLADA
+================================================================================
+
+📌 SCHEMA: audit
+------------------------------------------------------------
+
+   📍 TABLA: alerta_desvio
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NOT NULL
+      latitud                   | numeric              | NOT NULL
+      longitud                  | numeric              | NOT NULL
+      distancia_desvio_metros   | numeric              | NOT NULL
+      ruta_esperada_json        | text                 | NULL
+      notificado                | boolean              | NULL DEFAULT false
+      resuelto                  | boolean              | NULL DEFAULT false
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: log_gps
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NULL
+      usuario_id                | uuid                 | NOT NULL
+      latitud                   | numeric              | NOT NULL
+      longitud                  | numeric              | NOT NULL
+      timestamp                 | timestamp without time zone | NULL DEFAULT now()
+
+📌 SCHEMA: auth
+------------------------------------------------------------
+
+   📍 TABLA: auditoria_email
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      email                     | character varying    | NOT NULL
+      valid                     | boolean              | NULL DEFAULT false
+      reason                    | text                 | NULL
+      domain                    | character varying    | NULL
+      mx_records                | text                 | NULL
+      smtp_response             | text                 | NULL
+      ip_address                | character varying    | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      user_agent                | text                 | NULL
+
+   📍 TABLA: direccion_frecuente
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      nombre                    | character varying    | NULL
+      latitud                   | numeric              | NULL
+      longitud                  | numeric              | NULL
+      direccion_texto           | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: perfil_general
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NULL
+      nombre                    | character varying    | NULL
+      apellido                  | character varying    | NULL
+      telefono                  | character varying    | NULL
+      documento                 | character varying    | NULL
+      ciudad_id                 | uuid                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      direccion                 | text                 | NULL
+      foto_perfil_url           | text                 | NULL
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      fecha_nacimiento          | date                 | NULL
+      barrio                    | character varying    | NULL
+      codigo_postal             | character varying    | NULL
+      tipo_conductor            | character varying    | NULL
+      agencia                   | character varying    | NULL
+
+   📍 TABLA: refresh_token
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      token                     | character varying    | NOT NULL
+      expiracion                | timestamp without time zone | NOT NULL
+      usado                     | boolean              | NULL DEFAULT false
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: reset_token
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      token                     | character varying    | NOT NULL
+      expiracion                | timestamp without time zone | NOT NULL
+      usado                     | boolean              | NULL DEFAULT false
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: taxista_favorito
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      pasajero_id               | uuid                 | NOT NULL
+      chofer_id                 | uuid                 | NOT NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: tipo_usuario
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      nombre                    | character varying    | NOT NULL
+
+   📍 TABLA: turno_empleado
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      empleado_id               | uuid                 | NOT NULL
+      empresa_id                | uuid                 | NOT NULL
+      fecha_inicio              | timestamp without time zone | NOT NULL DEFAULT now()
+      fecha_fin                 | timestamp without time zone | NULL
+      estado                    | character varying    | NOT NULL DEFAULT 'ACTIVO'::character varying
+      viajes_gestionados        | integer              | NULL DEFAULT 0
+      facturado_total           | numeric              | NULL DEFAULT 0.0
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: usuario
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NULL
+      tipo_usuario_id           | uuid                 | NULL
+      email                     | character varying    | NOT NULL
+      password_hash             | text                 | NOT NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      fecha_suspension          | timestamp without time zone | NULL
+      motivo_suspension         | text                 | NULL
+      suspendido_por            | uuid                 | NULL
+
+   📍 TABLA: usuario_empresa
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      empresa_id                | uuid                 | NOT NULL
+      usuario_id                | uuid                 | NOT NULL
+      rol                       | character varying    | NULL DEFAULT 'recepcionista'::character var
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+📌 SCHEMA: comunicacion
+------------------------------------------------------------
+
+   📍 TABLA: conversacion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      participante_1            | uuid                 | NOT NULL
+      participante_2            | uuid                 | NOT NULL
+      ultimo_mensaje            | text                 | NULL
+      ultimo_mensaje_en         | timestamp without time zone | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
+   📍 TABLA: email_enviado
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NULL
+      destinatario_email        | character varying    | NOT NULL
+      asunto                    | character varying    | NOT NULL
+      template_id               | character varying    | NULL
+      estado                    | character varying    | NOT NULL DEFAULT 'pendiente'::character varying
+      error_mensaje             | text                 | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      enviado_en                | timestamp without time zone | NULL
+
+   📍 TABLA: mensaje
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      conversacion_id           | uuid                 | NOT NULL
+      remitente_id              | uuid                 | NOT NULL
+      viaje_id                  | uuid                 | NULL
+      contenido                 | text                 | NOT NULL
+      leido                     | boolean              | NOT NULL DEFAULT false
+      leido_en                  | timestamp without time zone | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
+📌 SCHEMA: fleet
+------------------------------------------------------------
+
+   📍 TABLA: chofer_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NULL
+      control_base_id           | uuid                 | NOT NULL
+      latitud                   | numeric              | NULL
+      longitud                  | numeric              | NULL
+      ubicacion                 | USER-DEFINED         | NULL
+      estado_laboral            | character varying    | NULL DEFAULT 'libre'::character varying
+      estado_panico             | boolean              | NULL DEFAULT false
+      calificacion_promedio     | numeric              | NULL DEFAULT 5.0
+      total_calificaciones      | integer              | NULL DEFAULT 0
+      ultima_conexion           | timestamp without time zone | NULL DEFAULT now()
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      estado_aprobacion         | character varying    | NULL DEFAULT 'pendiente'::character varying
+      total_viajes              | integer              | NULL DEFAULT 0
+
+   📍 TABLA: contrato_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NOT NULL
+      propietario_id            | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NOT NULL
+      chofer_id                 | uuid                 | NOT NULL
+      tipo_contrato             | character varying    | NOT NULL
+      turno_asignado            | character varying    | NOT NULL
+      porcentaje_chofer         | numeric              | NULL
+      monto_diario              | numeric              | NULL
+      fecha_inicio              | timestamp without time zone | NOT NULL DEFAULT now()
+      fecha_fin                 | timestamp without time zone | NULL
+      activo                    | boolean              | NOT NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      estado_contrato           | character varying    | NULL DEFAULT 'PENDIENTE_CONFIGURACION'::cha
+
+   📍 TABLA: documento_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      tipo_documento            | character varying    | NOT NULL
+      numero                    | character varying    | NOT NULL
+      fecha_emision             | date                 | NULL
+      fecha_vencimiento         | date                 | NULL
+      observaciones             | text                 | NULL
+      url_archivo               | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: documentos_chofer
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      tipo_documento            | character varying    | NOT NULL
+      url                       | text                 | NOT NULL
+      subido_en                 | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: gasto_turno
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      turno_id                  | uuid                 | NOT NULL
+      tipo_gasto                | character varying    | NOT NULL
+      monto                     | numeric              | NOT NULL
+      km_registro               | numeric              | NULL
+      url_comprobante           | character varying    | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: gasto_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      propietario_id            | uuid                 | NOT NULL
+      tipo_gasto                | character varying    | NULL
+      monto                     | numeric              | NOT NULL
+      moneda                    | character varying    | NULL DEFAULT 'ARS'::character varying
+      descripcion               | text                 | NULL
+      kilometraje               | integer              | NULL
+      comprobante_url           | text                 | NULL
+      fecha_gasto               | date                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: historial_chofer_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NULL
+      chofer_id                 | uuid                 | NULL
+      fecha_inicio              | timestamp without time zone | NULL
+      fecha_fin                 | timestamp without time zone | NULL
+      estado                    | character varying    | NULL
+
+   📍 TABLA: mantenimiento_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      propietario_id            | uuid                 | NOT NULL
+      tipo_servicio             | character varying    | NULL
+      taller_nombre             | character varying    | NULL
+      taller_direccion          | text                 | NULL
+      costo                     | numeric              | NULL
+      kilometraje               | integer              | NULL
+      observaciones             | text                 | NULL
+      fecha_servicio            | date                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: marca
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      nombre                    | character varying    | NOT NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: modelo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      marca_id                  | uuid                 | NOT NULL
+      nombre                    | character varying    | NOT NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: propietario_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      propietario_id            | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NOT NULL
+      porcentaje_participacion  | numeric              | NULL DEFAULT 100
+      fecha_inicio              | date                 | NOT NULL DEFAULT CURRENT_DATE
+      fecha_fin                 | date                 | NULL
+      activo                    | boolean              | NOT NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: relacion_propietario_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NULL
+      propietario_id            | uuid                 | NULL
+      porcentaje_participacion  | numeric              | NULL DEFAULT 100
+      fecha_inicio              | date                 | NULL
+      fecha_fin                 | date                 | NULL
+      activo                    | boolean              | NULL DEFAULT true
+
+   📍 TABLA: turno_chofer
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      contrato_id               | uuid                 | NOT NULL
+      chofer_id                 | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NOT NULL
+      estado                    | character varying    | NOT NULL DEFAULT 'ACTIVO'::character varying
+      km_inicial                | numeric              | NOT NULL
+      km_final                  | numeric              | NULL
+      combustible_inicial       | character varying    | NOT NULL
+      combustible_final         | character varying    | NULL
+      recaudacion_app_efectivo  | numeric              | NULL DEFAULT 0
+      recaudacion_app_debito    | numeric              | NULL DEFAULT 0
+      recaudacion_ticketera_calle | numeric              | NULL DEFAULT 0
+      monto_bruto_calculado     | numeric              | NULL DEFAULT 0
+      comision_chofer_calculada | numeric              | NULL DEFAULT 0
+      utilidad_propietario_calculada | numeric              | NULL DEFAULT 0
+      inicio_turno              | timestamp without time zone | NOT NULL DEFAULT now()
+      fin_turno                 | timestamp without time zone | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NULL
+      patente                   | character varying    | NOT NULL
+      marca                     | character varying    | NULL
+      modelo                    | character varying    | NULL
+      anio                      | integer              | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      numero_licencia           | character varying    | NULL
+      qr_uuid                   | uuid                 | NULL DEFAULT gen_random_uuid()
+      qr_activo                 | boolean              | NULL DEFAULT true
+
+📌 SCHEMA: geo
+------------------------------------------------------------
+
+   📍 TABLA: ciudad
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      provincia_id              | uuid                 | NULL
+      nombre                    | character varying    | NOT NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: pais
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      nombre                    | character varying    | NOT NULL
+      codigo_iso                | character varying    | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: provincia
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      pais_id                   | uuid                 | NULL
+      nombre                    | character varying    | NOT NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+📌 SCHEMA: notification
+------------------------------------------------------------
+
+   📍 TABLA: notificacion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      titulo                    | character varying    | NULL
+      mensaje                   | text                 | NOT NULL
+      tipo                      | character varying    | NOT NULL
+      leida                     | boolean              | NULL DEFAULT false
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+📌 SCHEMA: payment
+------------------------------------------------------------
+
+   📍 TABLA: billetera
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      saldo                     | numeric              | NULL DEFAULT 0
+      moneda                    | character varying    | NULL DEFAULT 'ARS'::character varying
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: configuracion_tarifa
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NOT NULL
+      nombre                    | character varying    | NULL
+      tarifa_base               | numeric              | NULL DEFAULT 0
+      precio_por_km             | numeric              | NULL DEFAULT 0
+      precio_por_minuto         | numeric              | NULL DEFAULT 0
+      recargo_nocturno          | numeric              | NULL DEFAULT 1.0
+      recargo_feriado           | numeric              | NULL DEFAULT 1.0
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      modo_calculo              | character varying    | NULL DEFAULT 'por_km'::character varying
+      distancia_por_ficha       | numeric              | NULL DEFAULT 100
+      precio_por_ficha          | numeric              | NULL DEFAULT 0
+      precio_por_minuto_espera  | numeric              | NULL DEFAULT 0
+      recargo_domingo           | numeric              | NULL DEFAULT 1.0
+      hora_inicio_nocturno      | time without time zone | NULL DEFAULT '22:00:00'::time without time
+      hora_fin_nocturno         | time without time zone | NULL DEFAULT '06:00:00'::time without time
+      moneda                    | character varying    | NULL DEFAULT 'ARS'::character varying
+      descripcion               | text                 | NULL
+
+   📍 TABLA: factura_empresa
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      empresa_id                | uuid                 | NOT NULL
+      periodo                   | date                 | NOT NULL
+      total                     | numeric              | NULL
+      descuento                 | numeric              | NULL DEFAULT 0
+      total_final               | numeric              | NULL
+      estado                    | character varying    | NULL DEFAULT 'pendiente'::character varying
+      pdf_url                   | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      pagada_at                 | timestamp without time zone | NULL
+
+   📍 TABLA: metodo_pago
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      nombre                    | character varying    | NOT NULL
+
+   📍 TABLA: pago_empresa
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      empresa_id                | uuid                 | NOT NULL
+      monto                     | numeric              | NOT NULL
+      metodo_pago               | character varying    | NOT NULL
+      referencia                | character varying    | NULL
+      estado                    | character varying    | NULL DEFAULT 'pendiente'::character varying
+      comprobante_url           | text                 | NULL
+      factura_id                | uuid                 | NULL
+      observaciones             | text                 | NULL
+      fecha_pago                | timestamp without time zone | NULL DEFAULT now()
+      confirmado_en             | timestamp without time zone | NULL
+      confirmado_por            | uuid                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: transaccion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NULL
+      metodo_pago_id            | uuid                 | NULL
+      monto                     | numeric              | NULL
+      estado                    | character varying    | NULL
+      referencia_externa        | character varying    | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      tipo                      | character varying    | NULL
+      saldo_despues             | numeric              | NULL
+      descripcion               | text                 | NULL
+      billetera_id              | uuid                 | NULL
+
+📌 SCHEMA: public
+------------------------------------------------------------
+
+   📍 TABLA: comercio
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      nombre                    | character varying    | NOT NULL
+      rubro                     | character varying    | NULL
+      direccion                 | text                 | NOT NULL
+      latitud                   | numeric              | NOT NULL
+      longitud                  | numeric              | NOT NULL
+      codigo_qr                 | character varying    | NOT NULL
+      email_contacto            | character varying    | NULL
+      telefono                  | character varying    | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      control_base_id           | uuid                 | NOT NULL
+
+   📍 TABLA: escaneo_qr
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      comercio_id               | uuid                 | NOT NULL
+      viaje_id                  | uuid                 | NULL
+      user_agent                | text                 | NULL
+      ip_address                | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: geography_columns
+      f_table_catalog           | name                 | NULL
+      f_table_schema            | name                 | NULL
+      f_table_name              | name                 | NULL
+      f_geography_column        | name                 | NULL
+      coord_dimension           | integer              | NULL
+      srid                      | integer              | NULL
+      type                      | text                 | NULL
+
+   📍 TABLA: geometry_columns
+      f_table_catalog           | character varying    | NULL
+      f_table_schema            | name                 | NULL
+      f_table_name              | name                 | NULL
+      f_geometry_column         | name                 | NULL
+      coord_dimension           | integer              | NULL
+      srid                      | integer              | NULL
+      type                      | character varying    | NULL
+
+   📍 TABLA: spatial_ref_sys
+      srid                      | integer              | NOT NULL
+      auth_name                 | character varying    | NULL
+      auth_srid                 | integer              | NULL
+      srtext                    | character varying    | NULL
+      proj4text                 | character varying    | NULL
+
+📌 SCHEMA: tenant
+------------------------------------------------------------
+
+   📍 TABLA: configuracion_tenant
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NULL
+      moneda_default            | character varying    | NULL DEFAULT 'ARS'::character varying
+      timezone                  | character varying    | NULL DEFAULT 'America/Argentina/Tucuman'::c
+      idioma                    | character varying    | NULL DEFAULT 'es'::character varying
+      habilitar_fidelizacion    | boolean              | NULL DEFAULT false
+      habilitar_pagos_online    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: control_base
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      nombre                    | character varying    | NOT NULL
+      email                     | character varying    | NULL
+      telefono                  | character varying    | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      latitud                   | numeric              | NULL
+      longitud                  | numeric              | NULL
+      fecha_suspension          | timestamp without time zone | NULL
+      motivo_suspension         | text                 | NULL
+      suspendido_por            | uuid                 | NULL
+
+   📍 TABLA: empresa
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      nombre                    | character varying    | NOT NULL
+      tipo                      | character varying    | NULL DEFAULT 'hotel'::character varying
+      email_facturacion         | character varying    | NULL
+      telefono                  | character varying    | NULL
+      direccion                 | text                 | NULL
+      latitud                   | numeric              | NULL
+      longitud                  | numeric              | NULL
+      tarifa_preferencial       | numeric              | NULL DEFAULT 0
+      condiciones_pago          | character varying    | NULL DEFAULT 'mensual'::character varying
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      control_base_id           | uuid                 | NOT NULL
+      limite_credito            | numeric              | NULL DEFAULT 0.0
+      contacto_nombre           | character varying    | NULL
+      contacto_telefono         | character varying    | NULL
+      contacto_email            | character varying    | NULL
+      fecha_suspension          | timestamp without time zone | NULL
+      motivo_suspension         | text                 | NULL
+      suspendido_por            | uuid                 | NULL
+
+   📍 TABLA: factura
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NOT NULL
+      periodo                   | date                 | NOT NULL
+      vehiculos_activos         | integer              | NOT NULL DEFAULT 0
+      canon_total               | numeric              | NOT NULL DEFAULT 0
+      porcentaje_plataforma     | numeric              | NOT NULL DEFAULT 15
+      total_a_pagar             | numeric              | NOT NULL DEFAULT 0
+      estado                    | character varying    | NOT NULL DEFAULT 'pendiente'::character varying
+      fecha_emision             | timestamp without time zone | NOT NULL DEFAULT now()
+      fecha_vencimiento         | timestamp without time zone | NULL
+      pagada_at                 | timestamp without time zone | NULL
+      pagada_por                | uuid                 | NULL
+      numero_factura            | character varying    | NULL
+      observaciones             | text                 | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
+📌 SCHEMA: trip
+------------------------------------------------------------
+
+   📍 TABLA: calificacion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NOT NULL
+      calificador_id            | uuid                 | NOT NULL
+      calificado_id             | uuid                 | NOT NULL
+      puntaje                   | integer              | NOT NULL
+      comentario                | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: foto_viaje
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NOT NULL
+      usuario_id                | uuid                 | NOT NULL
+      url                       | text                 | NOT NULL
+      thumbnail_url             | text                 | NULL
+      metadata_json             | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: historial_estado_viaje
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NULL
+      estado                    | character varying    | NULL
+      observacion               | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: objeto_olvidado
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NOT NULL
+      pasajero_id               | uuid                 | NOT NULL
+      chofer_id                 | uuid                 | NOT NULL
+      descripcion               | text                 | NOT NULL
+      estado                    | character varying    | NULL DEFAULT 'reportado'::character varying
+      foto_url                  | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: panico
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NULL
+      ubicacion                 | USER-DEFINED         | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: reserva
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      empresa_id                | uuid                 | NOT NULL
+      empleado_id               | uuid                 | NOT NULL
+      turno_id                  | uuid                 | NULL
+      pasajero_nombre           | character varying    | NULL
+      pasajero_telefono         | character varying    | NULL
+      direccion_origen          | text                 | NOT NULL
+      latitud_origen            | numeric              | NULL
+      longitud_origen           | numeric              | NULL
+      direccion_destino         | text                 | NOT NULL
+      latitud_destino           | numeric              | NULL
+      longitud_destino          | numeric              | NULL
+      paradas_intermedias       | jsonb                | NULL DEFAULT '[]'::jsonb
+      tipo_vehiculo             | character varying    | NULL DEFAULT 'standard'::character varying
+      nota_conductor            | text                 | NULL
+      estado                    | character varying    | NULL DEFAULT 'reservado'::character varying
+      es_programado             | boolean              | NULL DEFAULT false
+      fecha_programada          | timestamp without time zone | NULL
+      distancia_estimada_km     | numeric              | NULL
+      tiempo_estimado_minutos   | integer              | NULL
+      precio_estimado           | numeric              | NULL
+      precio_final              | numeric              | NULL
+      metodo_pago               | character varying    | NULL DEFAULT 'vehiculo'::character varying
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      creado_por                | uuid                 | NULL
+      cantidad_pasajeros        | integer              | NULL DEFAULT 1
+      cantidad_equipaje         | integer              | NULL DEFAULT 0
+      centro_costo              | character varying    | NULL
+
+   📍 TABLA: tipo_vehiculo
+      id                        | character varying    | NOT NULL
+      nombre                    | character varying    | NOT NULL
+      descripcion               | text                 | NULL
+      tarifa_base               | numeric              | NOT NULL DEFAULT 0
+      tarifa_por_km             | numeric              | NOT NULL DEFAULT 0
+      tarifa_por_minuto         | numeric              | NOT NULL DEFAULT 0
+      capacidad_pasajeros       | integer              | NULL DEFAULT 4
+      capacidad_equipaje        | integer              | NULL DEFAULT 2
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      precio_por_ficha          | numeric              | NULL DEFAULT 0
+      distancia_por_ficha       | numeric              | NULL DEFAULT 100
+      precio_por_minuto_espera  | numeric              | NULL DEFAULT 0
+
+   📍 TABLA: viaje_solicitado
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NULL
+      pasajero_id               | uuid                 | NULL
+      chofer_id                 | uuid                 | NULL
+      vehiculo_id               | uuid                 | NULL
+      origen                    | USER-DEFINED         | NULL
+      destino                   | USER-DEFINED         | NULL
+      estado                    | character varying    | NULL DEFAULT 'pendiente'::character varying
+      precio_estimado           | numeric              | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      finalizado_at             | timestamp without time zone | NULL
+      fecha_programada          | timestamp without time zone | NULL
+      reserva_procesada         | boolean              | NULL DEFAULT false
+      procesado_en              | timestamp without time zone | NULL
+      direccion_origen          | text                 | NULL
+      direccion_destino         | text                 | NULL
+      tiempo_estimado_segundos  | integer              | NULL
+      distancia_metros          | integer              | NULL
+      url_seguimiento           | character varying    | NULL
+      codigo_compartido         | character varying    | NULL
+      aceptado_en               | timestamp without time zone | NULL
+      iniciado_en               | timestamp without time zone | NULL
+      finalizado_en             | timestamp without time zone | NULL
+      cancelado_en              | timestamp without time zone | NULL
+      cancelado_por             | character varying    | NULL
+      motivo_cancelacion        | text                 | NULL
+      precio_final              | numeric              | NULL
+      moneda                    | character varying    | NULL DEFAULT 'ARS'::character varying
+      comercio_id               | uuid                 | NULL
+      empresa_id                | uuid                 | NULL
+      nombre_pasajero           | character varying    | NULL
+      notas                     | text                 | NULL
+      facturado                 | boolean              | NULL DEFAULT false
+
+================================================================================
+🔗 RELACIONES (FOREIGN KEYS)
+================================================================================
+   audit.alerta_desvio.viaje_id → trip.viaje_solicitado.id
+   audit.log_gps.viaje_id → trip.viaje_solicitado.id
+   audit.log_gps.usuario_id → auth.usuario.id
+   auth.direccion_frecuente.usuario_id → auth.usuario.id
+   auth.perfil_general.ciudad_id → geo.ciudad.id
+   auth.perfil_general.usuario_id → auth.usuario.id
+   auth.refresh_token.usuario_id → auth.usuario.id
+   auth.reset_token.usuario_id → auth.usuario.id
+   auth.taxista_favorito.pasajero_id → auth.usuario.id
+   auth.taxista_favorito.chofer_id → auth.usuario.id
+   auth.turno_empleado.empleado_id → auth.usuario.id
+   auth.turno_empleado.empresa_id → tenant.empresa.id
+   auth.usuario.control_base_id → tenant.control_base.id
+   auth.usuario.suspendido_por → auth.usuario.id
+   auth.usuario.tipo_usuario_id → auth.tipo_usuario.id
+   auth.usuario_empresa.empresa_id → tenant.empresa.id
+   auth.usuario_empresa.usuario_id → auth.usuario.id
+   comunicacion.conversacion.participante_2 → auth.usuario.id
+   comunicacion.conversacion.participante_1 → auth.usuario.id
+   comunicacion.email_enviado.usuario_id → auth.usuario.id
+   comunicacion.mensaje.conversacion_id → comunicacion.conversacion.id
+   comunicacion.mensaje.viaje_id → trip.viaje_solicitado.id
+   comunicacion.mensaje.remitente_id → auth.usuario.id
+   fleet.chofer_vehiculo.usuario_id → auth.usuario.id
+   fleet.chofer_vehiculo.control_base_id → tenant.control_base.id
+   fleet.chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.contrato_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.contrato_vehiculo.control_base_id → tenant.control_base.id
+   fleet.contrato_vehiculo.chofer_id → auth.usuario.id
+   fleet.contrato_vehiculo.propietario_id → auth.usuario.id
+   fleet.documento_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.documentos_chofer.usuario_id → auth.usuario.id
+   fleet.gasto_turno.turno_id → fleet.turno_chofer.id
+   fleet.gasto_vehiculo.propietario_id → auth.usuario.id
+   fleet.gasto_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.historial_chofer_vehiculo.chofer_id → auth.usuario.id
+   fleet.historial_chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.mantenimiento_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.mantenimiento_vehiculo.propietario_id → auth.usuario.id
+   fleet.modelo.marca_id → fleet.marca.id
+   fleet.propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.propietario_vehiculo.propietario_id → auth.usuario.id
+   fleet.relacion_propietario_vehiculo.propietario_id → auth.usuario.id
+   fleet.relacion_propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.turno_chofer.chofer_id → auth.usuario.id
+   fleet.turno_chofer.vehiculo_id → fleet.vehiculo.id
+   fleet.turno_chofer.contrato_id → fleet.contrato_vehiculo.id
+   fleet.vehiculo.control_base_id → tenant.control_base.id
+   geo.ciudad.provincia_id → geo.provincia.id
+   geo.provincia.pais_id → geo.pais.id
+   notification.notificacion.usuario_id → auth.usuario.id
+   payment.billetera.usuario_id → auth.usuario.id
+   payment.configuracion_tarifa.control_base_id → tenant.control_base.id
+   payment.factura_empresa.empresa_id → tenant.empresa.id
+   payment.pago_empresa.confirmado_por → auth.usuario.id
+   payment.pago_empresa.empresa_id → tenant.empresa.id
+   payment.pago_empresa.factura_id → payment.factura_empresa.id
+   payment.transaccion.billetera_id → payment.billetera.id
+   payment.transaccion.viaje_id → trip.viaje_solicitado.id
+   payment.transaccion.metodo_pago_id → payment.metodo_pago.id
+   public.comercio.control_base_id → tenant.control_base.id
+   public.escaneo_qr.viaje_id → trip.viaje_solicitado.id
+   public.escaneo_qr.comercio_id → public.comercio.id
+   tenant.configuracion_tenant.control_base_id → tenant.control_base.id
+   tenant.control_base.suspendido_por → auth.usuario.id
+   tenant.empresa.suspendido_por → auth.usuario.id
+   tenant.empresa.control_base_id → tenant.control_base.id
+   tenant.factura.control_base_id → tenant.control_base.id
+   tenant.factura.pagada_por → auth.usuario.id
+   trip.calificacion.calificador_id → auth.usuario.id
+   trip.calificacion.calificado_id → auth.usuario.id
+   trip.calificacion.viaje_id → trip.viaje_solicitado.id
+   trip.foto_viaje.usuario_id → auth.usuario.id
+   trip.foto_viaje.viaje_id → trip.viaje_solicitado.id
+   trip.historial_estado_viaje.viaje_id → trip.viaje_solicitado.id
+   trip.objeto_olvidado.pasajero_id → auth.usuario.id
+   trip.objeto_olvidado.chofer_id → auth.usuario.id
+   trip.objeto_olvidado.viaje_id → trip.viaje_solicitado.id
+   trip.panico.viaje_id → trip.viaje_solicitado.id
+   trip.reserva.empleado_id → auth.usuario.id
+   trip.reserva.turno_id → auth.turno_empleado.id
+   trip.reserva.empresa_id → tenant.empresa.id
+   trip.reserva.empleado_id → auth.usuario.id
+   trip.reserva.empresa_id → tenant.empresa.id
+   trip.reserva.turno_id → auth.turno_empleado.id
+   trip.reserva.creado_por → auth.usuario.id
+   trip.viaje_solicitado.pasajero_id → auth.usuario.id
+   trip.viaje_solicitado.control_base_id → tenant.control_base.id
+   trip.viaje_solicitado.empresa_id → tenant.empresa.id
+   trip.viaje_solicitado.comercio_id → public.comercio.id
+   trip.viaje_solicitado.vehiculo_id → fleet.vehiculo.id
+   trip.viaje_solicitado.chofer_id → auth.usuario.id
+
+================================================================================
+🏷️ ENUMS
+================================================================================
+   (No se encontraron enums)
+
+================================================================================
+🗺️ POSTGIS
+================================================================================
+   ✅ PostGIS instalado: 3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1...
+
+================================================================================
+✅ DIAGNÓSTICO COMPLETADO
+================================================================================
