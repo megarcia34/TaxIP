@@ -45,13 +45,16 @@ export function Navbar() {
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "5491123456789";
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
 
+  // URL base del Dashboard tomada de variables de entorno o fallback a IP pública
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://138.36.239.48:3000";
+
   // Opciones del desplegable "Ingreso al Sistema"
   const loginOptions = [
-  { label: "👤 Conductores", href: "http://localhost:3000/login?role=conductor" },
-  { label: "🚗 Propietarios", href: "http://localhost:3000/login?role=propietario" },
-  { label: "🏢 Empresas", href: "http://localhost:3000/login?role=empresa" },
-  { label: "🏛️ Empleados", href: "http://localhost:3000/login?role=operador" },
-]
+    { label: "👤 Conductores", href: `${dashboardUrl}/login?role=conductor` },
+    { label: "🚗 Propietarios", href: `${dashboardUrl}/login?role=propietario` },
+    { label: "🏢 Empresas", href: `${dashboardUrl}/login?role=empresa` },
+    { label: "🏛️ Empleados", href: `${dashboardUrl}/login?role=operador` },
+  ];
 
   return (
     <header className={`navbar ${isScrolled ? "navbar-scrolled" : ""}`}>
