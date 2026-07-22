@@ -14,6 +14,7 @@ interface FormData {
   metodoPago: string;
   pasajeros: number;
   equipaje: number;
+  nota_conductor?: string;
 }
 
 // ============================================
@@ -53,6 +54,7 @@ export function useBooking() {
     metodoPago: 'efectivo',
     pasajeros: 1,
     equipaje: 0,
+    nota_conductor: '',
   });
 
   const [precioEstimado, setPrecioEstimado] = useState<number | null>(null);

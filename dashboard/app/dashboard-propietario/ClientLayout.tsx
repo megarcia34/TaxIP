@@ -1,23 +1,22 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { useSession, signOut } from 'next-auth/react'  // ✅ Agregar signOut
+import { useSession, signOut } from 'next-auth/react'
 import { propietarioAPI } from '@/lib/api'
-import { 
-  LayoutDashboard, 
-  Car, 
-  FileText, 
-  DollarSign, 
-  CreditCard, 
-  Wrench, 
+import {
+  LayoutDashboard,
+  Car,
+  FileText,
+  DollarSign,
+  CreditCard,
+  Wrench,
   BarChart,
   ChevronLeft,
   Users,
   Briefcase,
   Loader2,
-  LogOut,  // ✅ Agregar ícono de salir
+  LogOut,
 } from 'lucide-react'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -28,14 +27,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [propietarioNombre, setPropietarioNombre] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [isAdminView, setIsAdminView] = useState(false)
-
   const propietarioId = searchParams?.get('propietario_id')
   const user = session?.user
 
   // Manejar redirección al login
   useEffect(() => {
     if (status === 'loading') return
-    
     if (!session) {
       router.replace('/login')
       return
@@ -45,17 +42,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     const loadPropietario = async () => {
       if (!user) return
-      
+
       try {
-        if (user?.rol === 'admin' && propietarioId) {
+        if (user?.role === 'admin' && propietarioId) {
           setIsAdminView(true)
           const data = await propietarioAPI.getOne(propietarioId)
           setPropietarioNombre(data.nombre)
-        } else if (user?.rol === 'admin') {
+        } else if (user?.role === 'admin') {
           setIsAdminView(true)
           setPropietarioNombre('Selecciona un propietario')
-        } else if (user?.rol === 'propietario') {
-          setPropietarioNombre(user.nombre || 'Propietario')
+        } else if (user?.role === 'propietario') {
+          setPropietarioNombre(user.name || 'Propietario')
         }
       } catch (error) {
         console.error('Error cargando propietario:', error)
@@ -83,7 +80,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return null
   }
 
-  if (user.rol !== 'admin' && user.rol !== 'propietario') {
+  if (user.role !== 'admin' && user.role !== 'propietario') {
     router.replace('/')
     return null
   }
@@ -108,7 +105,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <header className="bg-white shadow-sm px-6 py-3 flex justify-between items-center border-b">
         <div className="flex items-center gap-4">
           {isAdminView && (
-            <button 
+            <button
               onClick={() => router.push('/')}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -120,12 +117,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <Briefcase className="h-5 w-5 text-primary" />
             <div>
               <h1 className="text-lg font-bold">
-                {isAdminView 
-                  ? `Propietario: ${propietarioNombre}` 
-                  : user?.rol === 'admin' 
-                    ? 'Módulo Propietarios' 
-                    : 'Mi Flota'
-                }
+                {isAdminView
+                  ? `Propietario: ${propietarioNombre}`
+                  : user?.role === 'admin'
+                  ? 'Módulo Propietarios'
+                  : 'Mi Flota'}
               </h1>
               <div className="flex items-center gap-2">
                 {isAdminView && propietarioId && (
@@ -133,12 +129,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     Vista Administrador
                   </span>
                 )}
-                {user?.rol === 'admin' && !propietarioId && (
+                {user?.role === 'admin' && !propietarioId && (
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                     Gestión de Propietarios
                   </span>
                 )}
-                {user?.rol === 'propietario' && (
+                {user?.role === 'propietario' && (
                   <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
                     Propietario
                   </span>
@@ -151,16 +147,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {user?.rol === 'admin' && (
-            <Link 
-              href="/admin/propietarios" 
+          {user?.role === 'admin' && (
+            <Link
+              href="/admin/propietarios"
               className="text-sm bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary/20 transition-colors flex items-center gap-2"
             >
               <Users className="h-4 w-4" />
               Gestionar Propietarios
             </Link>
           )}
-          {/* ✅ Botón de Cerrar Sesión en el Header */}
           <button
             onClick={handleLogout}
             className="text-sm text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors flex items-center gap-2"
@@ -178,9 +173,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               let href = item.href
               if (isAdminView && propietarioId) {
                 href = `${item.href}?propietario_id=${propietarioId}`
-              } else if (user?.rol === 'admin' && !propietarioId) {
+              } else if (user?.role === 'admin' && !propietarioId) {
                 href = item.href
-              } else if (user?.rol === 'propietario') {
+              } else if (user?.role === 'propietario') {
                 href = item.href
               }
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -189,8 +184,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   key={item.href}
                   href={href}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    isActive 
-                      ? 'bg-primary text-primary-foreground' 
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-gray-100'
                   }`}
                 >
@@ -200,8 +195,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               )
             })}
           </nav>
-
-          {/* ✅ Botón de Cerrar Sesión en el Sidebar (al final) */}
           <div className="border-t pt-4 mt-4">
             <button
               onClick={handleLogout}

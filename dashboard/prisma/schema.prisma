@@ -31,6 +31,8 @@ model vehiculo {
   created_at      DateTime?         @default(now()) @db.Timestamp
   control_base    control_base?     @relation(fields: [control_base_id], references: [id])
   chofer_vehiculo chofer_vehiculo[]
+  // ✅ CORREGIDO: Relación inversa hacia viaje_solicitado
+  viaje_solicitado viaje_solicitado[]
 }
 
 model chofer_vehiculo {
@@ -65,7 +67,7 @@ model usuario {
 
 model perfil_general {
   id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  usuario_id      String?   @db.Uuid
+  usuario_id      String?   @unique @db.Uuid
   nombre          String?   @db.VarChar
   apellido        String?   @db.VarChar
   telefono        String?   @db.VarChar

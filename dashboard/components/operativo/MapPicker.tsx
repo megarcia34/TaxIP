@@ -143,7 +143,11 @@ export function MapPicker({
         avoidHighways: false,
       };
 
-      try {
+            try {
+        if (!directionsServiceRef.current) {
+          console.error("⚠️ El servicio de direcciones no está inicializado");
+          return;
+        }
         const result = await directionsServiceRef.current.route(request);
 
         if (result.routes && result.routes.length > 0) {

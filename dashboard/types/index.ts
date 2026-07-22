@@ -4,15 +4,28 @@ export interface User {
   id: string
   email: string
   nombre: string
-  rol: string  // ← CAMBIADO: acepta cualquier string (admin, operador, propietario, empleado, pasajero)
+  rol: string  // admin, operador, propietario, empleado, pasajero
   telefono?: string
   foto?: string
   accessToken?: string
   refreshToken?: string
   totalVehiculos?: number
   vehiculos?: Vehiculo[]
-  empresaNombre?: string  // ← NUEVO: para empleados
-  empresaId?: string      // ← NUEVO: para empleados
+  empresaNombre?: string
+  empresaId?: string
+  
+  // ✅ Propiedades de NextAuth (por compatibilidad)
+  name?: string
+  role?: string
+  image?: string | null
+  
+  // ✅ Propiedades faltantes que causaron los errores
+  control_base_id?: string | null
+  controlBaseId?: string | null
+  tipo_usuario?: string
+  
+  // ✅ CORREGIDO: Acepta cualquier estructura de configuración del backend (incluyendo null o undefined)
+  tenantConfig?: any
 }
 
 export interface Chofer {
@@ -147,7 +160,6 @@ export interface ConfiguracionTarifas {
 }
 
 // ========== NUEVOS TIPOS PARA PROPIETARIOS ==========
-
 export interface Propietario {
   id: string
   usuario_id: string

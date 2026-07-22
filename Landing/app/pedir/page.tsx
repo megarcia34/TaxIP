@@ -167,7 +167,7 @@ export default function PedirPage() {
     if (routeDistanceKm !== null) {
       actualizarPrecioConRutaReal(routeDistanceKm);
     }
-  }, [formData.tipoVehiculo]);
+  }, [formData.tipoVehiculo, routeDistanceKm, actualizarPrecioConRutaReal]);
 
   // ============================================
   // CARGAR GOOGLE MAPS
@@ -233,9 +233,9 @@ export default function PedirPage() {
   }, [formData.destino, mapsLoaded]);
 
   // ============================================
-  // VALIDAR EMAIL
+  // VALIDAR EMAIL (RETORNA BOOLEANO DIRECTO)
   // ============================================
-  const validarEmail = useCallback(async (email: string) => {
+  const validarEmail = useCallback(async (email: string): Promise<boolean> => {
     if (!email || email.trim() === '') {
       setEmailValid(null);
       setEmailError(null);
@@ -243,7 +243,7 @@ export default function PedirPage() {
       setEmailValidationDetails(null);
       setEmailValidating(false);
       isEmailValidatingRef.current = false;
-      return;
+      return true; // Email opcional vacío se considera válido
     }
 
     if (!email.includes('@') || !email.includes('.')) {
@@ -253,7 +253,7 @@ export default function PedirPage() {
       setEmailValidationDetails(null);
       setEmailValidating(false);
       isEmailValidatingRef.current = false;
-      return;
+      return false;
     }
 
     const cacheKey = `email_valid_${email}`;
@@ -268,14 +268,17 @@ export default function PedirPage() {
             setEmailValid(true);
             setEmailError(null);
             setEmailWarning(null);
+            setEmailValidating(false);
+            isEmailValidatingRef.current = false;
+            return true;
           } else {
             setEmailValid(false);
             setEmailError(data.reason || 'Email inválido');
             setEmailWarning(`❌ ${data.reason || 'Email inválido'}`);
+            setEmailValidating(false);
+            isEmailValidatingRef.current = false;
+            return false;
           }
-          setEmailValidating(false);
-          isEmailValidatingRef.current = false;
-          return;
         }
       }
     } catch (e) {}
@@ -307,6 +310,7 @@ export default function PedirPage() {
         setEmailValid(true);
         setEmailError(null);
         setEmailWarning(null);
+        return true;
       } else {
         setEmailValid(false);
         let errorMsg = data.reason || 'Email inválido';
@@ -320,6 +324,7 @@ export default function PedirPage() {
         }
         setEmailError(errorMsg);
         setEmailWarning(`❌ ${errorMsg}`);
+        return false;
       }
     } catch (err: any) {
       console.error('Error validando email:', err);
@@ -334,6 +339,7 @@ export default function PedirPage() {
       }
       setEmailError(errorMsg);
       setEmailWarning(errorMsg);
+      return false;
     } finally {
       setEmailValidating(false);
       isEmailValidatingRef.current = false;
@@ -442,9 +448,11 @@ export default function PedirPage() {
         setEmailError('⏳ Esperando verificación del email...');
         return;
       }
-      if (emailValid !== true) {
-        await validarEmail(formData.email);
-        if (emailValid !== true) {
+      
+      // Usamos el resultado booleano directo de validarEmail
+      if (!emailValid) {
+        const esEmailValido = await validarEmail(formData.email);
+        if (!esEmailValido) {
           setEmailError('Email inválido. Por favor, verifica la dirección.');
           return;
         }

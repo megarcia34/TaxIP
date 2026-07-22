@@ -7,7 +7,7 @@ import { Button } from "../ui/Button";
 
 export function Download() {
   return (
-    <Section background="secondary" padding="default">
+    <Section background="gray" padding="default">
       <Container>
         <motion.div
           initial={{ opacity: 0, y: 20 }}

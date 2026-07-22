@@ -96,7 +96,7 @@ export function AddressAutocomplete({
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode(
         { location: { lat: initialLat, lng: initialLng } },
-        (results, status) => {
+        (results: google.maps.GeocoderResult[], status: google.maps.GeocoderStatus) => {
           setIsLoading(false);
           if (status === 'OK' && results?.[0]) {
             const address = results[0].formatted_address;

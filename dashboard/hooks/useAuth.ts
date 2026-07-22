@@ -1,10 +1,8 @@
 'use client'
-
 import { useSession } from 'next-auth/react'
 import { useAuthStore } from '@/store/authStore'
 import { useEffect } from 'react'
 
-// ✅ Interface extendida para tenantConfig
 export interface TenantConfig {
   modo_calculo: string;
   moneda: string;
@@ -15,7 +13,6 @@ export interface TenantConfig {
   recargo_domingo: number;
 }
 
-// ✅ Función para cargar configuración del tenant
 async function loadTenantConfig(accessToken: string): Promise<TenantConfig | null> {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/admin/tarifas/mi-tenant`, {
@@ -24,12 +21,7 @@ async function loadTenantConfig(accessToken: string): Promise<TenantConfig | nul
         'Content-Type': 'application/json',
       },
     });
-    
-    if (!response.ok) {
-      console.warn('No se pudo cargar configuración del tenant:', response.status);
-      return null;
-    }
-    
+    if (!response.ok) return null;
     const data = await response.json();
     return {
       modo_calculo: data.modo_calculo,
@@ -41,7 +33,6 @@ async function loadTenantConfig(accessToken: string): Promise<TenantConfig | nul
       recargo_domingo: data.recargo_domingo,
     };
   } catch (error) {
-    console.warn('Error cargando configuración del tenant:', error);
     return null;
   }
 }
@@ -52,36 +43,18 @@ export function useAuth() {
 
   useEffect(() => {
     if (session?.user) {
-      console.log('🔐 [useAuth] Session user:', session.user)
-      console.log('🔐 [useAuth] Role:', session.user.role)
-      
       const role = session.user.role?.toLowerCase()
-      let empresaNombre = session.user.empresaNombre
-      let empresaId = session.user.empresaId
-
-      // ✅ Obtener control_base_id de la sesión (con fallback)
       const controlBaseId = session.user.controlBaseId || session.user.control_base_id || null
 
-      // Si es empleado y no tiene empresa, obtenerla
-      if (role === 'empleado' && !empresaNombre) {
+      if (role === 'empleado' && !session.user.empresaNombre) {
         fetch('/api/empresa/mi-empresa', {
-          headers: {
-            Authorization: `Bearer ${session.user.accessToken}`
-          }
+          headers: { Authorization: `Bearer ${session.user.accessToken}` }
         })
-          .then(res => {
-            if (res.ok) {
-              return res.json()
-            }
-            return null
-          })
+          .then(res => res.ok ? res.json() : null)
           .then(async (data) => {
             let tenantConfig = undefined;
-            // ✅ Usar controlBaseId en lugar de session.user?.controlBaseId
-            if (role === 'admin' && controlBaseId) {
-              tenantConfig = await loadTenantConfig(session.user.accessToken);
-            }
-
+            if (controlBaseId) tenantConfig = await loadTenantConfig(session.user.accessToken);
+            
             setUser({
               id: session.user.id,
               email: session.user.email || '',
@@ -91,20 +64,16 @@ export function useAuth() {
               refreshToken: session.user.refreshToken,
               totalVehiculos: session.user.totalVehiculos,
               vehiculos: session.user.vehiculos,
-              // ✅ Asignar control_base_id correctamente
               control_base_id: controlBaseId,
               empresaNombre: data?.nombre ?? session.user.empresaNombre ?? undefined,
               empresaId: data?.id ?? session.user.empresaId ?? undefined,
-              tenantConfig: tenantConfig,
+              tenantConfig: tenantConfig ?? undefined, // ✅ CORREGIDO
             })
           })
           .catch(async () => {
             let tenantConfig = undefined;
-            // ✅ Usar controlBaseId en lugar de session.user?.controlBaseId
-            if (role === 'admin' && controlBaseId) {
-              tenantConfig = await loadTenantConfig(session.user.accessToken);
-            }
-
+            if (controlBaseId) tenantConfig = await loadTenantConfig(session.user.accessToken);
+            
             setUser({
               id: session.user.id,
               email: session.user.email || '',
@@ -114,22 +83,18 @@ export function useAuth() {
               refreshToken: session.user.refreshToken,
               totalVehiculos: session.user.totalVehiculos,
               vehiculos: session.user.vehiculos,
-              // ✅ Asignar control_base_id correctamente
               control_base_id: controlBaseId,
               empresaNombre: session.user.empresaNombre ?? undefined,
               empresaId: session.user.empresaId ?? undefined,
-              tenantConfig: tenantConfig,
+              tenantConfig: tenantConfig ?? undefined, // ✅ CORREGIDO
             })
           })
       } else {
-        // ✅ Si es Admin Tenant, cargar configuración
         const loadConfig = async () => {
           let tenantConfig = undefined;
-          // ✅ Usar controlBaseId en lugar de session.user?.controlBaseId
           if (role === 'admin' && controlBaseId) {
             tenantConfig = await loadTenantConfig(session.user.accessToken);
           }
-
           setUser({
             id: session.user.id,
             email: session.user.email || '',
@@ -139,11 +104,10 @@ export function useAuth() {
             refreshToken: session.user.refreshToken,
             totalVehiculos: session.user.totalVehiculos,
             vehiculos: session.user.vehiculos,
-            // ✅ Asignar control_base_id correctamente
             control_base_id: controlBaseId,
             empresaNombre: session.user.empresaNombre ?? undefined,
             empresaId: session.user.empresaId ?? undefined,
-            tenantConfig: tenantConfig,
+            tenantConfig: tenantConfig ?? undefined, // ✅ CORREGIDO
           })
         };
         loadConfig();

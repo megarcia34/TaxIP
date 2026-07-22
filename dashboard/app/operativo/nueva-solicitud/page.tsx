@@ -498,7 +498,15 @@ useEffect(() => {
                   <Label className="text-sm font-medium">Paradas intermedias (opcional)</Label>
                   <WaypointList
                     waypoints={paradas}
-                    onChange={setParadas}
+                    onChange={(waypoints) => {
+                     setParadas(
+                      waypoints.map((wp) => ({
+                       lat: wp.lat ?? 0,
+                       lng: wp.lng ?? 0,
+                       address: wp.address ?? '',
+                      }))
+                     )
+                    }}
                     maxWaypoints={5}
                     disabled={!turnoActivo}
                   />

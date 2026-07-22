@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { controlBaseAPI } from '@/lib/api'
@@ -32,12 +31,10 @@ const loadGoogleMaps = (apiKey: string): Promise<void> => {
       resolve()
       return
     }
-
     if (googleMapsLoading) {
       googleMapsCallbacks.push(resolve)
       return
     }
-
     googleMapsLoading = true
     googleMapsCallbacks.push(resolve)
 
@@ -62,11 +59,13 @@ const loadGoogleMaps = (apiKey: string): Promise<void> => {
 
 export function MapSimple() {
   console.log('🗺️ [MapSimple] Componente renderizado')
-
-  const mapContainer = useRef<HTMLDivElement>(null)
+  
+  // ✅ CORRECCIÓN: Agregar | null al tipo genérico
+  const mapContainer = useRef<HTMLDivElement | null>(null)
   const map = useRef<google.maps.Map | null>(null)
   const markers = useRef<google.maps.Marker[]>([])
   const infoWindows = useRef<google.maps.InfoWindow[]>([])
+  
   const { status } = useSession()
   const [choferes, setChoferes] = useState<ChoferOnline[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,7 +79,6 @@ export function MapSimple() {
       console.error('❌ Google Maps API Key no configurada')
       return
     }
-
     loadGoogleMaps(apiKey).then(() => {
       console.log('✅ Google Maps API cargada')
       setScriptReady(true)
@@ -160,7 +158,6 @@ export function MapSimple() {
           position: google.maps.ControlPosition.RIGHT_TOP,
         },
       })
-
       console.log('✅ Mapa inicializado correctamente')
     } catch (error) {
       console.error('❌ Error al crear el mapa:', error)
@@ -176,6 +173,7 @@ export function MapSimple() {
     if (!map.current || !containerReady || !scriptReady) return
 
     const mapInstance = map.current
+
     console.log(`📍 Actualizando ${choferes.length} choferes...`)
 
     // Cerrar y eliminar InfoWindows viejos
@@ -190,8 +188,8 @@ export function MapSimple() {
     let count = 0
     choferes.forEach((chofer) => {
       if (!chofer.latitud || !chofer.longitud) return
-
       count++
+
       const position = {
         lat: Number(chofer.latitud),
         lng: Number(chofer.longitud),
@@ -231,7 +229,6 @@ export function MapSimple() {
         ? '<span style="background: #dcfce7; color: #166534; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500;">🟢 Libre</span>'
         : '<span style="background: #fef9c3; color: #854d0e; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500;">🟡 Ocupado</span>'
 
-      // ✅ POPUP CORREGIDO - SIN ENLACE A PERFIL
       const htmlContent = `
         <div style="padding: 8px; min-width: 220px; max-width: 280px; font-family: system-ui, -apple-system, sans-serif;">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
@@ -245,14 +242,11 @@ export function MapSimple() {
               </div>
             </div>
           </div>
-
           <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
             ${estadoBadge}
             <span style="background: #f3f4f6; padding: 2px 10px; border-radius: 9999px; font-size: 11px; color: #374151;">🚗 ${chofer.patente || 'Sin vehículo'}</span>
           </div>
-
           ${chofer.modelo ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">📐 ${chofer.modelo}</div>` : ''}
-
           <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 10px; color: #9ca3af;">ID: ${chofer.id.slice(0, 8)}</span>
             <span style="font-size: 10px; color: #9ca3af;">${isLibre ? '🟢 Disponible' : '🟡 En viaje'}</span>
@@ -269,7 +263,6 @@ export function MapSimple() {
         // Cerrar todos los InfoWindows abiertos
         infoWindows.current.forEach(iw => iw.close())
         infoWindows.current = []
-
         infoWindow.open(mapInstance, marker)
         infoWindows.current.push(infoWindow)
       })
@@ -293,18 +286,19 @@ export function MapSimple() {
 
   return (
     <div className="relative w-full h-full" style={{ minHeight: '500px', width: '100%' }}>
-      <div 
+      <div
         ref={setMapContainerRef}
-        className="w-full h-full" 
-        style={{ 
+        className="w-full h-full"
+        style={{
           height: '500px',
           width: '100%',
           minHeight: '500px',
           backgroundColor: '#e8e8e8',
           position: 'relative',
           display: 'block',
-        }} 
+        }}
       />
+      
       {/* Leyenda */}
       <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-3 text-xs">
         <div className="flex items-center gap-3">

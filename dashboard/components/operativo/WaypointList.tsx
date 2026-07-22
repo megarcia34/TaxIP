@@ -1,7 +1,5 @@
 // D:\ataxip\dashboard\components\operativo\WaypointList.tsx
-
 'use client';
-
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AddressAutocomplete } from './AddressAutocomplete';
@@ -28,7 +26,6 @@ interface WaypointListProps {
 
 /**
  * Lista dinámica de paradas intermedias
- * 
  * Características:
  * - Agregar hasta N paradas (máx 5)
  * - Eliminar paradas
@@ -96,7 +93,12 @@ export function WaypointList({
           <div className="flex-1">
             <AddressAutocomplete
               placeholder={`Parada ${index + 1}`}
-              defaultValue={waypoint.address}
+              value={waypoint.address}
+              onChange={(address) => {
+                const newWaypoints = [...waypoints];
+                newWaypoints[index] = { ...newWaypoints[index], address };
+                onChange(newWaypoints);
+              }}
               initialLat={waypoint.lat}
               initialLng={waypoint.lng}
               onSelect={(address, lat, lng) => {
@@ -132,7 +134,6 @@ export function WaypointList({
         <Plus className="h-4 w-4 mr-2" />
         Agregar parada {waypoints.length >= maxWaypoints && '(máximo alcanzado)'}
       </Button>
-
       <p className="text-xs text-gray-400">
         {waypoints.length} de {maxWaypoints} paradas {waypoints.length >= maxWaypoints && '(máximo alcanzado)'}
       </p>

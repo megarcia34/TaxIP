@@ -13,9 +13,9 @@ declare module 'next-auth' {
     empresaNombre?: string | null
     empresaId?: string | null
     image?: string | null
-    // ✅ NUEVO: control_base_id para Admin Tenant
     controlBaseId?: string | null
     control_base_id?: string | null
+    tipo_usuario?: string // ✅ AGREGADO: Para el Sidebar
   }
 
   interface Session {
@@ -31,9 +31,9 @@ declare module 'next-auth' {
       empresaNombre?: string | null
       empresaId?: string | null
       image?: string | null
-      // ✅ NUEVO: control_base_id para Admin Tenant
       controlBaseId?: string | null
       control_base_id?: string | null
+      tipo_usuario?: string // ✅ AGREGADO: Para el Sidebar
     }
   }
 }
@@ -51,8 +51,8 @@ declare module 'next-auth/jwt' {
     empresaNombre?: string | null
     empresaId?: string | null
     image?: string | null
-    // ✅ NUEVO: control_base_id para Admin Tenant
     controlBaseId?: string | null
     control_base_id?: string | null
+    tipo_usuario?: string // ✅ AGREGADO: Para el Sidebar
   }
 }
