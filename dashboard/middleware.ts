@@ -19,9 +19,9 @@ export default withAuth(
 
     // Proteger rutas de empresa/admin tenant
     if (
-      path.startsWith('/dashboard-empresa') && 
-      role !== 'admin' && 
-      role !== 'admin_tenant' && 
+      path.startsWith('/dashboard-empresa') &&
+      role !== 'admin' &&
+      role !== 'admin_tenant' &&
       role !== 'admin_empresa'
     ) {
       return redirectByRole(role, req.url)
@@ -29,8 +29,8 @@ export default withAuth(
 
     // Proteger rutas de propietario
     if (
-      path.startsWith('/dashboard-propietario') && 
-      role !== 'propietario' && 
+      path.startsWith('/dashboard-propietario') &&
+      role !== 'propietario' &&
       role !== 'admin_propietario'
     ) {
       return redirectByRole(role, req.url)
@@ -38,8 +38,8 @@ export default withAuth(
 
     // Proteger rutas de operativo (empleados y choferes)
     if (
-      path.startsWith('/operativo') && 
-      role !== 'empleado' && 
+      path.startsWith('/operativo') &&
+      role !== 'empleado' &&
       role !== 'chofer'
     ) {
       return redirectByRole(role, req.url)
@@ -50,7 +50,9 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        if (req.nextUrl.pathname === '/login') return true
+        const path = req.nextUrl.pathname
+        if (path === '/login') return true
+        if (path.startsWith('/registro')) return true
         return !!token
       },
     },
@@ -63,7 +65,7 @@ export default withAuth(
 function redirectByRole(role: string, baseUrl: string) {
   const roleMap: Record<string, string> = {
     super_admin: '/super-admin',
-    admin: '/dashboard-empresa',         // Coincide con 'admin' de auth.tipo_usuario
+    admin: '/dashboard-empresa',
     admin_tenant: '/dashboard-empresa',
     admin_empresa: '/dashboard-empresa',
     admin_propietario: '/dashboard-propietario',
@@ -80,6 +82,7 @@ export const config = {
   matcher: [
     '/',
     '/login',
+    '/registro/:path*',
     '/super-admin/:path*',
     '/dashboard-empresa/:path*',
     '/dashboard-propietario/:path*',

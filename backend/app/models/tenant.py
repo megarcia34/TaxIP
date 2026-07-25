@@ -24,8 +24,14 @@ class ControlBase(Base):
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     email: Mapped[str] = mapped_column(String(150), nullable=True)
     telefono: Mapped[str] = mapped_column(String(50), nullable=True)
-    latitud: Mapped[str] = mapped_column(String(50), nullable=True)
-    longitud: Mapped[str] = mapped_column(String(50), nullable=True)
+    direccion: Mapped[str] = mapped_column(String(255), nullable=True)  # ✅ NUEVO
+    latitud: Mapped[str] = mapped_column(String(50), nullable=True)    # Cambiado a String por compatibilidad
+    longitud: Mapped[str] = mapped_column(String(50), nullable=True)   # Cambiado a String por compatibilidad
+    ciudad_id: Mapped[uuid.UUID] = mapped_column(                      # ✅ NUEVO
+        UUID(as_uuid=True),
+        ForeignKey("geo.ciudad.id", ondelete="SET NULL"),
+        nullable=True
+    )
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(
@@ -33,25 +39,31 @@ class ControlBase(Base):
         default=datetime.now,
         onupdate=datetime.now
     )
+    fecha_suspension: Mapped[datetime] = mapped_column(DateTime, nullable=True)    # ✅ NUEVO
+    motivo_suspension: Mapped[str] = mapped_column(String(255), nullable=True)     # ✅ NUEVO
+    suspendido_por: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=True)  # ✅ NUEVO
 
     # Relationships
-    # NOTA: Las relaciones inversas a modelos de dominio (Usuario, Vehiculo, 
-    # ChoferVehiculo, ViajeSolicitado, ConfiguracionTarifa) se eliminan 
+    # NOTA: Las relaciones inversas a modelos de dominio se eliminan 
     # para evitar ciclos de mapeo en SQLAlchemy.
     # Las consultas se hacen explicitamente desde los modelos de dominio.
-    # 
-    # Ejemplo: db.query(Usuario).filter(Usuario.control_base_id == cb.id)
     
     configuracion: Mapped["Configuracion"] = relationship(
         back_populates="control_base",
         uselist=False,
         lazy="selectin"
     )
+    
+    # ✅ NUEVA RELACIÓN CON CIUDAD
+    ciudad: Mapped["Ciudad"] = relationship(
+        "Ciudad",
+        lazy="selectin"
+    )
 
 
 class Configuracion(Base):
     """Tenant configuration (currency, timezone, features)"""
-    __tablename__ = "configuracion_tenant"  # ← CORREGIDO: era "configuracion"
+    __tablename__ = "configuracion_tenant"
     __table_args__ = {"schema": "tenant"}
 
     id: Mapped[uuid.UUID] = mapped_column(

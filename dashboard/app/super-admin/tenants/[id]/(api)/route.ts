@@ -7,6 +7,7 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+export const dynamic = 'force-dynamic';
 // GET: Obtener detalle de un Tenant específico
 export async function GET(
   request: NextRequest,
@@ -258,5 +259,234 @@ export async function DELETE(
   } catch (error) {
     console.error('Error managing tenant:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+// ============================================================
+// POST: Crear un nuevo Tenant (con ciudad y código postal)
+// ============================================================
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const user = session.user as any;
+    if (user.tipo_usuario !== 'super_admin') {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { 
+      nombre, 
+      email, 
+      telefono, 
+      direccion, 
+      latitud, 
+      longitud,
+      ciudad_nombre,   // ✅ NUEVO
+      codigo_postal    // ✅ NUEVO
+    } = body;
+
+    // Validaciones básicas
+    if (!nombre || !email || !ciudad_nombre) {
+      return NextResponse.json(
+        { error: 'Nombre, Email y Ciudad son obligatorios' }, 
+        { status: 400 }
+      );
+    }
+
+    const client = await pool.connect();
+    try {
+      // 1. Verificar que el nombre del tenant no exista
+      const checkTenant = await client.query(
+        'SELECT id FROM tenant.control_base WHERE nombre = $1',
+        [nombre]
+      );
+      if (checkTenant.rows.length > 0) {
+        return NextResponse.json(
+          { error: `Ya existe un tenant con el nombre '${nombre}'` },
+          { status: 400 }
+        );
+      }
+
+      // 2. Verificar que el email no esté registrado como usuario
+      const checkEmail = await client.query(
+        'SELECT id FROM auth.usuario WHERE email = $1',
+        [email]
+      );
+      if (checkEmail.rows.length > 0) {
+        return NextResponse.json(
+          { error: `El email '${email}' ya está registrado como usuario` },
+          { status: 400 }
+        );
+      }
+
+      // 3. Validar o crear la ciudad
+      // Buscar ciudad por nombre (insensible a mayúsculas)
+      let ciudadResult = await client.query(
+        `SELECT id, nombre, codigo_postal 
+         FROM geo.ciudad 
+         WHERE nombre ILIKE $1
+         LIMIT 1`,
+        [ciudad_nombre.trim()]
+      );
+
+      let ciudadId: string;
+      let ciudadNombre: string;
+      let ciudadCodigoPostal: string | null = codigo_postal || null;
+
+      if (ciudadResult.rows.length === 0) {
+        // Crear la ciudad
+        const newCiudad = await client.query(
+          `INSERT INTO geo.ciudad (id, nombre, codigo_postal)
+           VALUES (gen_random_uuid(), $1, $2)
+           RETURNING id, nombre, codigo_postal`,
+          [ciudad_nombre.trim(), codigo_postal || null]
+        );
+        ciudadId = newCiudad.rows[0].id;
+        ciudadNombre = newCiudad.rows[0].nombre;
+        ciudadCodigoPostal = newCiudad.rows[0].codigo_postal;
+      } else {
+        ciudadId = ciudadResult.rows[0].id;
+        ciudadNombre = ciudadResult.rows[0].nombre;
+        // Si la ciudad ya existe pero no tiene código postal, actualizarlo
+        if (codigo_postal && !ciudadResult.rows[0].codigo_postal) {
+          await client.query(
+            'UPDATE geo.ciudad SET codigo_postal = $1 WHERE id = $2',
+            [codigo_postal, ciudadId]
+          );
+          ciudadCodigoPostal = codigo_postal;
+        } else {
+          ciudadCodigoPostal = ciudadResult.rows[0].codigo_postal;
+        }
+      }
+
+      // 4. Crear el tenant
+      const tenantResult = await client.query(
+        `INSERT INTO tenant.control_base (
+          id, nombre, email, telefono, direccion, 
+          latitud, longitud, ciudad_id, activo,
+          created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4,
+          $5, $6, $7, true,
+          NOW(), NOW()
+        )
+        RETURNING id, nombre`,
+        [
+          nombre,
+          email,
+          telefono || null,
+          direccion || null,
+          latitud || null,
+          longitud || null,
+          ciudadId
+        ]
+      );
+
+      const tenantId = tenantResult.rows[0].id;
+      const tenantNombre = tenantResult.rows[0].nombre;
+
+      // 5. Obtener el ID del tipo 'admin_tenant'
+      let tipoResult = await client.query(
+        `SELECT id FROM auth.tipo_usuario WHERE nombre = 'admin_tenant'`
+      );
+      
+      let tipoAdminTenantId: string;
+      if (tipoResult.rows.length === 0) {
+        // Crear el tipo si no existe
+        const newTipo = await client.query(
+          `INSERT INTO auth.tipo_usuario (id, nombre)
+           VALUES (gen_random_uuid(), 'admin_tenant')
+           ON CONFLICT (nombre) DO NOTHING
+           RETURNING id`
+        );
+        tipoAdminTenantId = newTipo.rows[0]?.id || 
+          (await client.query(`SELECT id FROM auth.tipo_usuario WHERE nombre = 'admin_tenant'`)).rows[0].id;
+      } else {
+        tipoAdminTenantId = tipoResult.rows[0].id;
+      }
+
+      // 6. Generar contraseña temporal
+      const { randomBytes } = await import('crypto');
+      const tempPassword = randomBytes(8).toString('hex').slice(0, 12);
+      
+      // Hash de la contraseña (usando bcrypt)
+      const bcrypt = await import('bcryptjs');
+      const passwordHash = bcrypt.hashSync(tempPassword, 10);
+
+      // 7. Crear usuario admin_tenant
+      const userResult = await client.query(
+        `INSERT INTO auth.usuario (
+          id, control_base_id, tipo_usuario_id, email, password_hash, activo,
+          created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, true,
+          NOW(), NOW()
+        )
+        RETURNING id`,
+        [tenantId, tipoAdminTenantId, email, passwordHash]
+      );
+
+      const adminUserId = userResult.rows[0].id;
+
+      // 8. Crear perfil del admin_tenant
+      await client.query(
+        `INSERT INTO auth.perfil_general (
+          id, usuario_id, nombre, apellido, telefono, created_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, 'Admin', 'Tenant', $2, NOW()
+        )`,
+        [adminUserId, telefono || null]
+      );
+
+      // 9. Crear configuración por defecto del tenant
+      await client.query(
+        `INSERT INTO tenant.configuracion_tenant (
+          id, control_base_id, moneda_default, timezone, idioma,
+          habilitar_fidelizacion, habilitar_pagos_online, created_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, 'ARS', 'America/Argentina/Tucuman', 'es',
+          false, true, NOW()
+        )`,
+        [tenantId]
+      );
+
+      await client.query('COMMIT');
+
+      return NextResponse.json({
+        success: true,
+        tenant_id: tenantId,
+        tenant_nombre: tenantNombre,
+        ciudad_id: ciudadId,
+        ciudad_nombre: ciudadNombre,
+        ciudad_codigo_postal: ciudadCodigoPostal,
+        admin_email: email,
+        temp_password: tempPassword,
+        message: 'Tenant creado exitosamente'
+      }, { status: 201 });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error creating tenant:', error);
+      return NextResponse.json(
+        { error: 'Error al crear el tenant' },
+        { status: 500 }
+      );
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error in POST /api/super-admin/tenants:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
 }

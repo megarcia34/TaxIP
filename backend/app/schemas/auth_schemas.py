@@ -54,7 +54,6 @@ class LoginResponse(BaseModel):
     email: str
     tipo_usuario: str
     nombre_completo: Optional[str] = None
-    # ✅ NUEVO: control_base_id para Admin Tenant
     control_base_id: Optional[str] = None
 
 
@@ -169,3 +168,43 @@ class PropietarioLoginResponse(BaseModel):
     tiene_vehiculos_activos: bool
     total_vehiculos: int
     vehiculos: Optional[List[OwnerVehiculoInfo]] = None
+
+
+# ============================================
+# REGISTRO DE PROPIETARIO (con ciudad)
+# ============================================
+
+class RegistroPropietarioRequest(BaseModel):
+    """Request para registro de propietario con ciudad"""
+    nombre: str = Field(..., min_length=2, max_length=100, description="Nombre del propietario")
+    apellido: str = Field(..., min_length=2, max_length=100, description="Apellido del propietario")
+    email: EmailStr = Field(..., description="Email de acceso")
+    password: str = Field(..., min_length=6, description="Contraseña (mínimo 6 caracteres)")
+    telefono: Optional[str] = Field(None, description="Teléfono de contacto")
+    ciudad_id: UUID = Field(..., description="ID de la ciudad seleccionada")
+    acepta_terminos: bool = Field(..., description="Debe aceptar los términos")
+    
+    @field_validator("password")
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError("La contraseña debe tener al menos 6 caracteres")
+        return v
+    
+    @field_validator("acepta_terminos")
+    def validate_terminos(cls, v):
+        if not v:
+            raise ValueError("Debes aceptar los términos y condiciones")
+        return v
+
+
+class RegistroPropietarioResponse(BaseModel):
+    """Response para registro de propietario"""
+    success: bool
+    user_id: UUID
+    email: str
+    ciudad_id: UUID
+    ciudad_nombre: str
+    tenant_id: UUID
+    tenant_nombre: str
+    message: str
+    first_login: bool = True

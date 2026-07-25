@@ -41,11 +41,17 @@ from app.schemas.auth_schemas import (
     CambiarContraseniaRequest,
     CambiarContraseniaResponse,
     UserMeResponse,
-    PropietarioLoginResponse
+    PropietarioLoginResponse,
+    RegistroPropietarioRequest,
+    RegistroPropietarioResponse,
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
+
+# ============================================
+# REGISTRO GENÉRICO
+# ============================================
 
 @router.post("/registro", response_model=RegistroResponse)
 async def registrar_usuario(
@@ -131,6 +137,172 @@ async def registrar_usuario(
         message=f"Usuario {request.tipo} registrado exitosamente"
     )
 
+
+# ============================================
+# REGISTRO DE PROPIETARIO (MOVIDO AQUÍ)
+# ============================================
+
+@router.post("/registro/propietario", response_model=RegistroPropietarioResponse)
+async def registrar_propietario(
+    request: RegistroPropietarioRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Registro de un nuevo propietario con selección de ciudad.
+    - Valida que la ciudad exista y tenga tenant activo
+    - Asigna control_base_id = tenant asociado a la ciudad
+    - Crea usuario, perfil y wallet
+    """
+    
+    print("=" * 60)
+    print("🔍 [REGISTRO PROPIETARIO] INICIANDO REGISTRO")
+    print(f"📧 Email: {request.email}")
+    print(f"🏙️ Ciudad ID: {request.ciudad_id}")
+    print("=" * 60)
+    
+    # 1. Validar email único
+    print("📌 [PASO 1] Verificando email único...")
+    check_email = text("SELECT id FROM auth.usuario WHERE email = :email")
+    result = await db.execute(check_email, {"email": request.email})
+    if result.first():
+        print("❌ [PASO 1] Email ya registrado:", request.email)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El email ya está registrado"
+        )
+    print("✅ [PASO 1] Email disponible")
+    
+    # 2. Validar que la ciudad existe y tiene tenant activo
+    print("📌 [PASO 2] Validando ciudad y tenant...")
+    ciudad_query = text("""
+        SELECT 
+            c.id as ciudad_id,
+            c.nombre as ciudad_nombre,
+            cb.id as tenant_id,
+            cb.nombre as tenant_nombre
+        FROM geo.ciudad c
+        INNER JOIN tenant.control_base cb ON cb.ciudad_id = c.id
+        WHERE c.id = :ciudad_id AND cb.activo = true
+    """)
+    
+    result = await db.execute(ciudad_query, {"ciudad_id": request.ciudad_id})
+    ciudad_row = result.first()
+    
+    if not ciudad_row:
+        print("❌ [PASO 2] Ciudad no encontrada o sin tenant activo:", request.ciudad_id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La ciudad seleccionada no está disponible o no tiene un tenant activo"
+        )
+    
+    ciudad_id = ciudad_row[0]
+    ciudad_nombre = ciudad_row[1]
+    tenant_id = ciudad_row[2]
+    tenant_nombre = ciudad_row[3]
+    print(f"✅ [PASO 2] Ciudad válida: {ciudad_nombre} (ID: {ciudad_id})")
+    print(f"✅ [PASO 2] Tenant asociado: {tenant_nombre} (ID: {tenant_id})")
+    
+    # 3. Obtener ID del tipo 'propietario'
+    print("📌 [PASO 3] Obteniendo tipo de usuario 'propietario'...")
+    tipo_query = text("SELECT id FROM auth.tipo_usuario WHERE nombre = 'propietario'")
+    result = await db.execute(tipo_query)
+    tipo_row = result.first()
+    
+    if not tipo_row:
+        print("❌ [PASO 3] Tipo 'propietario' no encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de usuario 'propietario' no encontrado"
+        )
+    
+    tipo_propietario_id = tipo_row[0]
+    print(f"✅ [PASO 3] Tipo propietario encontrado (ID: {tipo_propietario_id})")
+    
+    # 4. Hash de la contraseña
+    print("📌 [PASO 4] Generando hash de contraseña...")
+    password_hash = get_password_hash(request.password)
+    print("✅ [PASO 4] Hash generado correctamente")
+    
+    # 5. Crear usuario
+    print("📌 [PASO 5] Creando usuario en la base de datos...")
+    user_id = uuid_lib.uuid4()
+    print(f"🆔 User ID generado: {user_id}")
+    
+    insert_user = text("""
+        INSERT INTO auth.usuario (
+            id, control_base_id, tipo_usuario_id, email, password_hash, activo, created_at, updated_at
+        )
+        VALUES (
+            :id, :tenant_id, :tipo_usuario_id, :email, :password_hash, true, NOW(), NOW()
+        )
+    """)
+    
+    await db.execute(insert_user, {
+        "id": user_id,
+        "tenant_id": tenant_id,
+        "tipo_usuario_id": tipo_propietario_id,
+        "email": request.email,
+        "password_hash": password_hash
+    })
+    print("✅ [PASO 5] Usuario creado correctamente")
+    
+    # 6. Crear perfil
+    print("📌 [PASO 6] Creando perfil del usuario...")
+    insert_perfil = text("""
+        INSERT INTO auth.perfil_general (
+            id, usuario_id, nombre, apellido, telefono, ciudad_id, created_at
+        )
+        VALUES (
+            gen_random_uuid(), :usuario_id, :nombre, :apellido, :telefono, :ciudad_id, NOW()
+        )
+    """)
+    
+    await db.execute(insert_perfil, {
+        "usuario_id": user_id,
+        "nombre": request.nombre,
+        "apellido": request.apellido,
+        "telefono": request.telefono,
+        "ciudad_id": ciudad_id
+    })
+    print("✅ [PASO 6] Perfil creado correctamente")
+    
+    # 7. Crear wallet
+    print("📌 [PASO 7] Creando wallet (billetera)...")
+    insert_wallet = text("""
+        INSERT INTO payment.billetera (id, usuario_id, saldo, moneda, created_at, updated_at)
+        VALUES (gen_random_uuid(), :usuario_id, 0, 'ARS', NOW(), NOW())
+        ON CONFLICT (usuario_id) DO NOTHING
+    """)
+    
+    await db.execute(insert_wallet, {"usuario_id": user_id})
+    print("✅ [PASO 7] Wallet creada correctamente")
+    
+    await db.commit()
+    print("💾 [COMMIT] Transacción completada exitosamente")
+    
+    print("=" * 60)
+    print("✅ [REGISTRO PROPIETARIO] REGISTRO EXITOSO")
+    print(f"👤 Usuario: {request.email}")
+    print(f"🏙️ Ciudad: {ciudad_nombre}")
+    print(f"🏢 Tenant: {tenant_nombre}")
+    print("=" * 60)
+    
+    return RegistroPropietarioResponse(
+        success=True,
+        user_id=user_id,
+        email=request.email,
+        ciudad_id=ciudad_id,
+        ciudad_nombre=ciudad_nombre,
+        tenant_id=tenant_id,
+        tenant_nombre=tenant_nombre,
+        message="Propietario registrado exitosamente",
+        first_login=True
+    )
+
+
+# ============================================
+# LOGIN
+# ============================================
 
 @router.post("/login", response_model=LoginResponse)
 async def login(
@@ -218,7 +390,6 @@ async def login(
     
     await db.commit()
     
-    # ✅ MODIFICADO: Agregar control_base_id en la respuesta
     return LoginResponse(
         success=True,
         access_token=access_token,
@@ -227,9 +398,13 @@ async def login(
         email=email,
         tipo_usuario=tipo_usuario,
         nombre_completo=nombre_completo,
-        control_base_id=str(control_base_id) if control_base_id else None  # ✅ NUEVO
+        control_base_id=str(control_base_id) if control_base_id else None
     )
 
+
+# ============================================
+# REFRESH TOKEN
+# ============================================
 
 @router.post("/refresh", response_model=RefreshTokenResponse)
 async def refresh_token(
@@ -268,7 +443,7 @@ async def refresh_token(
             detail="Refresh token expired or invalid"
         )
     
-    # Get user data - CORREGIDO: u.id en lugar de id
+    # Get user data
     user_query = text("""
         SELECT u.id, u.email, tu.nombre as tipo_usuario
         FROM auth.usuario u
@@ -294,6 +469,10 @@ async def refresh_token(
     return RefreshTokenResponse(access_token=new_access_token)
 
 
+# ============================================
+# LOGOUT
+# ============================================
+
 @router.post("/logout")
 async def logout(
     current_user: tuple = Depends(get_current_user),
@@ -311,6 +490,10 @@ async def logout(
     
     return {"success": True, "message": "Logged out successfully"}
 
+
+# ============================================
+# RECUPERACIÓN DE CONTRASEÑA
+# ============================================
 
 @router.post("/recuperar-solicitar", response_model=RecuperarConfirmarResponse)
 async def solicitar_recuperacion(
@@ -443,6 +626,10 @@ async def confirmar_recuperacion(
     )
 
 
+# ============================================
+# GET /me - Current user info
+# ============================================
+
 @router.get("/me", response_model=UserMeResponse)
 async def get_current_user_info(
     current_user: tuple = Depends(get_current_user),
@@ -503,6 +690,10 @@ async def get_current_user_info(
         tenant=tenant
     )
 
+
+# ============================================
+# CAMBIAR CONTRASEÑA
+# ============================================
 
 @router.put("/cambiar-contrasenia", response_model=CambiarContraseniaResponse)
 async def cambiar_contrasenia(

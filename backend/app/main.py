@@ -39,6 +39,9 @@ from app.routers.viajes import router as viajes_router
 from app.routers.viajes import public_router as viajes_public_router
 from app.routers.propietario import router as propietario_router
 
+# ✅ ROUTER GEO (agregado)
+from app.routers import geo
+
 # Importar routers de admin
 from app.routers.admin.propietarios import router as admin_propietarios_router
 from app.routers.admin.empresas import router as admin_empresas_router
@@ -54,7 +57,7 @@ from app.routers import reservas
 # Importar dashboard de empresa
 from app.routers.empresa_dashboard import router as empresa_dashboard_router
 
-# ✅ ROUTER DE VERIFICACIÓN (agregar)
+# ROUTER DE VERIFICACIÓN
 from app.routers import verificacion
 
 # Cargar variables de entorno
@@ -136,6 +139,9 @@ app.include_router(control_base.router)
 app.include_router(propietario_router)
 app.include_router(choferes_public_router)
 
+# ✅ ROUTER GEO (agregado)
+app.include_router(geo.router)
+
 # ============================================
 # ROUTERS DE EMPLEADO
 # ============================================
@@ -169,7 +175,7 @@ app.include_router(pagos.router)
 app.include_router(catalogo.router)
 app.include_router(comercio.router)
 
-# ✅ ROUTER DE VERIFICACIÓN (agregar)
+# ROUTER DE VERIFICACIÓN
 app.include_router(verificacion.router)
 
 # ============================================

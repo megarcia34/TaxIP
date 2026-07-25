@@ -13,13 +13,17 @@ class TenantBase(BaseModel):
     nombre: str = Field(..., description="Nombre del tenant", max_length=255)
     email: Optional[str] = Field(None, description="Email de contacto", max_length=255)
     telefono: Optional[str] = Field(None, description="Teléfono", max_length=50)
+    direccion: Optional[str] = Field(None, description="Dirección", max_length=255)  # ✅ NUEVO
     latitud: Optional[float] = Field(None, description="Latitud")
     longitud: Optional[float] = Field(None, description="Longitud")
+    ciudad_nombre: Optional[str] = Field(None, description="Nombre de la ciudad", max_length=100)  # ✅ NUEVO
+    codigo_postal: Optional[str] = Field(None, description="Código postal", max_length=20)  # ✅ NUEVO
 
 
 class TenantCreate(TenantBase):
-    """Schema para crear un nuevo tenant"""
-    pass
+    """Schema para crear un nuevo tenant (Super Admin)"""
+    email: str = Field(..., description="Email del admin del tenant", max_length=255)
+    ciudad_nombre: str = Field(..., description="Nombre de la ciudad de operación", min_length=2)  # ✅ OBLIGATORIO
 
 
 class TenantUpdate(BaseModel):
@@ -27,9 +31,12 @@ class TenantUpdate(BaseModel):
     nombre: Optional[str] = Field(None, description="Nombre del tenant", max_length=255)
     email: Optional[str] = Field(None, description="Email de contacto", max_length=255)
     telefono: Optional[str] = Field(None, description="Teléfono", max_length=50)
+    direccion: Optional[str] = Field(None, description="Dirección", max_length=255)  # ✅ NUEVO
     latitud: Optional[float] = Field(None, description="Latitud")
     longitud: Optional[float] = Field(None, description="Longitud")
     activo: Optional[bool] = Field(None, description="Estado del tenant")
+    ciudad_nombre: Optional[str] = Field(None, description="Nombre de la ciudad", max_length=100)  # ✅ NUEVO
+    codigo_postal: Optional[str] = Field(None, description="Código postal", max_length=20)  # ✅ NUEVO
 
 
 class TenantSuspender(BaseModel):
@@ -43,8 +50,12 @@ class TenantResponse(BaseModel):
     nombre: str
     email: Optional[str]
     telefono: Optional[str]
+    direccion: Optional[str]  # ✅ NUEVO
     latitud: Optional[float]
     longitud: Optional[float]
+    ciudad_id: Optional[UUID]  # ✅ NUEVO
+    ciudad_nombre: Optional[str]  # ✅ NUEVO
+    codigo_postal: Optional[str]  # ✅ NUEVO
     activo: bool
     fecha_suspension: Optional[datetime]
     motivo_suspension: Optional[str]
@@ -61,3 +72,19 @@ class TenantListResponse(TenantResponse):
     total_empresas: int = 0
     total_usuarios: int = 0
     total_viajes: int = 0
+
+
+# ============================================================
+# NUEVO: Schema para respuesta de creación de tenant
+# ============================================================
+
+class TenantCreateResponse(BaseModel):
+    """Respuesta para la creación de un tenant"""
+    success: bool
+    tenant_id: UUID
+    tenant_nombre: str
+    ciudad_id: Optional[UUID] = None
+    ciudad_nombre: str
+    admin_email: str
+    temp_password: str
+    message: str

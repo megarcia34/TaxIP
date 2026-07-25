@@ -72,12 +72,12 @@ class Ciudad(Base):
         nullable=False
     )
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
+    codigo_postal: Mapped[str] = mapped_column(String(20), nullable=True)  # ✅ NUEVO
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
     provincia: Mapped["Provincia"] = relationship(back_populates="ciudades")
     
     # NOTA: Sin back_populates para evitar ciclo de mapeo con PerfilGeneral (auth.py)
-    # PerfilGeneral.ciudad referencia a Ciudad, pero Ciudad no tiene back_populates
     perfiles: Mapped[list["PerfilGeneral"]] = relationship(
         "PerfilGeneral",
         foreign_keys="PerfilGeneral.ciudad_id"

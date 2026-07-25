@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 // Hero Carousel
 const heroSlides = [
   {
-    image: "/images/926x0_86795_20250623110130.jpg",
+    image: "/images/1783995144.png",
     title: "La nueva forma de pedir un taxi",
     description: "Rápido, seguro y confiable. Conectamos pasajeros con los mejores conductores.",
   },
@@ -45,10 +45,10 @@ const benefits = [
 
 // Payment Methods
 const paymentMethods = [
-  { icon: "💳", title: "Tarjeta", desc: "Débito y crédito", image: "/images/tarjeta_pago.jpg" },
+  { icon: "💳", title: "Tarjeta", desc: "Débito", image: "/images/tarjeta_pago.jpg" },
   { icon: "📱", title: "QR", desc: "Escaneá y pagá", image: "/images/qr_pago.jpg" },
   { icon: "🏦", title: "Transferencia", desc: "Bancaria o virtual", image: "/images/transferencia_pago.jpg" },
-  { icon: "💵", title: "Efectivo", desc: "Pagá al finalizar", image: null },
+  { icon: "💵", title: "Efectivo", desc: "Pagá al finalizar", image: "/images/efectivo.jpg" },
 ];
 
 // Vehicle Types
@@ -80,15 +80,6 @@ const statsData = [
     label: "Calificaciones positivas",
     suffix: "+",
   },
-];
-
-// Ecosystem
-const ecosystemItems = [
-  { icon: "🏢", title: "Empresa Operadora", desc: "Gestioná tu flota de vehículos y conductores", href: "/empresa-operadora" },
-  { icon: "🚗", title: "Propietarios", desc: "Administrá tus vehículos y generá ingresos", href: "/propietarios" },
-  { icon: "👤", title: "Conductores", desc: "Unite a la plataforma y conseguí más viajes", href: "/conductores" },
-  { icon: "🏛️", title: "Empresas", desc: "Viajes corporativos con facturación consolidada", href: "/empresas" },
-  { icon: "🏪", title: "Comercios", desc: "Generá QR y ofrecé taxis a tus clientes", href: "/comercios" },
 ];
 
 // How Works Carousel
@@ -242,12 +233,17 @@ export default function Home() {
               bottom: 0,
               width: "100%",
               height: "100%",
-              backgroundImage: `url(${slide.image})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
             }}
           >
+            {/* Imagen con Next.js Image */}
+            <Image
+              src={slide.image}
+              alt={slide.title}
+              fill
+              style={{ objectFit: "cover" }}
+              priority
+            />
+
             {/* Overlay oscuro */}
             <div
               style={{
@@ -611,31 +607,6 @@ export default function Home() {
                 <p style={{ fontSize: "0.875rem", color: "#6B7280", marginBottom: "0.25rem" }}>{vehicle.desc}</p>
                 <p style={{ fontSize: "0.75rem", color: "#F59E0B", fontWeight: 600 }}>{vehicle.price}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================ */}
-      {/* ECOSYSTEM */}
-      {/* ============================================ */}
-      <section className="section section-white">
-        <div className="container-custom">
-          <h2 className="section-title">El ecosistema TAXIP</h2>
-          <p className="section-subtitle">
-            Una plataforma que conecta a todos los actores del servicio de taxis
-          </p>
-
-          <div className="ecosystem-grid">
-            {ecosystemItems.map((item) => (
-              <Link key={item.title} href={item.href}>
-                <div className="ecosystem-card">
-                  <div className="ecosystem-icon">{item.icon}</div>
-                  <h3 className="ecosystem-title">{item.title}</h3>
-                  <p className="ecosystem-desc">{item.desc}</p>
-                  <span className="ecosystem-link">Conocer más →</span>
-                </div>
-              </Link>
             ))}
           </div>
         </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, ArrowLeft, Loader2 } from 'lucide-react';
+import { Building2, ArrowLeft, Loader2, MapPin } from 'lucide-react';
 
 export default function NuevoTenantPage() {
   const router = useRouter();
@@ -15,6 +15,8 @@ export default function NuevoTenantPage() {
     direccion: '',
     latitud: '',
     longitud: '',
+    ciudad_nombre: '',   // ✅ NUEVO
+    codigo_postal: '',   // ✅ NUEVO
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,14 +30,21 @@ export default function NuevoTenantPage() {
         body: JSON.stringify(formData),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const error = await res.json();
-        alert(error.error || 'Error al crear el tenant');
+        alert(data.detail || data.error || 'Error al crear el tenant');
+        setLoading(false);
         return;
       }
 
-      const data = await res.json();
-      alert(`Tenant creado exitosamente.\nAdmin Email: ${data.adminEmail}\nContraseña temporal: ${data.tempPassword}`);
+      alert(
+        `✅ Tenant creado exitosamente.\n` +
+        `Ciudad: ${data.ciudad_nombre || formData.ciudad_nombre}\n` +
+        `Admin Email: ${data.admin_email}\n` +
+        `Contraseña temporal: ${data.temp_password}\n\n` +
+        `⚠️ Guarda la contraseña temporal. Se usará para el primer acceso.`
+      );
       router.push('/super-admin/tenants');
     } catch (error) {
       console.error('Error creating tenant:', error);
@@ -66,6 +75,7 @@ export default function NuevoTenantPage() {
       {/* Formulario */}
       <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Nombre del Tenant */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Nombre del Tenant *
@@ -80,6 +90,7 @@ export default function NuevoTenantPage() {
             />
           </div>
 
+          {/* Email */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Email *
@@ -94,6 +105,7 @@ export default function NuevoTenantPage() {
             />
           </div>
 
+          {/* Teléfono */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Teléfono
@@ -107,6 +119,7 @@ export default function NuevoTenantPage() {
             />
           </div>
 
+          {/* Dirección */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Dirección
@@ -120,6 +133,44 @@ export default function NuevoTenantPage() {
             />
           </div>
 
+          {/* ========== NUEVOS CAMPOS: CIUDAD Y CÓDIGO POSTAL ========== */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Ciudad de operación *
+            </label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                required
+                value={formData.ciudad_nombre}
+                onChange={(e) => setFormData({ ...formData, ciudad_nombre: e.target.value })}
+                placeholder="Ej: San Miguel de Tucumán"
+                className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <p className="text-xs text-gray-400">
+              El sistema validará si la ciudad existe o la creará automáticamente.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Código Postal
+            </label>
+            <input
+              type="text"
+              value={formData.codigo_postal}
+              onChange={(e) => setFormData({ ...formData, codigo_postal: e.target.value })}
+              placeholder="Ej: T4000"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-gray-400">
+              Ayuda a identificar la ciudad de forma más precisa.
+            </p>
+          </div>
+
+          {/* Ubicación (Latitud / Longitud) */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Latitud
@@ -147,6 +198,7 @@ export default function NuevoTenantPage() {
           </div>
         </div>
 
+        {/* Botones */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <Link
             href="/super-admin/tenants"

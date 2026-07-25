@@ -2,74 +2,44 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import styles from "./page.module.css";
 
 export default function PropietariosPage() {
-  const beneficios = [
-    {
-      icon: "💰",
-      title: "Ganá más",
-      desc: "Ingresos recurrentes por cada vehículo activo en tu municipio. Sumá todos los vehículos que quieras."
-    },
-    {
-      icon: "📊",
-      title: "Control total",
-      desc: "Dashboard en tiempo real para gestionar tu flota, ver ganancias y controlar cada vehículo desde tu celular."
-    },
-    {
-      icon: "🛡️",
-      title: "Sin preocupaciones",
-      desc: "Nosotros gestionamos los conductores y los viajes. Vos solo disfrutás de tus ingresos."
-    },
-    {
-      icon: "🛒",
-      title: "Descuentos en comercios",
-      desc: "Comprá repuestos, talleres y servicios en comercios adheridos con descuentos exclusivos para propietarios TAXIP."
-    },
-    {
-      icon: "🔒",
-      title: "Seguros preferenciales",
-      desc: "Contratá seguros para tus vehículos con tarifas especiales y pagá desde tu cuenta TAXIP."
-    },
-    {
-      icon: "💳",
-      title: "Pagos con dinero en cuenta",
-      desc: "Usá el saldo de tus ganancias para pagar servicios, repuestos, seguros y todo lo que necesites."
-    }
+  // ✅ URL del Dashboard desde variable de entorno
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3000";
+
+  const beneficiosExtras = [
+    { icon: "🛒", title: "Descuentos en comercios adheridos" },
+    { icon: "🔒", title: "Seguros preferenciales" },
+    { icon: "💳", title: "Pagos con saldo en cuenta" },
+    { icon: "📊", title: "Reportes automáticos" },
+    { icon: "🛡️", title: "Soporte 24/7" },
   ];
 
   const pasos = [
     {
       number: "1",
       title: "Registrá tus vehículos",
-      desc: "Completá el registro de tu flota en la plataforma TAXIP. Te guiamos paso a paso."
+      desc: "Completá el registro de tu flota en la plataforma TAXIP. Te guiamos paso a paso.",
+      image: "/images/propietarios/paso-registro.jpg"
     },
     {
       number: "2",
       title: "Asigná conductores",
-      desc: "Nosotros te ayudamos a encontrar conductores o podés asignar los tuyos. Vos decidís."
+      desc: "Nosotros te ayudamos a encontrar conductores o podés asignar los tuyos. Vos decidís.",
+      image: "/images/propietarios/paso-conductores.jpg"
     },
     {
       number: "3",
       title: "Empezá a generar ingresos",
-      desc: "Tus vehículos comienzan a trabajar dentro de tu municipio. Ganás por cada viaje realizado."
+      desc: "Tus vehículos comienzan a trabajar dentro de tu municipio. Ganás por cada viaje realizado.",
+      image: "/images/propietarios/paso-ingresos.jpg"
     },
     {
       number: "4",
       title: "Ahorrá y crecé",
-      desc: "Usá tus ganancias para mantener tus vehículos con descuentos, contratar seguros y hacer crecer tu flota."
-    }
-  ];
-
-  const testimonios = [
-    {
-      nombre: "Juan Pérez",
-      ciudad: "San Miguel",
-      texto: "Con TAXIP, mis vehículos generan ingresos todo el día. Además, ahorro en mantenimiento con los descuentos en comercios adheridos. El dashboard me permite controlar todo desde mi celular."
-    },
-    {
-      nombre: "María Gómez",
-      ciudad: "Morón",
-      texto: "El modelo por municipio me da tranquilidad. Sé que mis vehículos operan en mi zona sin competencia externa. Y poder pagar seguros y repuestos desde la cuenta TAXIP es un golazo."
+      desc: "Usá tus ganancias para mantener tus vehículos con descuentos, contratar seguros y hacer crecer tu flota.",
+      image: "/images/propietarios/paso-ahorro.jpg"
     }
   ];
 
@@ -77,44 +47,152 @@ export default function PropietariosPage() {
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=Hola%2C%20quiero%20ser%20propietario%20en%20TAXIP`;
 
   return (
-    <div className="propietarios-page">
+    <div className={styles["propietarios-page"]}>
       {/* ============================================ */}
-      {/* HERO */}
+      {/* HERO CON SLIDER */}
       {/* ============================================ */}
-      <section className="propietarios-hero">
-        <div className="container-custom">
-          <div className="propietarios-hero-content">
-            <h1 className="propietarios-hero-title">
-              🚗 Sumá tus vehículos a <span className="highlight">TAXIP</span>
-            </h1>
-            <p className="propietarios-hero-desc">
-              Generá ingresos adicionales con tu flota de vehículos y accedé a beneficios exclusivos
-            </p>
-            <div className="propietarios-hero-cta">
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn-whatsapp-hero">
-                📱 Quiero ser Propietario
-              </a>
+      <section className={styles["propietarios-hero"]}>
+        <div className={styles["hero-slider"]}>
+          <div className={`${styles["hero-slide"]} ${styles["hero-slide-1"]}`}>
+            <div className={styles["hero-overlay"]}></div>
+            <div className="container-custom">
+              <div className={styles["hero-content"]}>
+                <h1 className={styles["hero-title"]}>
+                  Hacé que tus <span className={styles["highlight"]}>taxis</span> trabajen para vos
+                </h1>
+                <p className={styles["hero-desc"]}>
+                  Ingresos seguros mientras vos descansás. Sumá tus vehículos a la plataforma de movilidad líder.
+                </p>
+                <Link href={`${dashboardUrl}/registro/propietario`} className={styles["btn-whatsapp-hero"]}>
+                  📱 Registrarme como Propietario
+                </Link>
+              </div>
+            </div>
+          </div>
+          <div className={`${styles["hero-slide"]} ${styles["hero-slide-2"]}`}>
+            <div className={styles["hero-overlay"]}></div>
+            <div className="container-custom">
+              <div className={styles["hero-content"]}>
+                <h1 className={styles["hero-title"]}>
+                  Vos ponés el <span className={styles["highlight"]}>vehículo</span>, nosotros los viajes
+                </h1>
+                <p className={styles["hero-desc"]}>
+                  Gestionamos conductores, viajes y pagos. Vos solo disfrutás de tus ingresos.
+                </p>
+                <Link href={`${dashboardUrl}/registro/propietario`} className={styles["btn-whatsapp-hero"]}>
+                  📱 Registrarme como Propietario
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* ============================================ */}
-      {/* BENEFICIOS */}
+      {/* STATS */}
+      {/* ============================================ */}
+      <section className="section section-yellow" style={{ paddingTop: "2rem", paddingBottom: "2rem" }}>
+        <div className="container-custom">
+          <div className={styles["stats-grid"]}>
+            <div className={styles["stat-item"]}>
+              <div className={styles["stat-number"]}>+2.850</div>
+              <div className={styles["stat-label"]}>Conductores activos</div>
+            </div>
+            <div className={styles["stat-item"]}>
+              <div className={styles["stat-number"]}>+50.000</div>
+              <div className={styles["stat-label"]}>Viajes realizados</div>
+            </div>
+            <div className={styles["stat-item"]}>
+              <div className={styles["stat-number"]}>+1.200</div>
+              <div className={styles["stat-label"]}>Vehículos en plataforma</div>
+            </div>
+            <div className={styles["stat-item"]}>
+              <div className={styles["stat-number"]}>+200</div>
+              <div className={styles["stat-label"]}>Comercios adheridos</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* EMPEZÁ A GANAR MÁS CON TAXIP */}
       {/* ============================================ */}
       <section className="section section-white">
         <div className="container-custom">
-          <h2 className="section-title">Beneficios exclusivos</h2>
+          <h2 className="section-title">🚀 Empezá a ganar más con TAXIP</h2>
           <p className="section-subtitle">
-            Todo lo que necesitas para hacer crecer tu negocio con TAXIP
+            Todo lo que necesitás para hacer crecer tu negocio
           </p>
 
-          <div className="beneficios-grid">
-            {beneficios.map((beneficio) => (
-              <div key={beneficio.title} className="beneficio-card">
-                <div className="beneficio-icon">{beneficio.icon}</div>
-                <h3 className="beneficio-title">{beneficio.title}</h3>
-                <p className="beneficio-desc">{beneficio.desc}</p>
+          {/* Tarjetas principales */}
+          <div className={styles["beneficios-principales"]}>
+            {/* Tarjeta 1 - Celular */}
+            <div className={styles["beneficio-principal"]}>
+              <div className={styles["beneficio-principal-imagen"]}>
+                <Image
+                  src="/images/propietarios/1784808968_celular.png"
+                  alt="Gestioná tu flota desde tu celular"
+                  width={400}
+                  height={300}
+                  className={styles["beneficio-principal-img"]}
+                />
+              </div>
+              <div className={styles["beneficio-principal-contenido"]}>
+                <h3 className={styles["beneficio-principal-titulo"]}>
+                  📱 Gestioná tu flota desde tu celular
+                </h3>
+                <p className={styles["beneficio-principal-subtitulo"]}>
+                  Todo el control de tu negocio en la palma de tu mano
+                </p>
+                <ul className={styles["beneficio-principal-lista"]}>
+                  <li>✓ Controlá cada vehículo en tiempo real</li>
+                  <li>✓ Seguí ingresos y gastos desde cualquier lugar</li>
+                  <li>✓ Gestioná conductores, viajes y mantenimientos</li>
+                  <li>✓ Dashboard intuitivo con reportes en vivo</li>
+                </ul>
+                <Link href={`${dashboardUrl}/registro/propietario`} className={styles["beneficio-principal-cta"]}>
+                  Conocer más →
+                </Link>
+              </div>
+            </div>
+
+            {/* Tarjeta 2 - Conductores */}
+            <div className={`${styles["beneficio-principal"]} ${styles["beneficio-principal-reverse"]}`}>
+              <div className={styles["beneficio-principal-contenido"]}>
+                <h3 className={styles["beneficio-principal-titulo"]}>
+                  👩‍💼 Conectá con los mejores conductores
+                </h3>
+                <p className={styles["beneficio-principal-subtitulo"]}>
+                  Elegí el modelo de negocio que más te convenga
+                </p>
+                <ul className={styles["beneficio-principal-lista"]}>
+                  <li>✓ Encontrá conductores calificados para tu flota</li>
+                  <li>✓ Tres modelos: porcentaje, canon fijo o auto-gestión</li>
+                  <li>✓ Liquidaciones automáticas y control de pagos</li>
+                  <li>✓ Perfiles verificados y con calificaciones</li>
+                </ul>
+                <Link href={`${dashboardUrl}/registro/propietario`} className={styles["beneficio-principal-cta"]}>
+                  Administrá tu equipo →
+                </Link>
+              </div>
+              <div className={styles["beneficio-principal-imagen"]}>
+                <Image
+                  src="/images/propietarios/1784807736_dueña.png"
+                  alt="Conectá con los mejores conductores"
+                  width={400}
+                  height={300}
+                  className={styles["beneficio-principal-img"]}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Beneficios adicionales - íconos pequeños */}
+          <div className={styles["beneficios-extras"]}>
+            {beneficiosExtras.map((item) => (
+              <div key={item.icon} className={styles["beneficio-extra"]}>
+                <span className={styles["beneficio-extra-icono"]}>{item.icon}</span>
+                <span className={styles["beneficio-extra-texto"]}>{item.title}</span>
               </div>
             ))}
           </div>
@@ -122,169 +200,55 @@ export default function PropietariosPage() {
       </section>
 
       {/* ============================================ */}
-      {/* MODELO DE OPERACIÓN POR MUNICIPIO */}
-      {/* ============================================ */}
-      <section className="section section-gray">
-        <div className="container-custom">
-          <h2 className="section-title">📍 Operá dentro de tu municipio</h2>
-          <p className="section-subtitle">
-            Cada municipio es una zona exclusiva. Conocé cómo funciona el modelo TAXIP
+{/* JARALLAX - ¿POR QUÉ ELEGIR TAXIP? */}
+{/* ============================================ */}
+<section className={styles["section-jarallax"]}>
+  <div className={styles["jarallax-overlay"]}></div>
+  <div className="container-custom">
+    <div className={styles["jarallax-content"]}>
+      <div className={styles["jarallax-grid"]}>
+        <div className={styles["jarallax-texto"]}>
+          <h2>¿Por qué elegir TAXIP?</h2>
+          <p>
+            Somos la plataforma de movilidad que conecta a propietarios con conductores y pasajeros.
+            <br />
+            <span className={styles["jarallax-highlight"]}>Sumá tu vehículo y empezá a generar ingresos</span>
           </p>
-
-          <div className="municipio-grid">
-            <div className="municipio-card municipio-info">
-              <div className="municipio-icon">🏙️</div>
-              <h3>Tu municipio, tu zona</h3>
-              <p>Cada municipio es un tenant independiente. Tus vehículos operan dentro de tu jurisdicción.</p>
-            </div>
-
-            <div className="municipio-card municipio-ok">
-              <div className="municipio-icon">✅</div>
-              <h3>Viajes dentro del municipio</h3>
-              <p>Tus vehículos toman pedidos dentro de tu municipio. Mercado exclusivo para vos.</p>
-            </div>
-
-            <div className="municipio-card municipio-ok">
-              <div className="municipio-icon">🚗</div>
-              <h3>Viajes fuera del municipio</h3>
-              <p>Podés transportar pasajeros a otros municipios, pero debés regresar vacío.</p>
-            </div>
-
-            <div className="municipio-card municipio-error">
-              <div className="municipio-icon">❌</div>
-              <h3>Sin pedidos fuera</h3>
-              <p>No se pueden tomar pedidos fuera de tu jurisdicción. Respetamos las normativas municipales.</p>
-            </div>
-          </div>
         </div>
-      </section>
-
-      {/* ============================================ */}
-      {/* ECOSISTEMA DE BENEFICIOS */}
-      {/* ============================================ */}
-      <section className="section section-white">
-        <div className="container-custom">
-          <h2 className="section-title">💰 Un ecosistema que te cuida</h2>
-          <p className="section-subtitle">
-            Ganás, ahorrás y gastás con beneficios. Todo en un solo lugar
-          </p>
-
-          <div className="ecosistema-beneficios">
-            <div className="ecosistema-flujo">
-              <div className="flujo-paso ganar">
-                <span className="flujo-icon">💰</span>
-                <span className="flujo-label">Ganás dinero</span>
-                <span className="flujo-arrow">↓</span>
-              </div>
-              <div className="flujo-paso cuenta">
-                <span className="flujo-icon">💳</span>
-                <span className="flujo-label">Dinero en cuenta</span>
-                <span className="flujo-arrow">↓</span>
-              </div>
-              <div className="flujo-paso gastar">
-                <span className="flujo-icon">🛒</span>
-                <span className="flujo-label">Gastás con descuentos</span>
-                <div className="flujo-opciones">
-                  <span className="opcion">🛒 Comercios</span>
-                  <span className="opcion">🔒 Seguros</span>
-                  <span className="opcion">🛠️ Talleres</span>
-                </div>
-              </div>
-            </div>
-            <p className="ecosistema-desc">
-              <strong>Ciclo virtuoso:</strong> Ganás por los viajes → Ahorrás en tus gastos → Invertís en tu flota
-            </p>
-          </div>
+        <div className={styles["jarallax-imagen"]}>
+          <Image
+            src="/images/propietarios/1784937480_chofer_app.png"
+            alt="Conductores TAXIP"
+            width={500}
+            height={400}
+            className={styles["jarallax-img"]}
+          />
         </div>
-      </section>
-
+      </div>
+    </div>
+  </div>
+</section>
       {/* ============================================ */}
       {/* CÓMO FUNCIONA */}
       {/* ============================================ */}
-      <section className="section section-gray">
+      <section className="section section-white">
         <div className="container-custom">
           <h2 className="section-title">¿Cómo funciona?</h2>
           <p className="section-subtitle">
             Empezá a generar ingresos en 4 pasos simples
           </p>
 
-          <div className="pasos-grid">
+          <div className={styles["pasos-grid"]}>
             {pasos.map((paso) => (
-              <div key={paso.number} className="paso-card">
-                <div className="paso-number">{paso.number}</div>
-                <h3 className="paso-title">{paso.title}</h3>
-                <p className="paso-desc">{paso.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================ */}
-      {/* ESTADÍSTICAS */}
-      {/* ============================================ */}
-      <section className="section section-yellow">
-        <div className="container-custom">
-          <div className="stats-grid">
-            <div className="stat-item">
-              <div className="stat-number">+2.850</div>
-              <div className="stat-label">Conductores activos</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">+50.000</div>
-              <div className="stat-label">Viajes realizados</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">+1.200</div>
-              <div className="stat-label">Vehículos en plataforma</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">+200</div>
-              <div className="stat-label">Comercios adheridos</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================ */}
-      {/* TESTIMONIOS */}
-      {/* ============================================ */}
-      <section className="section section-white">
-        <div className="container-custom">
-          <h2 className="section-title">⭐ Lo que dicen los propietarios</h2>
-          <p className="section-subtitle">
-            Historias reales de propietarios que ya confían en TAXIP
-          </p>
-
-          <div className="testimonios-grid">
-            {testimonios.map((testimonio, index) => (
-              <div key={index} className="testimonio-card">
-                <div className="testimonio-icon">"</div>
-                <p className="testimonio-texto">{testimonio.texto}</p>
-                <div className="testimonio-autor">
-                  <strong>{testimonio.nombre}</strong>
-                  <span>{testimonio.ciudad}</span>
+              <div key={paso.number} className={styles["paso-card"]}>
+                <div className={styles["paso-imagen"]}>
+                  <img src={paso.image} alt={paso.title} className={styles["paso-image"]} />
+                  <div className={styles["paso-number"]}>{paso.number}</div>
                 </div>
+                <h3 className={styles["paso-title"]}>{paso.title}</h3>
+                <p className={styles["paso-desc"]}>{paso.desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================ */}
-      {/* SOPORTE 24/7 */}
-      {/* ============================================ */}
-      <section className="section section-gray">
-        <div className="container-custom">
-          <div className="soporte-content">
-            <div className="soporte-icon">🛡️</div>
-            <h2>Soporte 24/7 para vos y tus conductores</h2>
-            <p>
-              Asistencia disponible las 24 horas, los 7 días de la semana.
-              <br />
-              <span className="soporte-ia">🤖 Actual: Asistencia con IA vía WhatsApp</span>
-              <span className="soporte-operadores">👤 Futuro: Operadores humanos especializados</span>
-            </p>
           </div>
         </div>
       </section>
@@ -292,19 +256,19 @@ export default function PropietariosPage() {
       {/* ============================================ */}
       {/* CTA FINAL */}
       {/* ============================================ */}
-      <section className="section cta-final">
+      <section className={`section ${styles["cta-final"]}`}>
         <div className="container-custom">
           <div className="cta-content">
-            <h2 className="cta-title">¿Listo para sumar tus vehículos a TAXIP?</h2>
-            <p className="cta-desc">
+            <h2 className={styles["cta-title"]}>¿Listo para sumar tus vehículos a TAXIP?</h2>
+            <p className={styles["cta-desc"]}>
               Contactanos y te ayudamos a dar el primer paso. Empezá a generar ingresos hoy mismo.
             </p>
-            <div className="cta-buttons">
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn-whatsapp-cta">
+            <div className={styles["cta-buttons"]}>
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className={styles["btn-whatsapp-cta"]}>
                 📱 Contactar a Ventas
               </a>
-              <Link href="/ecosistema" className="btn-secundario">
-                Conocé más sobre el ecosistema
+              <Link href="/ecosistema" className={styles["btn-secundario"]}>
+                ← Volver al ecosistema
               </Link>
             </div>
           </div>

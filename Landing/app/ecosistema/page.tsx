@@ -30,12 +30,22 @@ export default function EcosistemaPage() {
     }
   ];
 
+  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "5491123456789";
+  const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+
   return (
     <div className="ecosistema-page">
+      {/* ============================================ */}
       {/* HERO */}
+      {/* ============================================ */}
       <section className="ecosistema-hero">
         <div className="container-custom">
           <div className="ecosistema-hero-content">
+            {/* Botón Volver - alineado con diseño general */}
+            <Link href="/" className="volver-btn">
+               ← Volver al inicio
+            </Link>
+
             <h1 className="ecosistema-hero-title">
               🚀 ¿Quieres ofrecer tus servicios con TAXIP?
             </h1>
@@ -46,7 +56,9 @@ export default function EcosistemaPage() {
         </div>
       </section>
 
+      {/* ============================================ */}
       {/* GRID DE SERVICIOS */}
+      {/* ============================================ */}
       <section className="section section-white">
         <div className="container-custom">
           <div className="servicios-grid">
@@ -64,7 +76,9 @@ export default function EcosistemaPage() {
         </div>
       </section>
 
+      {/* ============================================ */}
       {/* CTA FINAL */}
+      {/* ============================================ */}
       <section className="section section-gray">
         <div className="container-custom">
           <div className="ecosistema-footer-cta">
@@ -72,14 +86,19 @@ export default function EcosistemaPage() {
             <p>
               Contactanos y te ayudamos a dar el primer paso en la plataforma TAXIP
             </p>
-            <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "5491123456789"}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cta-whatsapp-btn"
-            >
-              📱 Contactar a Ventas
-            </a>
+            <div className="footer-buttons">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cta-whatsapp-btn"
+              >
+                📱 Contactar a Ventas
+              </a>
+              <Link href="/" className="volver-btn-outline">
+                ← Volver al inicio
+              </Link>
+            </div>
           </div>
         </div>
       </section>

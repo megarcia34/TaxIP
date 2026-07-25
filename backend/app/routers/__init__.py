@@ -21,11 +21,15 @@ from .choferes_public import router as choferes_public_router
 # ✅ Importar public_router de viajes
 from app.routers.viajes import public_router as public_viajes_router
 
+# ✅ Importar router GEO
+from app.routers import geo
+
 # Importar routers de admin
 from .admin import propietarios_router, empresas_router
 
 # Importar router de empresa dashboard
 from .empresa_dashboard import router as empresa_dashboard_router
+
 
 # ============================================
 # LISTA DE ROUTERS A EXPORTAR Y REGISTRAR
@@ -50,8 +54,10 @@ __all__ = [
     "empresas_router",
     "empresa_dashboard_router",
     "choferes_public_router",
-    "public_viajes_router",  # ✅ AGREGADO
+    "public_viajes_router",
+    "geo",  # ✅ AGREGADO
 ]
+
 
 # ============================================
 # LISTA DE ROUTERS PARA REGISTRAR EN main.py
@@ -63,7 +69,7 @@ routers = [
     chofer_registro.router,
     chofer_documentos.router,
     viajes.router,              # /api/viajes
-    public_viajes_router,       # ✅ AGREGADO - /api/public/viajes
+    public_viajes_router,       # /api/public/viajes
     control_base.router,
     pagos.router,
     vehiculo.router,
@@ -77,4 +83,5 @@ routers = [
     empresas_router,
     empresa_dashboard_router,
     choferes_public_router,
+    geo.router,                 # ✅ AGREGADO - /api/geo
 ]

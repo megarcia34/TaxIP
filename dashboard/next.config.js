@@ -10,11 +10,6 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   
-  // ============================================
-  // ✅ REWRITES ESPECÍFICOS - Proxy al backend FastAPI
-  // EXCLUYE /api/auth/* (NextAuth) y /api/empresa/mi-empresa, /api/empresa/ubicacion
-  // que ahora se llaman directo desde el frontend con URL absoluta
-  // ============================================
   async rewrites() {
     return [
       // --- EMPRESA (excepto /mi-empresa y /ubicacion que van directo) ---
@@ -137,6 +132,12 @@ const nextConfig = {
       {
         source: '/api/auth/refresh',
         destination: 'http://localhost:8000/api/auth/refresh',
+      },
+      
+      // ✅ NUEVO: GEO (ciudades operativas)
+      {
+        source: '/api/geo/:path*',
+        destination: 'http://localhost:8000/api/geo/:path*',
       },
     ]
   },
