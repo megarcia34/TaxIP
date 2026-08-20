@@ -5,7 +5,7 @@ Modelo de Turno/Jornada Laboral del Chofer
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Numeric, Text, CheckConstraint
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Numeric, Text, CheckConstraint, Time, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
@@ -48,6 +48,21 @@ class TurnoChofer(Base):
     comision_chofer_calculada = Column(Numeric(10,2), default=0)
     utilidad_propietario_calculada = Column(Numeric(10,2), default=0)
     
+    # ============================================
+    # SNAPSHOTS DE HORARIOS (reemplazan snapshot_turno_contractual)
+    # ============================================
+    snapshot_hora_inicio = Column(Time, nullable=True)
+    snapshot_hora_fin = Column(Time, nullable=True)
+    snapshot_duracion_minima_horas = Column(Integer, nullable=True)
+    snapshot_permite_extension = Column(Boolean, nullable=True)
+    snapshot_hora_fin_extension = Column(Time, nullable=True)
+    
+    # Se mantiene para compatibilidad
+    snapshot_dia_contractual = Column(String(20), nullable=True)
+    
+    # ⚠️ DEPRECADO: Ya no existe en la base de datos
+    # snapshot_turno_contractual = Column(String(20), nullable=True)  # ELIMINADO
+    
     # Marcas de tiempo
     inicio_turno = Column(DateTime, default=datetime.now, nullable=False)
     fin_turno = Column(DateTime, nullable=True)
@@ -55,28 +70,22 @@ class TurnoChofer(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
     # Relationships
-    # NOTA: Sin back_populates para evitar ciclos de mapeo con modelos de otros archivos
-    
-    # ContratoVehiculo está en fleet.py
     contrato = relationship(
         "ContratoVehiculo",
         lazy="selectin"
     )
     
-    # Usuario está en auth.py
     chofer = relationship(
         "Usuario",
         foreign_keys=[chofer_id],
         lazy="selectin"
     )
     
-    # Vehiculo está en fleet.py
     vehiculo = relationship(
         "Vehiculo",
         lazy="selectin"
     )
     
-    # GastoTurno está en gasto_turno.py
     gastos = relationship(
         "GastoTurno",
         lazy="selectin",

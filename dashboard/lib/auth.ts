@@ -35,19 +35,21 @@ export const authOptions: NextAuthOptions = {
           const tipoUsuario = data.tipo_usuario || 'pasajero'
           const controlBaseId = data.control_base_id || null
 
+          // ✅ Retornar explícitamente accessToken
           return {
             id: data.user_id,
             email: data.email,
             name: data.nombre_completo || data.email,
             role: tipoUsuario,
             tipo_usuario: tipoUsuario,
-            accessToken: data.access_token,
+            accessToken: data.access_token,  // ✅ Token del backend
             refreshToken: data.refresh_token,
             controlBaseId: controlBaseId,
             control_base_id: controlBaseId,
           }
 
         } catch (error) {
+          console.error('Error en authorize:', error)
           return null
         }
       },
@@ -55,13 +57,14 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // ✅ Cuando el usuario inicia sesión, guardar el token
       if (user) {
         token.id = user.id
         token.email = user.email
         token.name = user.name
         token.role = user.role
         token.tipo_usuario = user.tipo_usuario
-        token.accessToken = user.accessToken
+        token.accessToken = user.accessToken  // ✅ Guardar el token del backend
         token.refreshToken = user.refreshToken
         token.controlBaseId = user.controlBaseId
         token.control_base_id = user.control_base_id
@@ -69,13 +72,14 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
+      // ✅ Pasar el token a la sesión
       if (token) {
         session.user.id = token.id as string
         session.user.email = token.email as string
         session.user.name = token.name as string
         session.user.role = token.role as string
         session.user.tipo_usuario = token.tipo_usuario as string
-        session.user.accessToken = token.accessToken as string
+        session.user.accessToken = token.accessToken as string  // ✅ El token del backend
         session.user.refreshToken = token.refreshToken as string
         session.user.controlBaseId = token.controlBaseId as string | null
         session.user.control_base_id = token.control_base_id as string | null

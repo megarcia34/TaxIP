@@ -12,6 +12,7 @@ import {
   Car,
   Users,
   Map,
+  MapPin,
   Trophy,
   Briefcase,
   Settings,
@@ -22,6 +23,7 @@ import {
   DollarSign,
   Wrench,
   FileText,
+  Handshake,
   ClipboardList,
   Building2,
   CreditCard,
@@ -33,8 +35,10 @@ import {
   Clock,
   ChevronDown,
   ChevronRight,
+  CircleDot,
   Building,
   User,
+  CalendarClock,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -53,17 +57,28 @@ const menuItemsSuperAdmin = [
   { title: 'Configuración', href: '/super-admin/configuracion', icon: Settings },
   { title: 'Pagos Empresas', href: '/admin/pagos', icon: DollarSign },
 ]
-
 // ============================================
-// MENÚ PARA PROPIETARIO
+// MENÚ PARA PROPIETARIO (ACTUALIZADO)
 // ============================================
 const menuItemsPropietario = [
   { title: 'Dashboard', href: '/dashboard-propietario', icon: LayoutDashboard },
   { title: 'Vehículos', href: '/dashboard-propietario/vehiculos', icon: Car },
-  { title: 'Contratos', href: '/dashboard-propietario/contratos', icon: FileText },
+  { 
+    title: 'Vehículos en Tiempo Real', 
+    href: '/dashboard-propietario/vehiculos-tiempo-real', 
+    icon: MapPin 
+  },
+  { 
+    title: 'Viajes', 
+    href: '/dashboard-propietario/viajes', 
+    icon: CalendarClock  // o FileText, o CarFront
+  },
+  { title: 'Documentos', href: '/dashboard-propietario/documentos', icon: FileText },
+  { title: 'Contratos', href: '/dashboard-propietario/contratos', icon: Handshake },
   { title: 'Ingresos', href: '/dashboard-propietario/ingresos', icon: DollarSign },
   { title: 'Gastos', href: '/dashboard-propietario/gastos', icon: CreditCard },
   { title: 'Mantenimientos', href: '/dashboard-propietario/mantenimientos', icon: Wrench },
+  { title: 'Neumáticos', href: '/dashboard-propietario/neumaticos', icon: CircleDot },
   { title: 'Rentabilidad', href: '/dashboard-propietario/rentabilidad', icon: BarChart3 },
   { title: 'Reportes', href: '/dashboard-propietario/reportes', icon: ClipboardList },
 ]

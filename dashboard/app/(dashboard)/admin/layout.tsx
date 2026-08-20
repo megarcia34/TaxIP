@@ -4,6 +4,9 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
+// ✅ Roles que pueden acceder a /admin
+const ROLES_ADMIN = ['admin', 'admin_tenant', 'super_admin']
+
 export default function AdminLayout({
   children,
 }: {
@@ -19,10 +22,11 @@ export default function AdminLayout({
       return
     }
 
-    // Verificar que el usuario es admin
+    // Verificar que el usuario tiene rol admin
     if (status === 'authenticated') {
       const role = session?.user?.role?.toLowerCase()
-      if (role !== 'admin') {
+      // ✅ Permitir admin, admin_tenant y super_admin
+      if (!role || !ROLES_ADMIN.includes(role)) {
         router.push('/')
       }
     }
@@ -36,7 +40,9 @@ export default function AdminLayout({
     )
   }
 
-  if (!session || session?.user?.role?.toLowerCase() !== 'admin') {
+  // ✅ Permitir acceso si el rol es admin, admin_tenant o super_admin
+  const role = session?.user?.role?.toLowerCase()
+  if (!session || !role || !ROLES_ADMIN.includes(role)) {
     return null
   }
 

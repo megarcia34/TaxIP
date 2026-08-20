@@ -1,4 +1,5 @@
-# app/routers/super_admin.py (MODIFICADO - Crear tenant con ciudad)
+# app/routers/super_admin/tenants.py
+# Gestión de tenants (crear, listar, editar, eliminar)
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,22 +8,147 @@ import uuid as uuid_lib
 from typing import List, Optional
 
 from app.database import get_db
-from app.dependencies import get_current_admin_user, get_current_super_admin_user
+from app.dependencies import get_current_super_admin_user
 from app.core.security import get_password_hash
-from app.schemas.tenant_schemas import (
-    TenantCreateRequest,
+
+# ✅ Importación correcta desde app.schemas.tenant
+from app.schemas.tenant import (
+    TenantCreate as TenantCreateRequest,
     TenantCreateResponse,
     TenantResponse
 )
 
-router = APIRouter(prefix="/api/super-admin", tags=["Super Admin"])
+router = APIRouter(prefix="/api/super-admin/tenants", tags=["Super Admin - Tenants"])
 
 
 # ============================================================
-# CREATE TENANT (con ciudad)
+# LISTAR TENANTS
 # ============================================================
 
-@router.post("/tenants", response_model=TenantCreateResponse, status_code=status.HTTP_201_CREATED)
+@router.get("/", response_model=List[TenantResponse])
+async def list_tenants(
+    current_user: tuple = Depends(get_current_super_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Listar todos los tenants de la plataforma
+    """
+    query = text("""
+        SELECT 
+            cb.id,
+            cb.nombre,
+            cb.email,
+            cb.telefono,
+            cb.direccion,
+            cb.latitud,
+            cb.longitud,
+            cb.ciudad_id,
+            g.nombre as ciudad_nombre,
+            cb.activo,
+            cb.fecha_suspension,
+            cb.motivo_suspension,
+            cb.suspendido_por,
+            cb.created_at,
+            cb.updated_at
+        FROM tenant.control_base cb
+        LEFT JOIN geo.ciudad g ON g.id = cb.ciudad_id
+        WHERE cb.activo = true
+        ORDER BY cb.nombre
+    """)
+    
+    result = await db.execute(query)
+    rows = result.all()
+    
+    return [
+        TenantResponse(
+            id=row[0],
+            nombre=row[1],
+            email=row[2],
+            telefono=row[3],
+            direccion=row[4],
+            latitud=float(row[5]) if row[5] else None,
+            longitud=float(row[6]) if row[6] else None,
+            ciudad_id=row[7],
+            ciudad_nombre=row[8],
+            activo=row[9],
+            fecha_suspension=row[10],
+            motivo_suspension=row[11],
+            suspendido_por=row[12],
+            created_at=row[13],
+            updated_at=row[14]
+        )
+        for row in rows
+    ]
+
+
+# ============================================================
+# OBTENER TENANT POR ID
+# ============================================================
+
+@router.get("/{tenant_id}", response_model=TenantResponse)
+async def get_tenant(
+    tenant_id: uuid_lib.UUID,
+    current_user: tuple = Depends(get_current_super_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Obtener un tenant específico por su ID
+    """
+    query = text("""
+        SELECT 
+            cb.id,
+            cb.nombre,
+            cb.email,
+            cb.telefono,
+            cb.direccion,
+            cb.latitud,
+            cb.longitud,
+            cb.ciudad_id,
+            g.nombre as ciudad_nombre,
+            cb.activo,
+            cb.fecha_suspension,
+            cb.motivo_suspension,
+            cb.suspendido_por,
+            cb.created_at,
+            cb.updated_at
+        FROM tenant.control_base cb
+        LEFT JOIN geo.ciudad g ON g.id = cb.ciudad_id
+        WHERE cb.id = :tenant_id
+    """)
+    
+    result = await db.execute(query, {"tenant_id": tenant_id})
+    row = result.first()
+    
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant no encontrado"
+        )
+    
+    return TenantResponse(
+        id=row[0],
+        nombre=row[1],
+        email=row[2],
+        telefono=row[3],
+        direccion=row[4],
+        latitud=float(row[5]) if row[5] else None,
+        longitud=float(row[6]) if row[6] else None,
+        ciudad_id=row[7],
+        ciudad_nombre=row[8],
+        activo=row[9],
+        fecha_suspension=row[10],
+        motivo_suspension=row[11],
+        suspendido_por=row[12],
+        created_at=row[13],
+        updated_at=row[14]
+    )
+
+
+# ============================================================
+# CREAR TENANT (con ciudad)
+# ============================================================
+
+@router.post("/", response_model=TenantCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_tenant(
     request: TenantCreateRequest,
     current_user: tuple = Depends(get_current_super_admin_user),
@@ -64,7 +190,6 @@ async def create_tenant(
     # ============================================================
     
     # Buscar ciudad por nombre (insensible a mayúsculas)
-    # Si no existe, crearla
     ciudad_query = text("""
         WITH ciudad AS (
             SELECT id, nombre, codigo_postal 

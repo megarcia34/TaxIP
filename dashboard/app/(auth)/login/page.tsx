@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Car, Loader2, AlertCircle } from 'lucide-react'
 
 // Roles válidos que pueden venir desde la landing
-const ROLES_VALIDOS = ['conductor', 'propietario', 'empresa', 'empleado']
+const ROLES_VALIDOS = ['conductor', 'propietario', 'empresa', 'empleado', 'admin', 'super_admin']
 
 // Mapeo de roles a nombres amigables para mostrar
 const ROLES_DISPLAY: Record<string, string> = {
@@ -19,6 +19,8 @@ const ROLES_DISPLAY: Record<string, string> = {
   propietario: 'Propietario',
   empresa: 'Empresa',
   empleado: 'Empleado',
+  admin: 'Administrador',
+  super_admin: 'Super Administrador',
 }
 
 export default function LoginPage() {
@@ -67,9 +69,11 @@ export default function LoginPage() {
       const session = await sessionRes.json()
 
       const tipoUsuario = (session?.user?.tipo_usuario || session?.user?.role || '').toLowerCase()
+      const controlBaseId = session?.user?.control_base_id
       const userName = session?.user?.name || session?.user?.email
 
       console.log('🔐 [Login] tipo_usuario detectado:', tipoUsuario)
+      console.log('🔐 [Login] control_base_id:', controlBaseId)
       console.log('🔐 [Login] role solicitado:', roleParam)
 
       // 3. VALIDACIÓN DE ROL: Si se solicitó un rol, verificar que coincida
@@ -81,28 +85,55 @@ export default function LoginPage() {
         return
       }
 
-      // 4. Si hay un rol solicitado y es válido, guardarlo para redirección
-      const targetRole = isValidRole ? roleParam.toLowerCase() : tipoUsuario
-
-      // 5. Mapeo de roles a rutas del dashboard
-      const roleMap: Record<string, string> = {
-        super_admin: '/super-admin',
-        admin: '/admin',
-        admin_tenant: '/admin',
-        admin_empresa: '/dashboard-empresa',
-        admin_propietario: '/dashboard-propietario',
-        propietario: '/dashboard-propietario',
-        empleado: '/operativo',
-        chofer: '/operativo',
-      }
-
-      // Determinar la ruta de redirección
+      // 4. Determinar ruta de redirección según rol
       let redirectPath = '/'
-      
-      if (targetRole === 'admin' || targetRole === 'admin_tenant') {
+
+      // ✅ SUPER ADMIN MAESTRO (super_admin)
+      if (tipoUsuario === 'super_admin' || tipoUsuario === 'superadmin') {
+        redirectPath = '/super-admin'
+        console.log('🔄 [Login] Super Admin Maestro → /super-admin')
+      } 
+      // ✅ SUPER ADMIN (admin sin tenant)
+      else if (tipoUsuario === 'admin' && !controlBaseId) {
+        redirectPath = '/super-admin'
+        console.log('🔄 [Login] Super Admin → /super-admin')
+      } 
+      // ✅ ADMIN TENANT (admin con tenant)
+      else if (tipoUsuario === 'admin' && controlBaseId) {
         redirectPath = '/admin'
-      } else {
-        redirectPath = roleMap[targetRole] || '/'
+        console.log('🔄 [Login] Admin Tenant → /admin')
+      } 
+      // ✅ ADMIN EMPRESA
+      else if (tipoUsuario === 'admin_empresa') {
+        redirectPath = '/dashboard-empresa'
+        console.log('🔄 [Login] Admin Empresa → /dashboard-empresa')
+      } 
+      // ✅ PROPIETARIO
+      else if (tipoUsuario === 'propietario' || tipoUsuario === 'admin_propietario') {
+        redirectPath = '/dashboard-propietario'
+        console.log('🔄 [Login] Propietario → /dashboard-propietario')
+      } 
+      // ✅ EMPLEADO / CHOFER
+      else if (tipoUsuario === 'empleado' || tipoUsuario === 'chofer' || tipoUsuario === 'conductor') {
+        redirectPath = '/operativo'
+        console.log('🔄 [Login] Empleado/Chofer → /operativo')
+      } 
+      // ✅ FALLBACK: Mapeo de roles a rutas
+      else {
+        const roleMap: Record<string, string> = {
+          super_admin: '/super-admin',
+          admin: '/admin',
+          admin_tenant: '/admin',
+          admin_empresa: '/dashboard-empresa',
+          admin_propietario: '/dashboard-propietario',
+          propietario: '/dashboard-propietario',
+          empleado: '/operativo',
+          chofer: '/operativo',
+          conductor: '/operativo',
+          empresa: '/dashboard-empresa',
+        }
+        redirectPath = roleMap[tipoUsuario] || '/'
+        console.log('🔄 [Login] Fallback →', redirectPath)
       }
 
       console.log('🔄 [Login] Redirigiendo a:', redirectPath)

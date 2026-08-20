@@ -381,15 +381,33 @@ async def get_current_admin_user(
 
 
 async def get_current_driver_user(
-    current_user: Tuple[UUID, UUID, str, str] = Depends(get_current_user)
+    current_user: Tuple[UUID, UUID, str, str] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ) -> Tuple[UUID, UUID, str, str]:
-    """⚠️ COMPATIBILIDAD - Chofer"""
+    """
+    Verifica que el usuario sea chofer o tenga capacidad de chofer.
+    """
     user_id, control_base_id, email, tipo = current_user
-    if tipo.lower() != "chofer":
+    
+    # 1. Verificar si es chofer directamente
+    es_chofer_directo = (tipo.lower() == "chofer")
+    
+    # 2. Verificar si tiene capacidad chofer via usuario_rol
+    query = text("""
+        SELECT 1 FROM auth.usuario_rol
+        WHERE usuario_id = :user_id
+        AND tipo_usuario_id = (SELECT id FROM auth.tipo_usuario WHERE nombre = 'chofer')
+        AND activo = true
+    """)
+    result = await db.execute(query, {"user_id": user_id})
+    tiene_capacidad_chofer = result.first() is not None
+    
+    if not (es_chofer_directo or tiene_capacidad_chofer):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso de chofer requerido"
         )
+    
     return current_user
 
 
@@ -478,14 +496,13 @@ async def get_propietario_context(
 ) -> dict:
     """Contexto para routers de propietario."""
     user_id, control_base_id, email, tipo = current_user
-    
+
     if tipo.lower() != "propietario":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso de propietario requerido"
         )
-    
-    # ✅ CORREGIDO: JOIN con usuario para obtener activo
+
     query = text("""
         SELECT p.id, p.nombre, p.apellido, p.telefono, p.direccion,
                u.activo as usuario_activo
@@ -495,13 +512,13 @@ async def get_propietario_context(
     """)
     result = await db.execute(query, {"user_id": user_id})
     row = result.first()
-    
+
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Perfil de propietario no encontrado"
         )
-    
+
     # Contar vehículos del propietario
     query_vehiculos = text("""
         SELECT COUNT(*) FROM fleet.propietario_vehiculo
@@ -509,18 +526,18 @@ async def get_propietario_context(
     """)
     result_vehiculos = await db.execute(query_vehiculos, {"user_id": user_id})
     total_vehiculos = result_vehiculos.scalar() or 0
-    
+
     return {
         "user_id": str(user_id),
+        "propietario_id": str(user_id),  # ✅ CORREGIDO: usar user_id
         "control_base_id": str(control_base_id) if control_base_id else None,
         "email": email,
         "tipo_usuario": tipo,
-        "propietario_id": str(row[0]),
         "nombre": row[1],
         "apellido": row[2],
         "telefono": row[3],
         "direccion": row[4],
-        "activo": row[5],  # ✅ Ahora viene de auth.usuario
+        "activo": row[5],
         "total_vehiculos": total_vehiculos
     }
 
@@ -818,3 +835,152 @@ __all__ = [
     "EmpleadoUser",
     "ControlBaseAdminUser",
 ]
+# ============================================
+# FILTROS PARA REPORTES POR ROL
+# ============================================
+
+async def get_filtros_reporte(
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """
+    Retorna los filtros aplicables según el rol del usuario
+    para usar en consultas de reportes y auditoría
+    """
+    user_id, control_base_id, email, tipo_usuario = current_user
+    
+    filtros = {
+        "user_id": user_id,
+        "control_base_id": control_base_id,
+        "tipo_usuario": tipo_usuario,
+        "empresa_id": None,
+        "propietario_id": None,
+        "chofer_id": None,
+        "is_super_admin": tipo_usuario.lower() == "super_admin",
+        "is_admin_tenant": tipo_usuario.lower() in ["admin", "admin_tenant"],
+        "is_admin_empresa": tipo_usuario.lower() == "admin_empresa",
+        "is_empresa": tipo_usuario.lower() == "empresa",
+        "is_propietario": tipo_usuario.lower() in ["propietario", "admin_propietario"],
+        "is_empleado": tipo_usuario.lower() == "empleado",
+        "is_chofer": tipo_usuario.lower() in ["chofer", "conductor"],
+    }
+    
+    # Si es Super Admin, no filtrar por tenant
+    if filtros["is_super_admin"]:
+        filtros["control_base_id"] = None
+        return filtros
+    
+    # Si es Admin Tenant, filtrar por su tenant
+    if filtros["is_admin_tenant"] and control_base_id:
+        filtros["control_base_id"] = control_base_id
+        return filtros
+    
+    # Si es Empresa o Admin Empresa, obtener su empresa_id
+    if filtros["is_empresa"] or filtros["is_admin_empresa"]:
+        query = text("""
+            SELECT empresa_id FROM auth.usuario_empresa
+            WHERE usuario_id = :user_id AND activo = true
+            LIMIT 1
+        """)
+        result = await db.execute(query, {"user_id": user_id})
+        row = result.first()
+        if row:
+            filtros["empresa_id"] = row[0]
+        return filtros
+    
+    # Si es Propietario o Admin Propietario
+    if filtros["is_propietario"]:
+        filtros["propietario_id"] = user_id
+        return filtros
+    
+    # Si es Empleado, obtener su empresa_id
+    if filtros["is_empleado"]:
+        query = text("""
+            SELECT empresa_id FROM auth.usuario_empresa
+            WHERE usuario_id = :user_id AND activo = true
+            LIMIT 1
+        """)
+        result = await db.execute(query, {"user_id": user_id})
+        row = result.first()
+        if row:
+            filtros["empresa_id"] = row[0]
+        return filtros
+    
+    # Si es Chofer
+    if filtros["is_chofer"]:
+        filtros["chofer_id"] = user_id
+        return filtros
+    
+    return filtros
+
+
+# ============================================
+# OBTENER PROPIETARIO ID
+# ============================================
+
+async def get_propietario_id(
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> UUID:
+    """
+    Obtiene el ID del propietario desde el usuario actual
+    Verifica que el usuario tenga rol de propietario
+    """
+    user_id, control_base_id, email, tipo_usuario = current_user
+    
+    if tipo_usuario.lower() not in ["propietario", "admin_propietario"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Se requieren permisos de propietario"
+        )
+    
+    # Verificar que tiene vehículos activos
+    query = text("""
+        SELECT id FROM fleet.propietario_vehiculo
+        WHERE propietario_id = :user_id AND activo = true
+        LIMIT 1
+    """)
+    result = await db.execute(query, {"user_id": user_id})
+    if not result.first():
+        raise HTTPException(
+            status_code=403,
+            detail="El propietario no tiene vehículos activos"
+        )
+    
+    return user_id
+
+
+# ============================================
+# OBTENER TENANT ID ACTUAL
+# ============================================
+
+async def get_tenant_id_actual(
+    current_user: tuple = Depends(get_current_user)
+) -> Optional[UUID]:
+    """
+    Obtiene el tenant_id del usuario actual
+    """
+    _, control_base_id, _, tipo_usuario = current_user
+    if tipo_usuario.lower() == "super_admin":
+        return None  # Super Admin ve todos
+    return control_base_id
+
+# ============================================
+# SUPER ADMIN DEPENDENCIES
+# ============================================
+
+async def get_current_super_admin_user(
+    current_user: tuple = Depends(get_current_user)
+) -> tuple:
+    """
+    Verifica que el usuario sea Super Admin
+    """
+    user_id, control_base_id, email, tipo_usuario = current_user
+    
+    if tipo_usuario.lower() not in ["super_admin", "superadmin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso solo para Super Admin"
+        )
+    
+    return current_user

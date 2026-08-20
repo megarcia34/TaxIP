@@ -1,217 +1,219 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { Pool } from 'pg';
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { Pool } from 'pg'
 
 // Configurar conexión a PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-});
+})
 
 export async function GET(request: NextRequest) {
-  console.log('========================================');
-  console.log('🔍 [Dashboard API] INICIO DE SOLICITUD');
-  console.log('========================================');
+  console.log('========================================')
+  console.log('🔍 [Dashboard API] INICIO DE SOLICITUD')
+  console.log('========================================')
 
   try {
     // 1. Obtener la sesión
-    console.log('🔍 [Dashboard API] Obteniendo sesión...');
-    const session = await getServerSession(authOptions);
-    
-    console.log('🔍 [Dashboard API] Session completa:', JSON.stringify(session, null, 2));
+    console.log('🔍 [Dashboard API] Obteniendo sesión...')
+    const session = await getServerSession(authOptions)
+    console.log('🔍 [Dashboard API] Session:', session?.user?.email)
 
-    // 2. Verificar autenticación
     if (!session) {
-      console.log('❌ [Dashboard API] No hay sesión - 401');
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      console.log('❌ [Dashboard API] No hay sesión - 401')
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    console.log('✅ [Dashboard API] Sesión encontrada');
-
-    // 3. Verificar el usuario
-    const user = session.user as any;
-    console.log('🔍 [Dashboard API] User object:', user);
-    console.log('🔍 [Dashboard API] user.tipo_usuario:', user?.tipo_usuario);
-    console.log('🔍 [Dashboard API] user.role:', user?.role);
-    console.log('🔍 [Dashboard API] user.email:', user?.email);
-
-    // 4. Verificar que sea Super Admin (con fallback a role)
-    const tipoUsuario = user?.tipo_usuario || user?.role || '';
-    console.log('🔍 [Dashboard API] tipoUsuario detectado (fallback):', tipoUsuario);
+    // 2. Verificar que sea Super Admin
+    const user = session.user as any
+    const tipoUsuario = user?.tipo_usuario || user?.role || ''
+    console.log('🔍 [Dashboard API] tipoUsuario:', tipoUsuario)
 
     if (tipoUsuario !== 'super_admin') {
-      console.log(`❌ [Dashboard API] Acceso denegado. Esperado: super_admin, Recibido: ${tipoUsuario}`);
+      console.log(`❌ [Dashboard API] Acceso denegado. Recibido: ${tipoUsuario}`)
       return NextResponse.json({ 
         error: 'Acceso denegado', 
         detalle: `Se esperaba super_admin, se recibió: ${tipoUsuario}` 
-      }, { status: 403 });
+      }, { status: 403 })
     }
 
-    console.log('✅ [Dashboard API] Usuario autorizado como Super Admin');
+    console.log('✅ [Dashboard API] Usuario autorizado como Super Admin')
 
-    // 5. Obtener parámetros
-    const { searchParams } = new URL(request.url);
-    const periodo = searchParams.get('periodo') || new Date().toISOString().slice(0, 7);
-    console.log('🔍 [Dashboard API] Periodo solicitado:', periodo);
+    // 3. Obtener parámetros
+    const { searchParams } = new URL(request.url)
+    const periodo = searchParams.get('periodo') || 'mes'
+    const fechaDesde = searchParams.get('fecha_desde')
+    const fechaHasta = searchParams.get('fecha_hasta')
 
-    // 6. Conectar a la base de datos
-    console.log('🔍 [Dashboard API] Conectando a PostgreSQL...');
-    const client = await pool.connect();
-    console.log('✅ [Dashboard API] Conectado a PostgreSQL');
+    console.log('🔍 [Dashboard API] Periodo:', periodo)
+    console.log('🔍 [Dashboard API] Fechas:', { fechaDesde, fechaHasta })
+
+    // 4. Conectar a la base de datos
+    const client = await pool.connect()
+    console.log('✅ [Dashboard API] Conectado a PostgreSQL')
 
     try {
-      // 7. Consultas
-      console.log('🔍 [Dashboard API] Ejecutando consultas...');
+      // ============================================
+      // 1. RESUMEN GLOBAL
+      // ============================================
+      
+      const resumenResult = await client.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM tenant.control_base WHERE activo = true) as total_tenants,
+          (SELECT COUNT(*) FROM fleet.vehiculo WHERE activo = true) as total_vehiculos,
+          COALESCE((
+            SELECT COUNT(*) 
+            FROM trip.viaje_solicitado 
+            WHERE estado = 'finalizado'
+          ), 0) as total_viajes,
+          COALESCE((
+            SELECT COALESCE(SUM(precio_final), 0) 
+            FROM trip.viaje_solicitado 
+            WHERE estado = 'finalizado'
+          ), 0) as total_recaudacion
+      `)
+      const resumen = resumenResult.rows[0]
+      console.log('✅ [Dashboard API] Resumen global obtenido')
 
-      // 7.1 Total Tenants activos
-      const tenantsResult = await client.query(
-        `SELECT COUNT(*) as total FROM tenant.control_base WHERE activo = true`
-      );
-      console.log('✅ [Dashboard API] Tenants:', tenantsResult.rows[0]?.total);
+      // ============================================
+      // 2. DESGLOSE POR TENANT
+      // ============================================
+      
+      const tenantsResult = await client.query(`
+        SELECT 
+          cb.id as tenant_id,
+          cb.nombre as tenant_nombre,
+          COUNT(DISTINCT v.id) as total_vehiculos,
+          COALESCE(COUNT(vs.id), 0) as total_viajes,
+          COALESCE(SUM(vs.precio_final), 0) as total_recaudacion,
+          COALESCE(AVG(vs.precio_final), 0) as promedio_por_viaje,
+          COALESCE(SUM(g.monto), 0) as total_gastos
+        FROM tenant.control_base cb
+        LEFT JOIN fleet.vehiculo v ON v.control_base_id = cb.id AND v.activo = true
+        LEFT JOIN trip.viaje_solicitado vs ON vs.control_base_id = cb.id 
+          AND vs.estado = 'finalizado'
+        LEFT JOIN fleet.gasto_vehiculo g ON g.vehiculo_id = v.id
+        WHERE cb.activo = true
+        GROUP BY cb.id, cb.nombre
+        ORDER BY total_recaudacion DESC
+      `)
+      const tenants = tenantsResult.rows
+      console.log(`✅ [Dashboard API] ${tenants.length} tenants procesados`)
 
-      // 7.2 Total Vehículos activos
-      const vehiculosResult = await client.query(
-        `SELECT COUNT(*) as total FROM fleet.vehiculo WHERE activo = true`
-      );
-      console.log('✅ [Dashboard API] Vehículos:', vehiculosResult.rows[0]?.total);
+      // ============================================
+      // 3. MEDIOS DE PAGO
+      // ============================================
+      
+      const mediosResult = await client.query(`
+        SELECT 
+          COALESCE(mp.nombre, 'efectivo') as medio_pago,
+          COUNT(vs.id) as total_viajes,
+          COALESCE(SUM(vs.precio_final), 0) as total_ingresos
+        FROM trip.viaje_solicitado vs
+        LEFT JOIN payment.transaccion t ON t.viaje_id = vs.id
+        LEFT JOIN payment.metodo_pago mp ON mp.id = t.metodo_pago_id
+        WHERE vs.estado = 'finalizado'
+        GROUP BY medio_pago
+        ORDER BY total_ingresos DESC
+      `)
+      const medios = mediosResult.rows
+      const totalIngresosMedios = medios.reduce((sum, m) => sum + Number(m.total_ingresos), 0)
+      console.log(`✅ [Dashboard API] ${medios.length} medios de pago procesados`)
 
-      // 7.3 Deuda Total
-      const deudaResult = await client.query(
-        `SELECT COALESCE(SUM(total_a_pagar), 0) as total 
-         FROM tenant.factura 
-         WHERE estado = 'pendiente'`
-      );
-      console.log('✅ [Dashboard API] Deuda:', deudaResult.rows[0]?.total);
+      // ============================================
+      // 4. GASTOS OPERATIVOS
+      // ============================================
+      
+      const gastosResult = await client.query(`
+        SELECT 
+          tipo_gasto,
+          COALESCE(SUM(monto), 0) as total
+        FROM fleet.gasto_vehiculo
+        GROUP BY tipo_gasto
+        ORDER BY total DESC
+      `)
+      const gastos = gastosResult.rows
+      console.log(`✅ [Dashboard API] ${gastos.length} tipos de gasto procesados`)
 
-      // 7.4 Ingresos del Mes
-      const ingresosResult = await client.query(
-        `SELECT COALESCE(SUM(total_a_pagar), 0) as total 
-         FROM tenant.factura 
-         WHERE estado = 'pagado' 
-         AND TO_CHAR(periodo, 'YYYY-MM') = $1`,
-        [periodo]
-      );
-      console.log('✅ [Dashboard API] Ingresos mes:', ingresosResult.rows[0]?.total);
+      // ============================================
+      // 5. EVOLUCIÓN MENSUAL (últimos 6 meses)
+      // ============================================
+      
+      const evolucionResult = await client.query(`
+        SELECT 
+          TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as mes,
+          COUNT(*) as total_viajes,
+          COALESCE(SUM(precio_final), 0) as total_recaudacion
+        FROM trip.viaje_solicitado
+        WHERE estado = 'finalizado'
+          AND created_at >= NOW() - INTERVAL '6 months'
+        GROUP BY DATE_TRUNC('month', created_at)
+        ORDER BY mes ASC
+      `)
+      const evolucion = evolucionResult.rows
+      console.log(`✅ [Dashboard API] ${evolucion.length} meses de evolución`)
 
-      // 7.5 Facturas recientes
-      const facturasResult = await client.query(
-        `SELECT 
-          f.id,
-          f.numero_factura,
-          c.nombre as tenant,
-          f.total_a_pagar as total,
-          f.estado,
-          f.fecha_emision
-        FROM tenant.factura f
-        JOIN tenant.control_base c ON f.control_base_id = c.id
-        ORDER BY f.created_at DESC
-        LIMIT 5`
-      );
-      console.log('✅ [Dashboard API] Facturas recientes:', facturasResult.rowCount);
+      // ============================================
+      // 6. CONSTRUIR RESPUESTA
+      // ============================================
 
-      // 7.6 Ingresos por Tenant
-      const ingresosPorTenantResult = await client.query(
-        `SELECT 
-          c.nombre as tenant,
-          COALESCE(SUM(f.total_a_pagar) FILTER (WHERE f.estado = 'pagado'), 0) as pagado,
-          COALESCE(SUM(f.total_a_pagar) FILTER (WHERE f.estado = 'pendiente'), 0) as pendiente
-        FROM tenant.control_base c
-        LEFT JOIN tenant.factura f ON c.id = f.control_base_id
-        WHERE c.activo = true
-        GROUP BY c.id, c.nombre`
-      );
-      console.log('✅ [Dashboard API] Ingresos por tenant:', ingresosPorTenantResult.rowCount);
-
-      // 7.7 Alertas
-      const alertas: any[] = [];
-
-      // Facturas vencidas
-      const vencidasResult = await client.query(
-        `SELECT 
-          f.numero_factura,
-          c.nombre as tenant,
-          f.total_a_pagar
-        FROM tenant.factura f
-        JOIN tenant.control_base c ON f.control_base_id = c.id
-        WHERE f.estado = 'pendiente' 
-        AND f.fecha_vencimiento < NOW()`
-      );
-
-      if (vencidasResult.rows.length > 0) {
-        const v = vencidasResult.rows[0];
-        alertas.push({
-          tipo: 'critica',
-          mensaje: `${vencidasResult.rowCount} factura(s) vencida(s) - ${v.tenant} - ${formatCurrency(Number(v.total_a_pagar))}`,
-          link: '/super-admin/facturacion'
-        });
-        console.log('⚠️ [Dashboard API] Alertas: Facturas vencidas encontradas');
-      }
-
-      // Tenants sin vehículos activos
-      const tenantsSinVehiculos = await client.query(
-        `SELECT c.nombre
-        FROM tenant.control_base c
-        LEFT JOIN fleet.vehiculo v ON c.id = v.control_base_id AND v.activo = true
-        WHERE c.activo = true
-        GROUP BY c.id
-        HAVING COUNT(v.id) = 0`
-      );
-
-      if (tenantsSinVehiculos.rows.length > 0) {
-        alertas.push({
-          tipo: 'advertencia',
-          mensaje: `${tenantsSinVehiculos.rows.length} Tenant(s) sin vehículos activos: ${tenantsSinVehiculos.rows.map(r => r.nombre).join(', ')}`,
-          link: '/super-admin/tenants'
-        });
-        console.log('⚠️ [Dashboard API] Alertas: Tenants sin vehículos');
-      }
-
-      // 8. Construir respuesta
       const responseData = {
-        totalTenants: Number(tenantsResult.rows[0]?.total) || 0,
-        totalVehiculos: Number(vehiculosResult.rows[0]?.total) || 0,
-        deudaTotal: Number(deudaResult.rows[0]?.total) || 0,
-        ingresosMes: Number(ingresosResult.rows[0]?.total) || 0,
-        facturasRecientes: facturasResult.rows.map((row: any) => ({
-          id: row.id,
-          numero_factura: row.numero_factura,
-          tenant: row.tenant,
-          total: Number(row.total),
-          estado: row.estado,
-          fecha_emision: row.fecha_emision,
+        totalTenants: Number(resumen.total_tenants) || 0,
+        totalVehiculos: Number(resumen.total_vehiculos) || 0,
+        totalViajes: Number(resumen.total_viajes) || 0,
+        totalRecaudacion: Number(resumen.total_recaudacion) || 0,
+        tenants: tenants.map((t: any) => ({
+          tenant_id: t.tenant_id,
+          tenant_nombre: t.tenant_nombre,
+          total_vehiculos: Number(t.total_vehiculos) || 0,
+          total_viajes: Number(t.total_viajes) || 0,
+          total_recaudacion: Number(t.total_recaudacion) || 0,
+          promedio_por_viaje: Number(t.promedio_por_viaje) || 0,
+          total_gastos: Number(t.total_gastos) || 0,
+          utilidad_neta: Number(t.total_recaudacion) - Number(t.total_gastos),
+          margen: Number(t.total_recaudacion) > 0 
+            ? ((Number(t.total_recaudacion) - Number(t.total_gastos)) / Number(t.total_recaudacion)) * 100 
+            : 0
         })),
-        ingresosPorTenant: ingresosPorTenantResult.rows.map((row: any) => ({
-          tenant: row.tenant,
-          pagado: Number(row.pagado) || 0,
-          pendiente: Number(row.pendiente) || 0,
+        mediosPago: medios.map((m: any) => ({
+          medio_pago: m.medio_pago,
+          total_viajes: Number(m.total_viajes) || 0,
+          total_ingresos: Number(m.total_ingresos) || 0,
+          porcentaje: totalIngresosMedios > 0 
+            ? (Number(m.total_ingresos) / totalIngresosMedios) * 100 
+            : 0
         })),
-        alertas,
-      };
+        gastosOperativos: gastos.map((g: any) => ({
+          tipo_gasto: g.tipo_gasto || 'otros',
+          total: Number(g.total) || 0
+        })),
+        evolucionMensual: evolucion.map((e: any) => ({
+          mes: e.mes,
+          total_viajes: Number(e.total_viajes) || 0,
+          total_recaudacion: Number(e.total_recaudacion) || 0
+        })),
+        periodo: {
+          tipo: periodo,
+          desde: fechaDesde || 'N/A',
+          hasta: fechaHasta || 'N/A'
+        }
+      }
 
-      console.log('✅ [Dashboard API] Respuesta generada exitosamente');
-      console.log('========================================');
-      return NextResponse.json(responseData);
+      console.log('✅ [Dashboard API] Respuesta generada exitosamente')
+      console.log('========================================')
+      return NextResponse.json(responseData)
 
     } finally {
-      client.release();
-      console.log('🔍 [Dashboard API] Conexión a PostgreSQL liberada');
+      client.release()
+      console.log('🔍 [Dashboard API] Conexión a PostgreSQL liberada')
     }
 
   } catch (error) {
-    console.error('❌ [Dashboard API] Error:', error);
-    console.log('========================================');
+    console.error('❌ [Dashboard API] Error:', error)
+    console.log('========================================')
     return NextResponse.json({ 
       error: 'Error interno del servidor',
       detalle: error instanceof Error ? error.message : 'Error desconocido'
-    }, { status: 500 });
+    }, { status: 500 })
   }
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
 }

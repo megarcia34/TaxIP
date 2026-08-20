@@ -28,9 +28,15 @@ export function ViajesChart() {
       try {
         const res = await fetch('/api/tenant/dashboard/charts')
         const json = await res.json()
-        setData(json)
+        
+        // ✅ VERIFICAR que sea un array
+        const datos = Array.isArray(json) ? json : json?.viajes || []
+        setData(datos)
+        
+        console.log('Datos recibidos:', datos)  // ← Depuración
       } catch (error) {
         console.error('Error fetching chart data:', error)
+        setData([])  // ← Si falla, array vacío
       } finally {
         setLoading(false)
       }
@@ -41,8 +47,12 @@ export function ViajesChart() {
 
   // Formatear fechas para mostrar día de la semana
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('es-AR', { weekday: 'short' })
+    try {
+      const date = new Date(dateStr)
+      return date.toLocaleDateString('es-AR', { weekday: 'short' })
+    } catch {
+      return dateStr
+    }
   }
 
   if (loading) {
@@ -60,7 +70,15 @@ export function ViajesChart() {
     )
   }
 
-  if (data.length === 0) {
+  // ✅ Verificar que data sea un array
+  const chartData = Array.isArray(data) && data.length > 0
+    ? data.map(item => ({
+        ...item,
+        dia: formatDate(item.dia),
+      }))
+    : []
+
+  if (chartData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -74,11 +92,6 @@ export function ViajesChart() {
       </Card>
     )
   }
-
-  const chartData = data.map(item => ({
-    ...item,
-    dia: formatDate(item.dia),
-  }))
 
   return (
     <Card>

@@ -59,3 +59,71 @@ async def verificar_chofer_disponible(
     if not result.first():
         raise HTTPException(status_code=409, detail=f"El chofer no está disponible para el turno {turno}")
     return True
+
+# ============================================================
+# HELPER PARA KILOMETRAJE DEL VEHÍCULO
+# ============================================================
+
+async def obtener_km_actual_vehiculo(
+    vehiculo_id: UUID,
+    db: AsyncSession
+) -> int:
+    """
+    Obtiene el kilometraje actual del vehículo.
+    Prioridad: 1. Turno activo, 2. Viajes finalizados
+    """
+    # Primero desde turno activo
+    query_turno = text("""
+        SELECT km_inicial, km_final
+        FROM fleet.turno_chofer
+        WHERE vehiculo_id = :vehiculo_id AND estado = 'ACTIVO'
+        ORDER BY inicio_turno DESC
+        LIMIT 1
+    """)
+    result = await db.execute(query_turno, {"vehiculo_id": vehiculo_id})
+    row = result.first()
+    
+    if row:
+        if row[1] is not None:
+            return int(row[1])
+        return int(row[0] or 0)
+    
+    # Si no hay turno activo, calcular desde viajes
+    query_viajes = text("""
+        SELECT COALESCE(SUM(distancia_metros) / 1000, 0)::INTEGER
+        FROM trip.viaje_solicitado
+        WHERE vehiculo_id = :vehiculo_id AND estado = 'finalizado'
+    """)
+    result = await db.execute(query_viajes, {"vehiculo_id": vehiculo_id})
+    km = result.scalar() or 0
+    return int(km)
+# ============================================================
+# HELPER PARA NEUMÁTICOS
+# ============================================================
+
+async def verificar_neumatico_propietario(
+    neumatico_id: UUID,
+    propietario_id: UUID,
+    db: AsyncSession,
+    mensaje_error: str = "Neumático no encontrado o no pertenece a un vehículo del propietario"
+):
+    """
+    Verifica que un neumático pertenezca a un vehículo que es propiedad del propietario.
+    Lanza HTTPException 404 si no es así.
+    """
+    query = text("""
+        SELECT 1 
+        FROM fleet.neumatico_vehiculo nv
+        INNER JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = nv.vehiculo_id
+        WHERE nv.id = :neumatico_id 
+          AND pv.propietario_id = :propietario_id 
+          AND pv.activo = true
+        LIMIT 1
+    """)
+    result = await db.execute(query, {
+        "neumatico_id": neumatico_id, 
+        "propietario_id": propietario_id
+    })
+    if not result.first():
+        raise HTTPException(status_code=404, detail=mensaje_error)
+    return True

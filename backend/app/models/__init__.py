@@ -33,6 +33,9 @@ from app.models.fleet import (
     MantenimientoVehiculo,
     PropietarioVehiculo,
     ContratoVehiculo,
+    CategoriaGasto,
+    DocumentoVehiculo,      # <--- NUEVO
+    DocumentoPropietario,   # <--- NUEVO
 )
 
 # Geo
@@ -63,6 +66,14 @@ from app.models.trip import (
     Calificacion,
     ObjetoOlvidado,
     TipoVehiculo,
+)
+
+# En la sección de imports
+from app.models.liquidacion import (
+    Liquidacion,
+    LiquidacionDetalle,
+    LiquidacionEstadoHistorial,
+    LiquidacionAjuste
 )
 
 # Turno
@@ -101,6 +112,9 @@ __all__ = [
     "MantenimientoVehiculo",
     "PropietarioVehiculo",
     "ContratoVehiculo",
+    "CategoriaGasto",
+    "DocumentoVehiculo",      # <--- NUEVO
+    "DocumentoPropietario",   # <--- NUEVO
 
     # Geo
     "Pais",
@@ -132,4 +146,10 @@ __all__ = [
 
     # Foto Viaje
     "FotoViaje",
+
+    # Liquidaciones
+    "Liquidacion",
+    "LiquidacionDetalle",
+    "LiquidacionEstadoHistorial",
+    "LiquidacionAjuste",
 ]

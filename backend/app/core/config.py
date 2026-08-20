@@ -4,6 +4,7 @@ Centralized settings from environment variables
 """
 
 import os
+import cloudinary
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
@@ -50,9 +51,31 @@ class Settings(BaseSettings):
     SMTP_PORT: Optional[int] = None
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM: Optional[str] = None
+    
+    # ============================================================
+    # CLOUDINARY
+    # ============================================================
+    CLOUDINARY_CLOUD_NAME: str = os.getenv("CLOUDINARY_CLOUD_NAME", "")
+    CLOUDINARY_API_KEY: str = os.getenv("CLOUDINARY_API_KEY", "")
+    CLOUDINARY_API_SECRET: str = os.getenv("CLOUDINARY_API_SECRET", "")
+    CLOUDINARY_UPLOAD_PRESET: str = os.getenv("CLOUDINARY_UPLOAD_PRESET", "documentos_preset")
+    CLOUDINARY_FOLDER: str = os.getenv("CLOUDINARY_FOLDER", "documentos")
+    CLOUDINARY_URL: str = os.getenv("CLOUDINARY_URL", "")
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 # Singleton instance
 settings = Settings()
+
+# ============================================================
+# INICIALIZAR CLOUDINARY
+# ============================================================
+cloudinary.config(
+    cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+    api_key=settings.CLOUDINARY_API_KEY,
+    api_secret=settings.CLOUDINARY_API_SECRET
+)
+
+print(f"☁️ Cloudinary configurado con cloud_name: {settings.CLOUDINARY_CLOUD_NAME}")

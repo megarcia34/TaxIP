@@ -1,12 +1,12 @@
 """
-Payment and Wallet Models for TaxIP (independiente)
+Payment and Wallet Models for TaxIP
 Tablas: metodo_pago, billetera, transaccion, configuracion_tarifa
 """
-
 import uuid
-from datetime import datetime, time  # ← Agregar time
+from datetime import datetime, time
+from typing import Optional
 from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Integer, DECIMAL, Text, Time  # ← Agregar Time
+    String, Boolean, DateTime, ForeignKey, Integer, DECIMAL, Text, Time
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -24,7 +24,8 @@ class MetodoPago(Base):
         default=uuid.uuid4
     )
     nombre: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    
+
+    # Relationships
     transacciones: Mapped[list["Transaccion"]] = relationship(
         back_populates="metodo_pago",
         lazy="selectin"
@@ -57,9 +58,8 @@ class Billetera(Base):
         onupdate=datetime.now
     )
 
-    # NOTA: Sin back_populates para evitar ciclo de mapeo con Usuario (auth.py)
+    # Relationships
     usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
-    
     transacciones: Mapped[list["Transaccion"]] = relationship(
         back_populates="billetera",
         lazy="selectin",
@@ -82,29 +82,31 @@ class Transaccion(Base):
         ForeignKey("payment.billetera.id", ondelete="CASCADE"),
         nullable=False
     )
-    viaje_id: Mapped[uuid.UUID] = mapped_column(
+    viaje_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("trip.viaje_solicitado.id", ondelete="SET NULL"),
         nullable=True
     )
-    metodo_pago_id: Mapped[uuid.UUID] = mapped_column(
+    metodo_pago_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("payment.metodo_pago.id"),
-        nullable=False
+        nullable=True
     )
-    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
-    monto: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False)
-    saldo_despues: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False)
-    estado: Mapped[str] = mapped_column(String(30), nullable=False, default='COMPLETADO')
-    external_reference: Mapped[str] = mapped_column(String(255), nullable=True, index=True)
-    provider_id: Mapped[str] = mapped_column(String(255), nullable=True)
-    provider_data: Mapped[dict] = mapped_column(Text, nullable=True)
-    descripcion: Mapped[str] = mapped_column(Text, nullable=True)
+    tipo: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    monto: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
+    saldo_despues: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
+    estado: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, default='COMPLETADO')
+    
+    # ✅ ESTA ES LA COLUMNA REAL EN LA BD
+    external_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    
+    descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
+    # Relationships
     billetera: Mapped["Billetera"] = relationship(back_populates="transacciones")
-    viaje: Mapped["ViajeSolicitado"] = relationship(lazy="selectin")
-    metodo_pago: Mapped["MetodoPago"] = relationship(back_populates="transacciones")
+    viaje: Mapped[Optional["ViajeSolicitado"]] = relationship(lazy="selectin")
+    metodo_pago: Mapped[Optional["MetodoPago"]] = relationship(back_populates="transacciones")
 
 
 class ConfiguracionTarifa(Base):
@@ -123,72 +125,68 @@ class ConfiguracionTarifa(Base):
         nullable=False,
         index=True
     )
-    nombre: Mapped[str] = mapped_column(String(100), nullable=True)
-    tarifa_base: Mapped[float] = mapped_column(DECIMAL(10, 2), default=0)
-    precio_por_km: Mapped[float] = mapped_column(DECIMAL(10, 2), default=0)
-    precio_por_minuto: Mapped[float] = mapped_column(DECIMAL(10, 2), default=0)
-    recargo_nocturno: Mapped[float] = mapped_column(DECIMAL(3, 2), default=1.0)
-    recargo_feriado: Mapped[float] = mapped_column(DECIMAL(3, 2), default=1.0)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    nombre: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    tarifa_base: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), default=0)
+    precio_por_km: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), default=0)
+    precio_por_minuto: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), default=0)
+    recargo_nocturno: Mapped[Optional[float]] = mapped_column(DECIMAL(3, 2), default=1.0)
+    recargo_feriado: Mapped[Optional[float]] = mapped_column(DECIMAL(3, 2), default=1.0)
+    activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now,
         onupdate=datetime.now
     )
-
+    
     # Nuevos campos para soporte multi-tenant
-    modo_calculo: Mapped[str] = mapped_column(
+    modo_calculo: Mapped[Optional[str]] = mapped_column(
         String(20), 
         default='por_km',
         doc="Modo de cálculo: ficha_argentina, por_km, por_minuto, mixto"
     )
-    distancia_por_ficha: Mapped[float] = mapped_column(
+    distancia_por_ficha: Mapped[Optional[float]] = mapped_column(
         DECIMAL(10, 2), 
         default=100,
         doc="Distancia en metros por cada ficha"
     )
-    precio_por_ficha: Mapped[float] = mapped_column(
+    precio_por_ficha: Mapped[Optional[float]] = mapped_column(
         DECIMAL(10, 2), 
         default=0,
         doc="Precio por cada ficha"
     )
-    precio_por_minuto_espera: Mapped[float] = mapped_column(
+    precio_por_minuto_espera: Mapped[Optional[float]] = mapped_column(
         DECIMAL(10, 2), 
         default=0,
         doc="Precio por minuto de espera"
     )
-    recargo_domingo: Mapped[float] = mapped_column(
+    recargo_domingo: Mapped[Optional[float]] = mapped_column(
         DECIMAL(3, 2), 
         default=1.0,
         doc="Factor de recargo para domingos"
     )
-    
-    # CORREGIDO: Usar Time en lugar de String(5) para coincidir con la BD
-    hora_inicio_nocturno: Mapped[time] = mapped_column(
+    hora_inicio_nocturno: Mapped[Optional[time]] = mapped_column(
         Time, 
         default=time(22, 0),
         doc="Hora de inicio del recargo nocturno"
     )
-    hora_fin_nocturno: Mapped[time] = mapped_column(
+    hora_fin_nocturno: Mapped[Optional[time]] = mapped_column(
         Time, 
         default=time(6, 0),
         doc="Hora de fin del recargo nocturno"
     )
-    
-    moneda: Mapped[str] = mapped_column(
+    moneda: Mapped[Optional[str]] = mapped_column(
         String(3), 
         default='ARS',
         doc="Moneda de la tarifa"
     )
-    descripcion: Mapped[str] = mapped_column(
+    descripcion: Mapped[Optional[str]] = mapped_column(
         Text, 
         nullable=True,
         doc="Descripción adicional de la configuración"
     )
 
     # Relationships
-    # NOTA: Sin back_populates para evitar ciclo de mapeo con ControlBase
     control_base: Mapped["ControlBase"] = relationship(
         "ControlBase",
         lazy="selectin"

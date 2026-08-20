@@ -1,16 +1,14 @@
-PS D:\ataxip\backend> python ver_db.py
-🔌 Conectando a: postgresql://postgres:***@localhost:5432/taxip_db
-✅ Conexión exitosa!
 ================================================================================
 🔍 DIAGNÓSTICO COMPLETO DE BASE DE DATOS (REAL)
 ================================================================================
 
 📋 TABLAS EN SCHEMA 'public':
- 1. comercio
- 2. escaneo_qr
- 3. geography_columns
- 4. geometry_columns
- 5. spatial_ref_sys
+ 1. alembic_version
+ 2. comercio
+ 3. escaneo_qr
+ 4. geography_columns
+ 5. geometry_columns
+ 6. spatial_ref_sys
 
 ================================================================================
 📊 ESTRUCTURA DETALLADA
@@ -28,6 +26,30 @@ PS D:\ataxip\backend> python ver_db.py
       ruta_esperada_json        | text                 | NULL
       notificado                | boolean              | NULL DEFAULT false
       resuelto                  | boolean              | NULL DEFAULT false
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: alertas_vencimiento
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      entidad_id                | uuid                 | NOT NULL
+      entidad_tipo              | character varying    | NOT NULL
+      documento_id              | uuid                 | NOT NULL
+      mensaje                   | text                 | NOT NULL
+      nivel                     | character varying    | NOT NULL
+      fecha_vencimiento         | date                 | NOT NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: log_acciones
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NULL
+      email                     | character varying    | NOT NULL
+      accion                    | character varying    | NOT NULL
+      tabla_afectada            | character varying    | NULL
+      registro_id               | uuid                 | NULL
+      datos_anteriores          | jsonb                | NULL
+      datos_nuevos              | jsonb                | NULL
+      control_base_id           | uuid                 | NULL
+      ip_address                | inet                 | NULL
+      user_agent                | text                 | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
 
    📍 TABLA: log_gps
@@ -52,6 +74,22 @@ PS D:\ataxip\backend> python ver_db.py
       ip_address                | character varying    | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
       user_agent                | text                 | NULL
+
+   📍 TABLA: autorizacion_inicio
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      token                     | character varying    | NOT NULL
+      contrato_id               | uuid                 | NOT NULL
+      chofer_id                 | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NOT NULL
+      control_base_id           | uuid                 | NOT NULL
+      tipo_contrato             | character varying    | NULL
+      turno_contractual         | character varying    | NULL
+      dia_contractual           | character varying    | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      expires_at                | timestamp without time zone | NULL
+      used_at                   | timestamp without time zone | NULL
+      qr_referencia             | uuid                 | NULL
+      created_by                | uuid                 | NULL
 
    📍 TABLA: direccion_frecuente
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -139,6 +177,16 @@ PS D:\ataxip\backend> python ver_db.py
       activo                    | boolean              | NULL DEFAULT true
       created_at                | timestamp without time zone | NULL DEFAULT now()
 
+   📍 TABLA: usuario_rol
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      tipo_usuario_id           | uuid                 | NOT NULL
+      activo                    | boolean              | NOT NULL DEFAULT true
+      fecha_inicio              | date                 | NOT NULL DEFAULT CURRENT_DATE
+      fecha_fin                 | date                 | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
 📌 SCHEMA: comunicacion
 ------------------------------------------------------------
 
@@ -175,6 +223,18 @@ PS D:\ataxip\backend> python ver_db.py
 📌 SCHEMA: fleet
 ------------------------------------------------------------
 
+   📍 TABLA: categoria_gasto
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NOT NULL
+      nombre                    | character varying    | NOT NULL
+      descripcion               | text                 | NULL
+      subcategorias             | jsonb                | NOT NULL DEFAULT '[]'::jsonb
+      aplica_a                  | jsonb                | NOT NULL DEFAULT '[]'::jsonb
+      tratamiento_economico     | character varying    | NOT NULL DEFAULT 'configurable'::character vary
+      activo                    | boolean              | NOT NULL DEFAULT true
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
    📍 TABLA: chofer_vehiculo
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
       usuario_id                | uuid                 | NOT NULL
@@ -194,6 +254,16 @@ PS D:\ataxip\backend> python ver_db.py
       estado_aprobacion         | character varying    | NULL DEFAULT 'pendiente'::character varying
       total_viajes              | integer              | NULL DEFAULT 0
 
+   📍 TABLA: contrato_qr
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      contrato_id               | uuid                 | NOT NULL
+      token                     | character varying    | NOT NULL
+      fecha_expiracion          | timestamp without time zone | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      created_by                | uuid                 | NULL
+      usos                      | integer              | NULL DEFAULT 0
+
    📍 TABLA: contrato_vehiculo
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
       control_base_id           | uuid                 | NOT NULL
@@ -201,7 +271,6 @@ PS D:\ataxip\backend> python ver_db.py
       vehiculo_id               | uuid                 | NOT NULL
       chofer_id                 | uuid                 | NOT NULL
       tipo_contrato             | character varying    | NOT NULL
-      turno_asignado            | character varying    | NOT NULL
       porcentaje_chofer         | numeric              | NULL
       monto_diario              | numeric              | NULL
       fecha_inicio              | timestamp without time zone | NOT NULL DEFAULT now()
@@ -209,6 +278,31 @@ PS D:\ataxip\backend> python ver_db.py
       activo                    | boolean              | NOT NULL DEFAULT true
       created_at                | timestamp without time zone | NULL DEFAULT now()
       estado_contrato           | character varying    | NULL DEFAULT 'PENDIENTE_CONFIGURACION'::cha
+      canon_diario              | numeric              | NULL
+      km_incluidos_dia          | numeric              | NULL
+      valor_km_excedente        | numeric              | NULL
+      modalidad_computo         | character varying    | NULL DEFAULT 'DIARIO'::character varying
+      dias_contractuales        | jsonb                | NULL
+      tratamiento_dia_no_trabajado | character varying    | NULL DEFAULT 'POR_DISPONIBILIDAD'::characte
+      updated_at                | timestamp without time zone | NOT NULL
+      dia_inicio_semana         | character varying    | NULL
+      hora_inicio               | time without time zone | NOT NULL
+      hora_fin                  | time without time zone | NOT NULL
+      duracion_minima_horas     | integer              | NOT NULL DEFAULT 6
+      permite_extension         | boolean              | NOT NULL DEFAULT false
+      hora_fin_extension        | time without time zone | NULL
+
+   📍 TABLA: documento_propietario
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      propietario_id            | uuid                 | NOT NULL
+      tipo_documento            | character varying    | NOT NULL
+      numero                    | character varying    | NOT NULL
+      fecha_emision             | date                 | NULL
+      fecha_vencimiento         | date                 | NULL
+      observaciones             | text                 | NULL
+      url_archivo               | text                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
 
    📍 TABLA: documento_vehiculo
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -221,6 +315,24 @@ PS D:\ataxip\backend> python ver_db.py
       url_archivo               | text                 | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
       updated_at                | timestamp without time zone | NULL DEFAULT now()
+      activo                    | boolean              | NOT NULL DEFAULT true
+      notificar_dias            | integer              | NOT NULL DEFAULT 30
+      marca                     | character varying    | NULL
+      modelo                    | character varying    | NULL
+      tipo_vehiculo             | character varying    | NULL
+      uso                       | character varying    | NULL
+      chasis                    | character varying    | NULL
+      motor                     | character varying    | NULL
+      dominio                   | character varying    | NULL
+      vtv_fecha_vencimiento     | date                 | NULL
+      seguro_compania           | character varying    | NULL
+      seguro_poliza             | character varying    | NULL
+      seguro_fecha_emision      | date                 | NULL
+      seguro_fecha_vencimiento  | date                 | NULL
+      seguro_cobertura          | character varying    | NULL
+      seguro_suma_asegurada     | character varying    | NULL
+      seguro_tomador            | character varying    | NULL
+      seguro_vehiculo           | character varying    | NULL
 
    📍 TABLA: documentos_chofer
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -228,6 +340,20 @@ PS D:\ataxip\backend> python ver_db.py
       tipo_documento            | character varying    | NOT NULL
       url                       | text                 | NOT NULL
       subido_en                 | timestamp without time zone | NULL DEFAULT now()
+      fecha_vencimiento         | date                 | NULL
+      notificar_dias            | integer              | NOT NULL DEFAULT 30
+      activo                    | boolean              | NOT NULL DEFAULT true
+
+   📍 TABLA: foto_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      url                       | text                 | NOT NULL
+      public_id                 | text                 | NOT NULL
+      descripcion               | text                 | NULL
+      orden                     | integer              | NULL DEFAULT 0
+      es_principal              | boolean              | NULL DEFAULT false
+      subida_por                | uuid                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
 
    📍 TABLA: gasto_turno
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -237,6 +363,8 @@ PS D:\ataxip\backend> python ver_db.py
       km_registro               | numeric              | NULL
       url_comprobante           | character varying    | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
+      categoria_id              | uuid                 | NULL
+      subcategoria              | character varying    | NULL
 
    📍 TABLA: gasto_vehiculo
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -246,10 +374,12 @@ PS D:\ataxip\backend> python ver_db.py
       monto                     | numeric              | NOT NULL
       moneda                    | character varying    | NULL DEFAULT 'ARS'::character varying
       descripcion               | text                 | NULL
-      kilometraje               | integer              | NULL
       comprobante_url           | text                 | NULL
       fecha_gasto               | date                 | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
+      categoria_id              | uuid                 | NULL
+      subcategoria              | character varying    | NULL
+      km_registro               | numeric              | NULL
 
    📍 TABLA: historial_chofer_vehiculo
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -258,6 +388,70 @@ PS D:\ataxip\backend> python ver_db.py
       fecha_inicio              | timestamp without time zone | NULL
       fecha_fin                 | timestamp without time zone | NULL
       estado                    | character varying    | NULL
+
+   📍 TABLA: liquidacion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NOT NULL
+      turno_id                  | uuid                 | NOT NULL
+      contrato_id               | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NOT NULL
+      chofer_id                 | uuid                 | NOT NULL
+      propietario_id            | uuid                 | NOT NULL
+      tipo_contrato             | character varying    | NOT NULL
+      periodo_desde             | timestamp without time zone | NOT NULL
+      periodo_hasta             | timestamp without time zone | NOT NULL
+      monto_bruto               | numeric              | NOT NULL DEFAULT 0
+      total_gastos              | numeric              | NOT NULL DEFAULT 0
+      comision_chofer           | numeric              | NOT NULL DEFAULT 0
+      canon                     | numeric              | NOT NULL DEFAULT 0
+      total_chofer              | numeric              | NOT NULL DEFAULT 0
+      total_propietario         | numeric              | NOT NULL DEFAULT 0
+      estado                    | character varying    | NOT NULL DEFAULT 'BORRADOR'::character varying
+      version                   | integer              | NOT NULL DEFAULT 1
+      calculada_en              | timestamp without time zone | NOT NULL DEFAULT now()
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      aprobada_por              | uuid                 | NULL
+      aprobada_en               | timestamp without time zone | NULL
+      rechazada_por             | uuid                 | NULL
+      rechazada_en              | timestamp without time zone | NULL
+      motivo_rechazo            | text                 | NULL
+      pagada_por                | uuid                 | NULL
+      pagada_en                 | timestamp without time zone | NULL
+      metodo_pago               | character varying    | NULL
+      referencia_pago           | character varying    | NULL
+
+   📍 TABLA: liquidacion_ajuste
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      liquidacion_id            | uuid                 | NOT NULL
+      control_base_id           | uuid                 | NOT NULL
+      tipo_ajuste               | character varying    | NOT NULL
+      monto                     | numeric              | NOT NULL
+      motivo                    | text                 | NULL
+      usuario_id                | uuid                 | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
+   📍 TABLA: liquidacion_detalle
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      liquidacion_id            | uuid                 | NOT NULL
+      tipo_linea                | character varying    | NOT NULL
+      concepto                  | character varying    | NULL
+      fuente_tipo               | character varying    | NULL
+      fuente_id                 | uuid                 | NULL
+      monto                     | numeric              | NOT NULL
+      signo                     | character varying    | NOT NULL
+      meta_data                 | jsonb                | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
+   📍 TABLA: liquidacion_estado_historial
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      liquidacion_id            | uuid                 | NOT NULL
+      control_base_id           | uuid                 | NOT NULL
+      estado_anterior           | character varying    | NULL
+      estado_nuevo              | character varying    | NOT NULL
+      cambiado_por              | uuid                 | NULL
+      motivo                    | text                 | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
 
    📍 TABLA: mantenimiento_vehiculo
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -281,6 +475,127 @@ PS D:\ataxip\backend> python ver_db.py
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
       marca_id                  | uuid                 | NOT NULL
       nombre                    | character varying    | NOT NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: neumatico_historial_posicion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      neumatico_vehiculo_id     | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NOT NULL
+      control_base_id           | uuid                 | NOT NULL
+      eje_posicion              | character varying    | NOT NULL
+      km_montaje                | integer              | NOT NULL
+      km_desmontaje             | integer              | NULL
+      fecha_montaje             | timestamp without time zone | NOT NULL DEFAULT now()
+      fecha_desmontaje          | timestamp without time zone | NULL
+      operacion_id              | uuid                 | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: neumatico_imagen
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NOT NULL
+      neumatico_vehiculo_id     | uuid                 | NULL
+      operacion_id              | uuid                 | NULL
+      cloudinary_public_id      | character varying    | NOT NULL
+      cloudinary_url            | character varying    | NOT NULL
+      cloudinary_secure_url     | character varying    | NULL
+      tipo_imagen               | character varying    | NOT NULL
+      descripcion               | text                 | NULL
+      peso_bytes                | integer              | NULL
+      dimensiones               | character varying    | NULL
+      subido_por                | uuid                 | NULL
+      fecha_subida              | timestamp without time zone | NULL DEFAULT now()
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: neumatico_medicion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      historial_posicion_id     | uuid                 | NOT NULL
+      control_base_id           | uuid                 | NOT NULL
+      profundidad_mm            | numeric              | NOT NULL
+      fecha_medicion            | timestamp without time zone | NOT NULL DEFAULT now()
+      medido_por                | uuid                 | NULL
+      observaciones             | text                 | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: neumatico_operacion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      control_base_id           | uuid                 | NOT NULL
+      tipo_operacion            | character varying    | NOT NULL
+      descripcion               | text                 | NULL
+      km_vehiculo_actual        | integer              | NOT NULL
+      fecha_operacion           | timestamp without time zone | NOT NULL DEFAULT now()
+      costo                     | numeric              | NULL
+      moneda                    | character varying    | NULL DEFAULT 'ARS'::character varying
+      proveedor                 | character varying    | NULL
+      observaciones             | text                 | NULL
+      creado_por                | uuid                 | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: neumatico_operacion_detalle
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      operacion_id              | uuid                 | NOT NULL
+      neumatico_vehiculo_id     | uuid                 | NOT NULL
+      posicion_antes            | character varying    | NULL
+      posicion_despues          | character varying    | NULL
+      km_neumatico_en_operacion | integer              | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: neumatico_sugerencia
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      control_base_id           | uuid                 | NOT NULL
+      tipo_sugerencia           | character varying    | NOT NULL
+      neumatico_vehiculo_id     | uuid                 | NULL
+      mensaje                   | text                 | NOT NULL
+      prioridad                 | character varying    | NOT NULL
+      km_actual                 | integer              | NULL
+      km_umbral                 | integer              | NULL
+      estado                    | character varying    | NULL DEFAULT 'PENDIENTE'::character varying
+      fecha_generacion          | timestamp without time zone | NULL DEFAULT now()
+      fecha_atendida            | timestamp without time zone | NULL
+      atendida_por              | uuid                 | NULL
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: neumatico_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      control_base_id           | uuid                 | NOT NULL
+      codigo_interno            | character varying    | NOT NULL
+      marca                     | character varying    | NOT NULL
+      modelo_dibujo             | character varying    | NULL
+      medida                    | character varying    | NULL
+      tipo_neumatico            | character varying    | NOT NULL
+      fecha_fabricacion         | date                 | NULL
+      estado                    | character varying    | NOT NULL DEFAULT 'ACTIVO'::character varying
+      km_totales_acumulados     | integer              | NULL DEFAULT 0
+      fecha_alta                | timestamp without time zone | NULL DEFAULT now()
+      fecha_baja                | timestamp without time zone | NULL
+      observaciones             | text                 | NULL
+      activo                    | boolean              | NULL DEFAULT true
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: notificacion_vencimiento
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      documento_id              | uuid                 | NOT NULL
+      entidad_tipo              | character varying    | NOT NULL
+      propietario_id            | uuid                 | NULL
+      tipo_documento            | character varying    | NOT NULL
+      numero                    | character varying    | NOT NULL
+      nivel                     | character varying    | NOT NULL
+      dias_restantes            | integer              | NOT NULL
+      fecha_vencimiento         | date                 | NOT NULL
+      email_enviado             | boolean              | NULL DEFAULT false
+      email_enviado_en          | timestamp without time zone | NULL
+      sms_enviado               | boolean              | NULL DEFAULT false
+      sms_enviado_en            | timestamp without time zone | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
 
    📍 TABLA: propietario_vehiculo
@@ -323,6 +638,12 @@ PS D:\ataxip\backend> python ver_db.py
       fin_turno                 | timestamp without time zone | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
       updated_at                | timestamp without time zone | NULL DEFAULT now()
+      snapshot_dia_contractual  | character varying    | NULL
+      snapshot_hora_inicio      | time without time zone | NULL
+      snapshot_hora_fin         | time without time zone | NULL
+      snapshot_duracion_minima_horas | integer              | NULL
+      snapshot_permite_extension | boolean              | NULL
+      snapshot_hora_fin_extension | time without time zone | NULL
 
    📍 TABLA: vehiculo
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -336,6 +657,13 @@ PS D:\ataxip\backend> python ver_db.py
       numero_licencia           | character varying    | NULL
       qr_uuid                   | uuid                 | NULL DEFAULT gen_random_uuid()
       qr_activo                 | boolean              | NULL DEFAULT true
+      desgaste_neumaticos       | integer              | NULL DEFAULT 0
+      desgaste_manual           | integer              | NULL DEFAULT 0
+      fecha_ultimo_cambio_neumaticos | date                 | NULL
+      km_ultimo_cambio_neumaticos | integer              | NULL
+      parches_neumaticos        | integer              | NULL DEFAULT 0
+      capacidad                 | integer              | NULL DEFAULT 4
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
 
 📌 SCHEMA: geo
 ------------------------------------------------------------
@@ -345,6 +673,7 @@ PS D:\ataxip\backend> python ver_db.py
       provincia_id              | uuid                 | NULL
       nombre                    | character varying    | NOT NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
+      codigo_postal             | character varying    | NULL
 
    📍 TABLA: pais
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -441,7 +770,7 @@ PS D:\ataxip\backend> python ver_db.py
       metodo_pago_id            | uuid                 | NULL
       monto                     | numeric              | NULL
       estado                    | character varying    | NULL
-      referencia_externa        | character varying    | NULL
+      external_reference        | character varying    | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
       tipo                      | character varying    | NULL
       saldo_despues             | numeric              | NULL
@@ -450,6 +779,9 @@ PS D:\ataxip\backend> python ver_db.py
 
 📌 SCHEMA: public
 ------------------------------------------------------------
+
+   📍 TABLA: alembic_version
+      version_num               | character varying    | NOT NULL
 
    📍 TABLA: comercio
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -468,11 +800,16 @@ PS D:\ataxip\backend> python ver_db.py
 
    📍 TABLA: escaneo_qr
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
-      comercio_id               | uuid                 | NOT NULL
+      comercio_id               | uuid                 | NULL
       viaje_id                  | uuid                 | NULL
       user_agent                | text                 | NULL
       ip_address                | text                 | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
+      contrato_id               | uuid                 | NULL
+      tipo_qr                   | character varying    | NULL DEFAULT 'OPERATIVO'::character varying
+      resultado                 | character varying    | NULL
+      motivo                    | text                 | NULL
+      autorizacion_id           | uuid                 | NULL
 
    📍 TABLA: geography_columns
       f_table_catalog           | name                 | NULL
@@ -499,6 +836,54 @@ PS D:\ataxip\backend> python ver_db.py
       srtext                    | character varying    | NULL
       proj4text                 | character varying    | NULL
 
+📌 SCHEMA: rentabilidad
+------------------------------------------------------------
+
+   📍 TABLA: analisis_medios_pago
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NULL
+      anio                      | integer              | NOT NULL
+      mes                       | integer              | NOT NULL
+      medio_pago                | character varying    | NOT NULL
+      total_viajes              | integer              | NULL DEFAULT 0
+      total_ingresos            | numeric              | NULL DEFAULT '0'::numeric
+      comision_aplicada         | numeric              | NULL DEFAULT '0'::numeric
+      costo_comisiones          | numeric              | NULL DEFAULT '0'::numeric
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: rentabilidad_diaria_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      fecha                     | date                 | NOT NULL
+      total_viajes              | integer              | NULL DEFAULT 0
+      ingresos_brutos           | numeric              | NULL DEFAULT '0'::numeric
+      comisiones_bancarias      | numeric              | NULL DEFAULT '0'::numeric
+      costos_variables          | numeric              | NULL DEFAULT '0'::numeric
+      costos_fijos              | numeric              | NULL DEFAULT '0'::numeric
+      canon_taxip               | numeric              | NULL DEFAULT '0'::numeric
+      porcentaje_taxip          | numeric              | NULL DEFAULT '0'::numeric
+      utilidad_neta             | numeric              | NULL DEFAULT '0'::numeric
+      margen                    | numeric              | NULL DEFAULT '0'::numeric
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: rentabilidad_mensual_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      vehiculo_id               | uuid                 | NOT NULL
+      anio                      | integer              | NOT NULL
+      mes                       | integer              | NOT NULL
+      total_viajes              | integer              | NULL DEFAULT 0
+      ingresos_brutos           | numeric              | NULL DEFAULT '0'::numeric
+      comisiones_bancarias      | numeric              | NULL DEFAULT '0'::numeric
+      costos_variables          | numeric              | NULL DEFAULT '0'::numeric
+      costos_fijos              | numeric              | NULL DEFAULT '0'::numeric
+      canon_taxip               | numeric              | NULL DEFAULT '0'::numeric
+      porcentaje_taxip          | numeric              | NULL DEFAULT '0'::numeric
+      utilidad_neta             | numeric              | NULL DEFAULT '0'::numeric
+      margen                    | numeric              | NULL DEFAULT '0'::numeric
+      created_at                | timestamp without time zone | NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+
 📌 SCHEMA: tenant
 ------------------------------------------------------------
 
@@ -511,6 +896,30 @@ PS D:\ataxip\backend> python ver_db.py
       habilitar_fidelizacion    | boolean              | NULL DEFAULT false
       habilitar_pagos_online    | boolean              | NULL DEFAULT true
       created_at                | timestamp without time zone | NULL DEFAULT now()
+      canon_mensual_por_vehiculo | numeric              | NULL DEFAULT '10000'::numeric
+      porcentaje_taxip_por_viaje | numeric              | NULL DEFAULT 1.5
+      iva                       | numeric              | NULL DEFAULT 21.0
+      iibb                      | numeric              | NULL DEFAULT 5.0
+      idc                       | numeric              | NULL DEFAULT 0.3
+      mix_efectivo              | numeric              | NULL DEFAULT 40.0
+      mix_transferencia         | numeric              | NULL DEFAULT 20.0
+      mix_qr                    | numeric              | NULL DEFAULT 25.0
+      mix_debito                | numeric              | NULL DEFAULT 15.0
+      mix_credito               | numeric              | NULL DEFAULT 0.0
+      comision_qr               | numeric              | NULL DEFAULT 0.80
+      comision_debito           | numeric              | NULL DEFAULT 1.00
+      comision_credito          | numeric              | NULL DEFAULT 3.50
+      costo_combustible_por_km  | numeric              | NULL DEFAULT 80.0
+      costo_mantenimiento_por_dia | numeric              | NULL DEFAULT 500.0
+      costo_seguro_por_dia      | numeric              | NULL DEFAULT 300.0
+      costo_impuesto_por_dia    | numeric              | NULL DEFAULT 200.0
+      depreciacion_vehiculo_por_dia | numeric              | NULL DEFAULT 400.0
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      vida_util_neumaticos_km   | integer              | NULL DEFAULT 50000
+      umbral_rotacion_neumaticos_km | integer              | NULL DEFAULT 10000
+      umbral_cambio_neumaticos_km | integer              | NULL DEFAULT 45000
+      profundidad_minima_neumaticos_mm | numeric              | NULL DEFAULT 2.0
+      factor_desgaste_delantero | numeric              | NULL DEFAULT 1.5
 
    📍 TABLA: control_base
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -525,6 +934,8 @@ PS D:\ataxip\backend> python ver_db.py
       fecha_suspension          | timestamp without time zone | NULL
       motivo_suspension         | text                 | NULL
       suspendido_por            | uuid                 | NULL
+      ciudad_id                 | uuid                 | NULL
+      direccion                 | character varying    | NULL
 
    📍 TABLA: empresa
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -594,6 +1005,8 @@ PS D:\ataxip\backend> python ver_db.py
       estado                    | character varying    | NULL
       observacion               | text                 | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
+      latitud                   | numeric              | NULL
+      longitud                  | numeric              | NULL
 
    📍 TABLA: objeto_olvidado
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -611,6 +1024,8 @@ PS D:\ataxip\backend> python ver_db.py
       ubicacion                 | USER-DEFINED         | NULL
       activo                    | boolean              | NULL DEFAULT true
       created_at                | timestamp without time zone | NULL DEFAULT now()
+      usuario_id                | uuid                 | NULL
+      resuelto_en               | timestamp without time zone | NULL
 
    📍 TABLA: reserva
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -692,57 +1107,117 @@ PS D:\ataxip\backend> python ver_db.py
       nombre_pasajero           | character varying    | NULL
       notas                     | text                 | NULL
       facturado                 | boolean              | NULL DEFAULT false
+      turno_id                  | uuid                 | NULL
+      chofer_vehiculo_id        | uuid                 | NULL
+      updated_at                | timestamp without time zone | NULL DEFAULT now()
+      solicitado_en             | timestamp without time zone | NULL DEFAULT now()
 
 ================================================================================
 🔗 RELACIONES (FOREIGN KEYS)
 ================================================================================
    audit.alerta_desvio.viaje_id → trip.viaje_solicitado.id
-   audit.log_gps.viaje_id → trip.viaje_solicitado.id
+   audit.log_acciones.usuario_id → auth.usuario.id
+   audit.log_acciones.control_base_id → tenant.control_base.id
    audit.log_gps.usuario_id → auth.usuario.id
+   audit.log_gps.viaje_id → trip.viaje_solicitado.id
+   auth.autorizacion_inicio.chofer_id → auth.usuario.id
+   auth.autorizacion_inicio.contrato_id → fleet.contrato_vehiculo.id
+   auth.autorizacion_inicio.created_by → auth.usuario.id
+   auth.autorizacion_inicio.control_base_id → tenant.control_base.id
+   auth.autorizacion_inicio.vehiculo_id → fleet.vehiculo.id
    auth.direccion_frecuente.usuario_id → auth.usuario.id
-   auth.perfil_general.ciudad_id → geo.ciudad.id
    auth.perfil_general.usuario_id → auth.usuario.id
+   auth.perfil_general.ciudad_id → geo.ciudad.id
    auth.refresh_token.usuario_id → auth.usuario.id
    auth.reset_token.usuario_id → auth.usuario.id
-   auth.taxista_favorito.pasajero_id → auth.usuario.id
    auth.taxista_favorito.chofer_id → auth.usuario.id
+   auth.taxista_favorito.pasajero_id → auth.usuario.id
    auth.turno_empleado.empleado_id → auth.usuario.id
    auth.turno_empleado.empresa_id → tenant.empresa.id
-   auth.usuario.control_base_id → tenant.control_base.id
    auth.usuario.suspendido_por → auth.usuario.id
+   auth.usuario.control_base_id → tenant.control_base.id
    auth.usuario.tipo_usuario_id → auth.tipo_usuario.id
-   auth.usuario_empresa.empresa_id → tenant.empresa.id
    auth.usuario_empresa.usuario_id → auth.usuario.id
+   auth.usuario_empresa.empresa_id → tenant.empresa.id
+   auth.usuario_rol.usuario_id → auth.usuario.id
+   auth.usuario_rol.tipo_usuario_id → auth.tipo_usuario.id
    comunicacion.conversacion.participante_2 → auth.usuario.id
    comunicacion.conversacion.participante_1 → auth.usuario.id
    comunicacion.email_enviado.usuario_id → auth.usuario.id
-   comunicacion.mensaje.conversacion_id → comunicacion.conversacion.id
-   comunicacion.mensaje.viaje_id → trip.viaje_solicitado.id
    comunicacion.mensaje.remitente_id → auth.usuario.id
+   comunicacion.mensaje.viaje_id → trip.viaje_solicitado.id
+   comunicacion.mensaje.conversacion_id → comunicacion.conversacion.id
+   fleet.categoria_gasto.control_base_id → tenant.control_base.id
    fleet.chofer_vehiculo.usuario_id → auth.usuario.id
-   fleet.chofer_vehiculo.control_base_id → tenant.control_base.id
    fleet.chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
-   fleet.contrato_vehiculo.vehiculo_id → fleet.vehiculo.id
-   fleet.contrato_vehiculo.control_base_id → tenant.control_base.id
+   fleet.chofer_vehiculo.control_base_id → tenant.control_base.id
+   fleet.contrato_qr.created_by → auth.usuario.id
+   fleet.contrato_qr.contrato_id → fleet.contrato_vehiculo.id
    fleet.contrato_vehiculo.chofer_id → auth.usuario.id
+   fleet.contrato_vehiculo.control_base_id → tenant.control_base.id
    fleet.contrato_vehiculo.propietario_id → auth.usuario.id
+   fleet.contrato_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.documento_propietario.propietario_id → auth.usuario.id
    fleet.documento_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.documentos_chofer.usuario_id → auth.usuario.id
+   fleet.foto_vehiculo.subida_por → auth.usuario.id
+   fleet.foto_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.gasto_turno.categoria_id → fleet.categoria_gasto.id
    fleet.gasto_turno.turno_id → fleet.turno_chofer.id
-   fleet.gasto_vehiculo.propietario_id → auth.usuario.id
+   fleet.gasto_vehiculo.categoria_id → fleet.categoria_gasto.id
    fleet.gasto_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.gasto_vehiculo.propietario_id → auth.usuario.id
    fleet.historial_chofer_vehiculo.chofer_id → auth.usuario.id
    fleet.historial_chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
-   fleet.mantenimiento_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.liquidacion.chofer_id → auth.usuario.id
+   fleet.liquidacion.aprobada_por → auth.usuario.id
+   fleet.liquidacion.rechazada_por → auth.usuario.id
+   fleet.liquidacion.pagada_por → auth.usuario.id
+   fleet.liquidacion.control_base_id → tenant.control_base.id
+   fleet.liquidacion.turno_id → fleet.turno_chofer.id
+   fleet.liquidacion.contrato_id → fleet.contrato_vehiculo.id
+   fleet.liquidacion.vehiculo_id → fleet.vehiculo.id
+   fleet.liquidacion.propietario_id → auth.usuario.id
+   fleet.liquidacion_ajuste.liquidacion_id → fleet.liquidacion.id
+   fleet.liquidacion_ajuste.control_base_id → tenant.control_base.id
+   fleet.liquidacion_ajuste.usuario_id → auth.usuario.id
+   fleet.liquidacion_detalle.liquidacion_id → fleet.liquidacion.id
+   fleet.liquidacion_estado_historial.liquidacion_id → fleet.liquidacion.id
+   fleet.liquidacion_estado_historial.control_base_id → tenant.control_base.id
+   fleet.liquidacion_estado_historial.cambiado_por → auth.usuario.id
    fleet.mantenimiento_vehiculo.propietario_id → auth.usuario.id
+   fleet.mantenimiento_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.modelo.marca_id → fleet.marca.id
+   fleet.neumatico_historial_posicion.vehiculo_id → fleet.vehiculo.id
+   fleet.neumatico_historial_posicion.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
+   fleet.neumatico_historial_posicion.control_base_id → tenant.control_base.id
+   fleet.neumatico_historial_posicion.operacion_id → fleet.neumatico_operacion.id
+   fleet.neumatico_imagen.operacion_id → fleet.neumatico_operacion.id
+   fleet.neumatico_imagen.control_base_id → tenant.control_base.id
+   fleet.neumatico_imagen.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
+   fleet.neumatico_imagen.subido_por → auth.usuario.id
+   fleet.neumatico_medicion.control_base_id → tenant.control_base.id
+   fleet.neumatico_medicion.historial_posicion_id → fleet.neumatico_historial_posicion.id
+   fleet.neumatico_medicion.medido_por → auth.usuario.id
+   fleet.neumatico_operacion.control_base_id → tenant.control_base.id
+   fleet.neumatico_operacion.creado_por → auth.usuario.id
+   fleet.neumatico_operacion.vehiculo_id → fleet.vehiculo.id
+   fleet.neumatico_operacion_detalle.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
+   fleet.neumatico_operacion_detalle.operacion_id → fleet.neumatico_operacion.id
+   fleet.neumatico_sugerencia.vehiculo_id → fleet.vehiculo.id
+   fleet.neumatico_sugerencia.control_base_id → tenant.control_base.id
+   fleet.neumatico_sugerencia.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
+   fleet.neumatico_sugerencia.atendida_por → auth.usuario.id
+   fleet.neumatico_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.neumatico_vehiculo.control_base_id → tenant.control_base.id
+   fleet.notificacion_vencimiento.propietario_id → auth.usuario.id
    fleet.propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.propietario_vehiculo.propietario_id → auth.usuario.id
    fleet.relacion_propietario_vehiculo.propietario_id → auth.usuario.id
    fleet.relacion_propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.turno_chofer.chofer_id → auth.usuario.id
-   fleet.turno_chofer.vehiculo_id → fleet.vehiculo.id
    fleet.turno_chofer.contrato_id → fleet.contrato_vehiculo.id
+   fleet.turno_chofer.vehiculo_id → fleet.vehiculo.id
    fleet.vehiculo.control_base_id → tenant.control_base.id
    geo.ciudad.provincia_id → geo.provincia.id
    geo.provincia.pais_id → geo.pais.id
@@ -750,44 +1225,53 @@ PS D:\ataxip\backend> python ver_db.py
    payment.billetera.usuario_id → auth.usuario.id
    payment.configuracion_tarifa.control_base_id → tenant.control_base.id
    payment.factura_empresa.empresa_id → tenant.empresa.id
-   payment.pago_empresa.confirmado_por → auth.usuario.id
    payment.pago_empresa.empresa_id → tenant.empresa.id
+   payment.pago_empresa.confirmado_por → auth.usuario.id
    payment.pago_empresa.factura_id → payment.factura_empresa.id
    payment.transaccion.billetera_id → payment.billetera.id
    payment.transaccion.viaje_id → trip.viaje_solicitado.id
    payment.transaccion.metodo_pago_id → payment.metodo_pago.id
    public.comercio.control_base_id → tenant.control_base.id
-   public.escaneo_qr.viaje_id → trip.viaje_solicitado.id
    public.escaneo_qr.comercio_id → public.comercio.id
+   public.escaneo_qr.autorizacion_id → auth.autorizacion_inicio.id
+   public.escaneo_qr.contrato_id → fleet.contrato_vehiculo.id
+   public.escaneo_qr.viaje_id → trip.viaje_solicitado.id
+   rentabilidad.analisis_medios_pago.vehiculo_id → fleet.vehiculo.id
+   rentabilidad.rentabilidad_diaria_vehiculo.vehiculo_id → fleet.vehiculo.id
+   rentabilidad.rentabilidad_mensual_vehiculo.vehiculo_id → fleet.vehiculo.id
    tenant.configuracion_tenant.control_base_id → tenant.control_base.id
    tenant.control_base.suspendido_por → auth.usuario.id
+   tenant.control_base.ciudad_id → geo.ciudad.id
    tenant.empresa.suspendido_por → auth.usuario.id
    tenant.empresa.control_base_id → tenant.control_base.id
    tenant.factura.control_base_id → tenant.control_base.id
    tenant.factura.pagada_por → auth.usuario.id
-   trip.calificacion.calificador_id → auth.usuario.id
    trip.calificacion.calificado_id → auth.usuario.id
    trip.calificacion.viaje_id → trip.viaje_solicitado.id
-   trip.foto_viaje.usuario_id → auth.usuario.id
+   trip.calificacion.calificador_id → auth.usuario.id
    trip.foto_viaje.viaje_id → trip.viaje_solicitado.id
+   trip.foto_viaje.usuario_id → auth.usuario.id
    trip.historial_estado_viaje.viaje_id → trip.viaje_solicitado.id
    trip.objeto_olvidado.pasajero_id → auth.usuario.id
-   trip.objeto_olvidado.chofer_id → auth.usuario.id
    trip.objeto_olvidado.viaje_id → trip.viaje_solicitado.id
+   trip.objeto_olvidado.chofer_id → auth.usuario.id
    trip.panico.viaje_id → trip.viaje_solicitado.id
+   trip.panico.usuario_id → auth.usuario.id
    trip.reserva.empleado_id → auth.usuario.id
    trip.reserva.turno_id → auth.turno_empleado.id
-   trip.reserva.empresa_id → tenant.empresa.id
+   trip.reserva.turno_id → auth.turno_empleado.id
    trip.reserva.empleado_id → auth.usuario.id
    trip.reserva.empresa_id → tenant.empresa.id
-   trip.reserva.turno_id → auth.turno_empleado.id
+   trip.reserva.empresa_id → tenant.empresa.id
    trip.reserva.creado_por → auth.usuario.id
-   trip.viaje_solicitado.pasajero_id → auth.usuario.id
+   trip.viaje_solicitado.chofer_id → auth.usuario.id
+   trip.viaje_solicitado.chofer_vehiculo_id → fleet.chofer_vehiculo.id
+   trip.viaje_solicitado.turno_id → fleet.turno_chofer.id
+   trip.viaje_solicitado.comercio_id → public.comercio.id
    trip.viaje_solicitado.control_base_id → tenant.control_base.id
    trip.viaje_solicitado.empresa_id → tenant.empresa.id
-   trip.viaje_solicitado.comercio_id → public.comercio.id
    trip.viaje_solicitado.vehiculo_id → fleet.vehiculo.id
-   trip.viaje_solicitado.chofer_id → auth.usuario.id
+   trip.viaje_solicitado.pasajero_id → auth.usuario.id
 
 ================================================================================
 🏷️ ENUMS

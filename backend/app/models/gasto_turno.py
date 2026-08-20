@@ -1,6 +1,7 @@
 # app/models/gasto_turno.py
 """
 Modelo de Gastos Operativos durante el Turno
+Coincide con fleet.gasto_turno
 """
 
 import uuid
@@ -22,7 +23,16 @@ class GastoTurno(Base):
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     turno_id = Column(PGUUID(as_uuid=True), ForeignKey("fleet.turno_chofer.id"), nullable=False)
     
-    tipo_gasto = Column(String(30), nullable=False)
+    # NUEVOS CAMPOS (Fase 5.1) - coinciden con la BD
+    categoria_id = Column(
+        PGUUID(as_uuid=True),
+        ForeignKey("fleet.categoria_gasto.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    subcategoria = Column(String(50), nullable=True)
+    
+    # Campos existentes
+    tipo_gasto = Column(String(30), nullable=False)  # Legacy
     monto = Column(Numeric(10,2), nullable=False)
     km_registro = Column(Numeric(10,2), nullable=True)
     url_comprobante = Column(String(500), nullable=True)
@@ -30,8 +40,12 @@ class GastoTurno(Base):
     created_at = Column(DateTime, default=datetime.now)
     
     # Relationships
-    # NOTA: Sin back_populates para evitar ciclo de mapeo con TurnoChofer (turno.py)
     turno = relationship(
         "TurnoChofer",
+        lazy="selectin"
+    )
+    categoria = relationship(
+        "CategoriaGasto",
+        foreign_keys=[categoria_id],
         lazy="selectin"
     )

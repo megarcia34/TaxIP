@@ -184,6 +184,14 @@ class RegistroPropietarioRequest(BaseModel):
     ciudad_id: UUID = Field(..., description="ID de la ciudad seleccionada")
     acepta_terminos: bool = Field(..., description="Debe aceptar los términos")
     
+    # ============================================
+    # NUEVO: Capacidad para registrarse como conductor
+    # ============================================
+    registrar_como_conductor: bool = Field(
+        False, 
+        description="Si es True, el propietario también obtiene capacidad CONDUCTOR para operar en AUTO_GESTION"
+    )
+    
     @field_validator("password")
     def validate_password(cls, v):
         if len(v) < 6:
@@ -208,3 +216,11 @@ class RegistroPropietarioResponse(BaseModel):
     tenant_nombre: str
     message: str
     first_login: bool = True
+    
+    # ============================================
+    # NUEVO: Indicar si se registró como conductor
+    # ============================================
+    registrado_como_conductor: bool = Field(
+        False,
+        description="Indica si el propietario se registró también como conductor"
+    )

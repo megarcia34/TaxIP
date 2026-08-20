@@ -10,7 +10,7 @@ from io import BytesIO
 import base64
 
 from app.database import get_db
-from app.dependencies import get_propietario_context
+from app.dependencies import get_propietario_context, get_propietario_id
 from app.core.config import settings
 from pydantic import BaseModel, Field
 
@@ -72,7 +72,6 @@ async def listar_vehiculos(
     ]
 
 
-
 @router.post("/vehiculos", status_code=201)
 async def crear_vehiculo(
     data: VehiculoCreate,
@@ -81,7 +80,6 @@ async def crear_vehiculo(
 ):
     propietario_id = ctx["propietario_id"]
     
-    # ✅ CORRECCIÓN: Obtener control_base_id de forma segura
     control_base_id_str = ctx.get("control_base_id")
     if not control_base_id_str:
         raise HTTPException(status_code=400, detail="control_base_id no encontrado en el contexto")
@@ -91,13 +89,11 @@ async def crear_vehiculo(
     except ValueError:
         raise HTTPException(status_code=400, detail=f"control_base_id inválido: {control_base_id_str}")
     
-    # Verificar patente única
     query_check = text("SELECT id FROM fleet.vehiculo WHERE patente = :patente AND activo = true")
     result = await db.execute(query_check, {"patente": data.patente.upper()})
     if result.first():
         raise HTTPException(status_code=400, detail="Ya existe un vehículo con esa patente")
     
-    # Generar QR UUID
     qr_uuid = uuid_lib.uuid4()
     
     insert_vehiculo = text("""
@@ -123,7 +119,6 @@ async def crear_vehiculo(
     await db.execute(insert_relacion, {"propietario_id": propietario_id, "vehiculo_id": vehiculo_id})
     await db.commit()
     
-    # Generar QR en base64
     qr_url = f"{settings.API_BASE_URL}/public/qr/{qr_uuid}"
     qr_img = qrcode.make(qr_url)
     buffered = BytesIO()
@@ -138,9 +133,6 @@ async def crear_vehiculo(
         "qr_url": qr_url,
         "qr_base64": qr_base64
     }
-
-
-
 
 
 @router.get("/vehiculos/{vehiculo_id}")
@@ -335,3 +327,133 @@ async def actualizar_kilometraje(
     
     await db.commit()
     return {"success": True, "message": "Kilometraje actualizado correctamente"}
+
+
+# ============================================================
+# ✅ NUEVO ENDPOINT: Estado completo del vehículo
+# ============================================================
+
+@router.get("/vehiculos/{vehiculo_id}/estado")
+async def obtener_estado_vehiculo(
+    vehiculo_id: UUID,
+    propietario_id: UUID = Depends(get_propietario_id),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Obtener estado completo de configuración del vehículo.
+    Verifica: neumáticos, documentos (seguro, VTV, cédula) y mantenimientos.
+    """
+    
+    # 1. Verificar que el vehículo pertenece al propietario
+    query_vehiculo = text("""
+        SELECT v.id, v.patente, v.marca, v.modelo, v.anio
+        FROM fleet.vehiculo v
+        INNER JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
+        WHERE v.id = :vehiculo_id AND pv.propietario_id = :propietario_id AND pv.activo = true
+    """)
+    result = await db.execute(query_vehiculo, {
+        "vehiculo_id": vehiculo_id,
+        "propietario_id": propietario_id
+    })
+    vehiculo = result.first()
+    
+    if not vehiculo:
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    
+    # 2. Verificar neumáticos (4 activos)
+    query_neumaticos = text("""
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN estado = 'ACTIVO' THEN 1 END) as activos
+        FROM fleet.neumatico_vehiculo
+        WHERE vehiculo_id = :vehiculo_id
+    """)
+    result = await db.execute(query_neumaticos, {"vehiculo_id": vehiculo_id})
+    neumaticos = result.first()
+    
+    total_neumaticos = neumaticos[0] if neumaticos else 0
+    activos_neumaticos = neumaticos[1] if neumaticos else 0
+    tiene_neumaticos = activos_neumaticos >= 4
+    
+    # 3. Verificar documentos mínimos requeridos (seguro, VTV, cédula)
+    query_documentos = text("""
+        SELECT 
+            tipo_documento,
+            fecha_vencimiento,
+            CASE 
+                WHEN fecha_vencimiento >= CURRENT_DATE THEN true
+                ELSE false
+            END as vigente
+        FROM fleet.documento_vehiculo
+        WHERE vehiculo_id = :vehiculo_id AND activo = true
+    """)
+    result = await db.execute(query_documentos, {"vehiculo_id": vehiculo_id})
+    documentos = result.all()
+    
+    docs_requeridos = ['SEGURO', 'VTV', 'CEDULA']
+    docs_presentes = {}
+    docs_faltantes = []
+    
+    for doc in docs_requeridos:
+        encontrado = next((d for d in documentos if d[0] == doc), None)
+        if encontrado:
+            docs_presentes[doc] = {
+                "presente": True,
+                "vencimiento": encontrado[1].isoformat() if encontrado[1] else None,
+                "vigente": encontrado[2]
+            }
+        else:
+            docs_presentes[doc] = {
+                "presente": False,
+                "vencimiento": None,
+                "vigente": False
+            }
+            docs_faltantes.append(doc)
+    
+    tiene_documentos = len(docs_faltantes) == 0
+    
+    # 4. Verificar mantenimientos (al menos uno registrado)
+    query_mantenimientos = text("""
+        SELECT 
+            COUNT(*) as total,
+            MAX(fecha_servicio) as ultimo
+        FROM fleet.mantenimiento_vehiculo
+        WHERE vehiculo_id = :vehiculo_id
+    """)
+    result = await db.execute(query_mantenimientos, {"vehiculo_id": vehiculo_id})
+    mantenimientos = result.first()
+    
+    total_mantenimientos = mantenimientos[0] if mantenimientos else 0
+    ultimo_mantenimiento = mantenimientos[1] if mantenimientos else None
+    tiene_mantenimiento = total_mantenimientos > 0
+    
+    # 5. Estado completo
+    configuracion_completa = tiene_neumaticos and tiene_documentos and tiene_mantenimiento
+    
+    return {
+        "vehiculo_id": str(vehiculo_id),
+        "patente": vehiculo[1],
+        "marca": vehiculo[2],
+        "modelo": vehiculo[3],
+        "anio": vehiculo[4],
+        "estado": "COMPLETO" if configuracion_completa else "PENDIENTE",
+        "configuracion_completa": configuracion_completa,
+        "neumaticos": {
+            "total": total_neumaticos,
+            "activos": activos_neumaticos,
+            "requeridos": 4,
+            "completo": tiene_neumaticos
+        },
+        "documentos": {
+            "total": len(documentos),
+            "requeridos": docs_requeridos,
+            "faltantes": docs_faltantes,
+            "completo": tiene_documentos,
+            "lista": docs_presentes
+        },
+        "mantenimientos": {
+            "total": total_mantenimientos,
+            "ultimo": ultimo_mantenimiento.isoformat() if ultimo_mantenimiento else None,
+            "completo": tiene_mantenimiento
+        }
+    }

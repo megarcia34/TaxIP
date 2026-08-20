@@ -286,3 +286,152 @@ export interface PropietarioAlerta {
   fecha_limite: string
   leida: boolean
 }
+
+// ============================================================
+// NEUMÁTICOS
+// ============================================================
+
+export interface Neumatico {
+  id: string
+  codigo_interno: string
+  marca: string
+  modelo_dibujo: string | null
+  medida: string | null
+  tipo_neumatico: 'RADIAL' | 'BIAS' | 'TUBELESS' | 'RUN_FLAT' | 'TODO_TERRENO'
+  estado: 'ACTIVO' | 'BAJA' | 'DESECHADO'
+  vehiculo_id: string
+  patente: string
+  posicion_actual: 'DI' | 'DD' | 'TI' | 'TD' | 'REPUESTO' | null
+  km_totales_acumulados: number
+  km_en_posicion_actual: number | null
+  fecha_alta: string
+  fecha_baja: string | null
+  ultima_profundidad_mm: number | null
+  estado_color: 'VERDE' | 'AMARILLO' | 'ROJO'
+  ultima_medicion_fecha: string | null
+  observaciones?: string | null
+  
+  // ✅ HISTORIAL DE POSICIONES - Agregado para DetalleNeumaticoModal
+  historial_posiciones?: {
+    eje: string
+    km_montaje: number
+    km_desmontaje: number | null
+    fecha_montaje: string
+    fecha_desmontaje: string | null
+  }[]
+  
+  // ✅ MEDICIONES - Agregado para DetalleNeumaticoModal
+  mediciones?: {
+    id: string
+    fecha: string
+    profundidad_mm: number
+    estado_color: 'VERDE' | 'AMARILLO' | 'ROJO'
+    medido_por: string | null
+    observaciones: string | null
+  }[]
+  
+  // ✅ OPERACIONES - Agregado para DetalleNeumaticoModal
+  operaciones?: {
+    tipo: string
+    fecha: string
+    km_vehiculo: number
+    descripcion: string | null
+  }[]
+}
+
+export interface NeumaticoActivo {
+  id: string
+  codigo_interno: string
+  marca: string
+  modelo_dibujo: string | null
+  medida: string | null
+  km_montaje: number
+  km_recorridos: number
+  ultima_profundidad_mm: number | null
+  estado_color: 'VERDE' | 'AMARILLO' | 'ROJO'
+  sugerencia: string | null
+}
+
+export interface NeumaticosActivosResponse {
+  vehiculo_id: string
+  patente: string
+  vehiculo_marca: string
+  vehiculo_modelo: string
+  neumaticos: {
+    DI: NeumaticoActivo
+    DD: NeumaticoActivo
+    TI: NeumaticoActivo
+    TD: NeumaticoActivo
+  }
+  resumen: {
+    verde: number
+    amarillo: number
+    rojo: number
+  }
+}
+
+export interface MedicionRequest {
+  profundidad_mm: number
+  observaciones?: string
+}
+
+export interface MedicionResponse {
+  mensaje: string
+  medicion_id: string
+  profundidad_mm: number
+  estado_color: 'VERDE' | 'AMARILLO' | 'ROJO'
+  interpretacion: string
+  sugerencia_generada: string | null
+}
+
+export interface OperacionNeumatico {
+  id: string
+  tipo: string
+  fecha: string
+  km_vehiculo: number
+  descripcion: string
+  neumaticos_afectados: string[]
+}
+
+export interface SugerenciaNeumatico {
+  id: string
+  tipo: string
+  mensaje: string
+  prioridad: 'ALTA' | 'MEDIA' | 'BAJA'
+  color: 'ROJO' | 'AMARILLO' | 'VERDE'
+  km_actual: number
+  km_umbral: number
+  estado: 'PENDIENTE' | 'VISTA' | 'ACCIONADA' | 'DESESTIMADA'
+  fecha_generacion: string
+  fecha_atendida: string | null
+  neumatico: string | null
+  posicion: string | null
+  dias_activa: number
+}
+
+export interface ConfiguracionNeumaticos {
+  control_base_id: string
+  vida_util_km: number
+  umbral_rotacion_km: number
+  umbral_cambio_km: number
+  profundidad_minima_mm: number
+  factor_desgaste_delantero: number
+  colores: {
+    verde: { desde_mm: number; estado: string }
+    amarillo: { desde_mm: number; hasta_mm: number; estado: string }
+    rojo: { hasta_mm: number; estado: string }
+  }
+  ultima_actualizacion: string
+}
+
+export interface NeumaticoImagen {
+  id: string
+  url: string
+  secure_url: string
+  tipo_imagen: 'NEUMATICO' | 'OPERACION' | 'DANO' | 'MEDICION' | 'INVENTARIO' | 'OTRO'
+  descripcion: string | null
+  peso_bytes: number
+  dimensiones: string | null
+  fecha_subida: string
+  subido_por: string | null
+}

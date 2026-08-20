@@ -1,29 +1,26 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, } from 'next/navigation'
-import { apiClient } from '@/lib/api'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Loader2 } from 'lucide-react'
-import Link from 'next/link'
+import { ArrowLeft, Loader2, CircleDot, FileText } from 'lucide-react'
 import { toast } from 'sonner'
+import { useCreateVehiculo } from '@/hooks/useVehiculos'
 
 export default function NuevoVehiculoPage() {
   const router = useRouter()
-      // ✅ Reemplazo de useSearchParams() por window.location
-    const [propietario_id, setPropietario_id] = useState<string | null>(null)
-
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search)
-        setPropietario_id(params.get('propietario_id'))
-    }, [])
-    
   const { user } = useAuth()
-  const [loading, setLoading] = useState(false)
+  const [propietario_id, setPropietario_id] = useState<string | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setPropietario_id(params.get('propietario_id'))
+  }, [])
 
   const isAdmin = user?.rol === 'admin'
   const propietarioId = propietario_id
@@ -36,31 +33,80 @@ export default function NuevoVehiculoPage() {
     numero_licencia: '',
   })
 
+  const createMutation = useCreateVehiculo()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
 
-    try {
-      await apiClient.post('/api/propietario/vehiculos', {
-        patente: formData.patente.toUpperCase(),
+    if (!formData.patente || !formData.marca || !formData.modelo) {
+      toast.error('Completa todos los campos obligatorios')
+      return
+    }
+
+    createMutation.mutate(
+      {
+        patente: formData.patente,
         marca: formData.marca,
         modelo: formData.modelo,
         anio: formData.anio ? parseInt(formData.anio) : null,
-        numero_licencia: formData.numero_licencia,
-      })
-      
-      toast.success('Vehículo creado correctamente')
-      
-      const redirectPath = isAdmin && propietarioId 
-        ? `/dashboard-propietario/vehiculos?propietario_id=${propietarioId}`
-        : '/dashboard-propietario/vehiculos'
-      router.push(redirectPath)
-    } catch (error: any) {
-      console.error('Error creando vehículo:', error)
-      toast.error(error.response?.data?.detail || 'Error al crear el vehículo')
-    } finally {
-      setLoading(false)
-    }
+        numero_licencia: formData.numero_licencia || null,
+      },
+      {
+        onSuccess: (data) => {
+          const vehiculoId = data?.vehiculo_id || data?.id
+          const patente = formData.patente.toUpperCase()
+
+          if (vehiculoId) {
+            // ✅ Mostrar toast con enlaces a neumáticos y documentos
+            toast.success(
+              `✅ Vehículo ${patente} creado correctamente`,
+              {
+                duration: 8000,
+                description: (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Para que el vehículo quede operativo, debes completar:
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Link
+                        href={`/dashboard-propietario/vehiculos/${vehiculoId}?tab=neumaticos${isAdmin && propietarioId ? `&propietario_id=${propietarioId}` : ''}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+                        onClick={() => {
+                          // Cerrar el toast al hacer clic
+                          toast.dismiss()
+                        }}
+                      >
+                        <CircleDot className="h-4 w-4" />
+                        Montar Neumáticos
+                      </Link>
+                      <Link
+                        href={`/dashboard-propietario/vehiculos/${vehiculoId}?tab=documentos${isAdmin && propietarioId ? `&propietario_id=${propietarioId}` : ''}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors"
+                        onClick={() => {
+                          toast.dismiss()
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                        Subir Documentos
+                      </Link>
+                    </div>
+                  </div>
+                ),
+              }
+            )
+
+            // ✅ Redirigir al detalle
+            router.push(`/dashboard-propietario/vehiculos/${vehiculoId}`)
+          } else {
+            const redirectPath =
+              isAdmin && propietarioId
+                ? `/dashboard-propietario/vehiculos?propietario_id=${propietarioId}`
+                : '/dashboard-propietario/vehiculos'
+            router.push(redirectPath)
+          }
+        },
+      }
+    )
   }
 
   return (
@@ -73,21 +119,20 @@ export default function NuevoVehiculoPage() {
               : '/dashboard-propietario/vehiculos'
           }
         >
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" type="button">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Nuevo Vehículo</h1>
-          <p className="text-muted-foreground">
-            Registra un nuevo vehículo en la flota
-          </p>
+          <p className="text-muted-foreground">Registra un nuevo vehículo en la flota</p>
         </div>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle>Datos del Vehículo</CardTitle>
+          <p className="text-sm text-muted-foreground">Los campos con * son obligatorios</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -96,10 +141,13 @@ export default function NuevoVehiculoPage() {
               <Input
                 id="patente"
                 required
-                placeholder="ABC123"
+                placeholder="Ej: ABC123"
                 value={formData.patente}
-                onChange={(e) => setFormData({ ...formData, patente: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, patente: e.target.value.toUpperCase() })}
               />
+              <p className="text-xs text-muted-foreground">
+                La patente se guardará en mayúsculas automáticamente
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -108,7 +156,7 @@ export default function NuevoVehiculoPage() {
                 <Input
                   id="marca"
                   required
-                  placeholder="Toyota"
+                  placeholder="Ej: Toyota"
                   value={formData.marca}
                   onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
                 />
@@ -118,7 +166,7 @@ export default function NuevoVehiculoPage() {
                 <Input
                   id="modelo"
                   required
-                  placeholder="Corolla"
+                  placeholder="Ej: Corolla"
                   value={formData.modelo}
                   onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
                 />
@@ -131,7 +179,9 @@ export default function NuevoVehiculoPage() {
                 <Input
                   id="anio"
                   type="number"
-                  placeholder="2024"
+                  placeholder="Ej: 2024"
+                  min="1900"
+                  max="2100"
                   value={formData.anio}
                   onChange={(e) => setFormData({ ...formData, anio: e.target.value })}
                 />
@@ -140,16 +190,14 @@ export default function NuevoVehiculoPage() {
                 <Label htmlFor="numero_licencia">Número de Licencia</Label>
                 <Input
                   id="numero_licencia"
-                  placeholder="LIC-123456"
+                  placeholder="Ej: LIC-123456"
                   value={formData.numero_licencia}
-                  onChange={(e) =>
-                    setFormData({ ...formData, numero_licencia: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, numero_licencia: e.target.value })}
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-4 pt-4">
+            <div className="flex justify-end gap-4 pt-4 border-t">
               <Link
                 href={
                   isAdmin && propietarioId
@@ -161,8 +209,8 @@ export default function NuevoVehiculoPage() {
                   Cancelar
                 </Button>
               </Link>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Crear Vehículo
               </Button>
             </div>

@@ -26,6 +26,7 @@ import os
 from app.routers import turnos
 from dotenv import load_dotenv
 from app.routers import operativo
+from app.routers.liquidacion import router as liquidacion_router
 
 from app.database import get_db, AsyncSessionLocal
 from app.websocket.handlers import handle_websocket
@@ -39,14 +40,19 @@ from app.routers.viajes import router as viajes_router
 from app.routers.viajes import public_router as viajes_public_router
 from app.routers.propietario import router as propietario_router
 
-# ✅ ROUTER GEO (agregado)
-from app.routers import geo
+# Importar routers de rentabilidad y optimización
+from app.routers import rentabilidad
+from app.routers import optimizacion
+
+# Importar routers de super_admin (corregido)
+from app.routers.super_admin import dashboard_router, tenants_router
 
 # Importar routers de admin
 from app.routers.admin.propietarios import router as admin_propietarios_router
 from app.routers.admin.empresas import router as admin_empresas_router
 from app.routers.admin.tenants import router as admin_tenants_router
 from app.routers.admin.tarifas import router as admin_tarifas_router
+from app.routers.admin.dashboard import router as admin_dashboard_router
 
 # NUEVOS ROUTERS
 from app.routers.empleado_turnos import router as empleado_turnos_router
@@ -59,6 +65,14 @@ from app.routers.empresa_dashboard import router as empresa_dashboard_router
 
 # ROUTER DE VERIFICACIÓN
 from app.routers import verificacion
+
+# ROUTER GEO
+from app.routers import geo
+
+# ============================================
+# ROUTER DE NEUMÁTICOS (CORREGIDO)
+# ============================================
+from app.routers.propietario.neumaticos import router as propietario_neumaticos_router
 
 # Cargar variables de entorno
 load_dotenv()
@@ -80,6 +94,7 @@ async def lifespan(app: FastAPI):
     yield
     print("🛑 TaxIP API cerrando...")
 
+
 # ============================================
 # Crear aplicación FastAPI
 # ============================================
@@ -89,6 +104,7 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan
 )
+
 
 # ============================================
 # CONFIGURACIÓN CORS
@@ -123,9 +139,11 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
 # ============================================
 # ROUTERS PRINCIPALES
 # ============================================
+print("🔧 Registrando routers...")
 app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(choferes.router)
@@ -136,11 +154,32 @@ app.include_router(vehiculo.router)
 app.include_router(viajes_router)
 app.include_router(viajes_public_router)
 app.include_router(control_base.router)
-app.include_router(propietario_router)
-app.include_router(choferes_public_router)
+print("🔧 Registrando router de propietario...")
+app.include_router(propietario_router, prefix="/api")
+print("✅ Router de propietario registrado correctamente")
 
-# ✅ ROUTER GEO (agregado)
+app.include_router(choferes_public_router)
+app.include_router(liquidacion_router)
+
+
+# ============================================
+# ROUTERS DE SUPER ADMIN
+# ============================================
+app.include_router(dashboard_router)
+app.include_router(tenants_router)
+
+
+# ============================================
+# ROUTER GEO
+# ============================================
 app.include_router(geo.router)
+
+
+# ============================================
+# ROUTER DE NEUMÁTICOS (CORREGIDO)
+# ============================================
+app.include_router(propietario_neumaticos_router, prefix="/api/propietario", tags=["Propietario - Neumáticos"])
+
 
 # ============================================
 # ROUTERS DE EMPLEADO
@@ -149,18 +188,29 @@ app.include_router(empleado_turnos_router)
 app.include_router(operativo.router, prefix="/api")
 app.include_router(turnos.router)
 
+
+# ============================================
+# REGISTRAR RENTABILIDAD Y OPTIMIZACIÓN
+# ============================================
+app.include_router(rentabilidad.router)
+app.include_router(optimizacion.router)
+
+
 # ============================================
 # ROUTERS DE ADMINISTRACIÓN
 # ============================================
+app.include_router(admin_dashboard_router)
 app.include_router(admin_propietarios_router, prefix="/api")
 app.include_router(admin_empresas_router, prefix="/api")
 app.include_router(admin_tenants_router, prefix="/api")
 app.include_router(admin_tarifas_router, prefix="/api")
 
+
 # ============================================
 # ROUTER DE RESERVAS
 # ============================================
 app.include_router(reservas.router, prefix="/api")
+
 
 # ============================================
 # EMPRESA Y DASHBOARD
@@ -168,15 +218,15 @@ app.include_router(reservas.router, prefix="/api")
 app.include_router(empresa.router)
 app.include_router(empresa_dashboard_router)
 
+
 # ============================================
 # OTROS ROUTERS
 # ============================================
 app.include_router(pagos.router)
 app.include_router(catalogo.router)
 app.include_router(comercio.router)
-
-# ROUTER DE VERIFICACIÓN
 app.include_router(verificacion.router)
+
 
 # ============================================
 # QR PÚBLICO
@@ -259,6 +309,7 @@ async def root():
         "status": "running",
         "docs": "/docs"
     }
+
 
 @app.get("/health")
 async def health_check():

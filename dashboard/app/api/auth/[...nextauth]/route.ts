@@ -12,29 +12,50 @@ const handler = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log('🔐 authorize - credentials:', credentials)
+
         if (!credentials?.email || !credentials?.password) {
+          console.log('❌ Faltan credenciales')
           return null
         }
 
         try {
+          const requestBody = JSON.stringify({
+            email: credentials.email.trim(),
+            password: credentials.password
+          })
+          
+          console.log('🔐 Enviando a:', `${API_URL}/api/auth/login`)
+          console.log('🔐 Body:', requestBody)
+
           const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: requestBody,
           })
 
+          console.log('🔐 Status code:', response.status)
+          
           const data = await response.json()
+          console.log('🔐 Respuesta completa:', data)
 
           if (!response.ok) {
             console.error('❌ Login error:', data)
             return null
           }
 
-          const tipoUsuario = data.tipo_usuario || 'pasajero'
+          if (!data.success || !data.access_token) {
+            console.error('❌ Respuesta sin token:', data)
+            return null
+          }
+
+          const tipoUsuario = data.tipo || data.tipo_usuario || 'pasajero'
           const controlBaseId = data.control_base_id || null
+
+          console.log('✅ Usuario autenticado:', data.email, 'tipo:', tipoUsuario)
 
           return {
             id: data.user_id,
@@ -92,7 +113,7 @@ const handler = NextAuth({
     strategy: 'jwt',
     maxAge: 7 * 24 * 60 * 60,
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'secret-for-development',
 })
 
 export { handler as GET, handler as POST }

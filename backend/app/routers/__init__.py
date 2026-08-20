@@ -17,11 +17,12 @@ from app.routers import empresa
 from app.routers.propietario import router as propietario_router
 from app.routers.public import qr as public_qr_router
 from .choferes_public import router as choferes_public_router
+from . import liquidacion  # <--- NUEVO
 
-# ✅ Importar public_router de viajes
+# Importar public_router de viajes
 from app.routers.viajes import public_router as public_viajes_router
 
-# ✅ Importar router GEO
+# Importar router GEO
 from app.routers import geo
 
 # Importar routers de admin
@@ -55,7 +56,8 @@ __all__ = [
     "empresa_dashboard_router",
     "choferes_public_router",
     "public_viajes_router",
-    "geo",  # ✅ AGREGADO
+    "geo",
+    "liquidacion",  # <--- NUEVO
 ]
 
 
@@ -77,11 +79,12 @@ routers = [
     empresa.router,
     comercio.router,
     catalogo.router,
-    propietario_router,
+    propietario_router,         # <--- Incluye todos los submódulos del propietario (incluyendo dashboard)
     public_qr_router,
     propietarios_router,
     empresas_router,
     empresa_dashboard_router,
     choferes_public_router,
-    geo.router,                 # ✅ AGREGADO - /api/geo
+    geo.router,                 # /api/geo
+    liquidacion.router,         # <--- NUEVO - /api/liquidacion
 ]

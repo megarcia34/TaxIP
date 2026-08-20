@@ -1,3 +1,4 @@
+# app/routers/choferes.py
 """
 Driver management routes (Admin CRUD + driver actions)
 """
@@ -18,15 +19,19 @@ from app.schemas.chofer_schemas import (
     ActualizarUbicacionRequest,
     CambiarEstadoLaboralRequest
 )
-from datetime import datetime
-from app.services.turno_service import TurnoService
 from app.schemas.turno_schemas import (
     CheckInRequest,
     CheckOutRequest,
     GastoRequest,
     TurnoActivoResponse,
-    TurnoResponse
+    TurnoResponse,
+    EscaneoQrRequest,
+    EscaneoQrResponse,
+    IniciarJornadaRequest,
+    IniciarJornadaResponse
 )
+from app.services.turno_service import TurnoService
+from app.services.qr_service import QRService
 
 router = APIRouter(prefix="/api/choferes", tags=["Choferes"])
 
@@ -260,7 +265,7 @@ async def crear_chofer(
         "documento": request.documento
     })
     
-    # Create vehicle (only with columns that exist)
+    # Create vehicle
     insert_vehiculo = text("""
         INSERT INTO fleet.vehiculo (id, control_base_id, patente, marca, modelo, anio, activo, created_at)
         VALUES (gen_random_uuid(), :control_base_id, :patente, :marca, :modelo, :anio, true, NOW())
@@ -303,7 +308,6 @@ async def modificar_chofer(
     """
     Update driver information (Admin only)
     """
-    # Update profile
     updates = []
     params = {"chofer_id": chofer_id}
     
@@ -328,7 +332,6 @@ async def modificar_chofer(
         """)
         await db.execute(update_query, params)
     
-    # Update driver status and active flag
     if request.estado_laboral is not None or request.activo is not None:
         driver_updates = []
         if request.estado_laboral is not None:
@@ -378,6 +381,7 @@ async def eliminar_chofer(
 # ============================================
 # DRIVER ACTIONS (Authenticated driver)
 # ============================================
+
 @router.post("/actualizar-ubicacion")
 async def actualizar_ubicacion(
     request: ActualizarUbicacionRequest,
@@ -386,14 +390,12 @@ async def actualizar_ubicacion(
 ):
     """
     Update driver's GPS location in real-time
-    Also logs GPS history and checks for route deviation
     """
-    driver_id = current_user[0]  # user_id from tuple
+    driver_id = current_user[0]
     
     lat = str(request.latitud)
     lng = str(request.longitud)
     
-    # Update current location
     query = text("""
         UPDATE fleet.chofer_vehiculo
         SET latitud = CAST(:latitud AS DECIMAL),
@@ -413,7 +415,6 @@ async def actualizar_ubicacion(
     if not result.first():
         raise HTTPException(status_code=404, detail="Driver profile not found")
     
-    # Check if driver has an active trip
     trip_query = text("""
         SELECT id FROM trip.viaje_solicitado
         WHERE chofer_id = :driver_id AND estado IN ('aceptado', 'en_curso')
@@ -427,7 +428,6 @@ async def actualizar_ubicacion(
     if trip_row:
         viaje_id = trip_row[0]
         
-        # Log GPS position to audit table
         log_query = text("""
             INSERT INTO audit.log_gps (id, viaje_id, usuario_id, latitud, longitud, ubicacion, created_at)
             VALUES (gen_random_uuid(), :viaje_id, :driver_id, CAST(:latitud AS DECIMAL), CAST(:longitud AS DECIMAL),
@@ -440,9 +440,7 @@ async def actualizar_ubicacion(
             "longitud": lng
         })
         
-        # Check route deviation (import RouteMonitor at top of file)
         from app.core.route_monitor import RouteMonitor
-        
         deviation = await RouteMonitor.check_deviation(viaje_id, request.latitud, request.longitud)
         if deviation and deviation > 100:
             await RouteMonitor.alert_deviation(viaje_id, request.latitud, request.longitud, deviation)
@@ -500,7 +498,6 @@ async def activar_panico(
     """
     driver_id = current_user[0]
     
-    # Get current location
     location_query = text("""
         SELECT latitud, longitud, id as chofer_vehiculo_id
         FROM fleet.chofer_vehiculo
@@ -515,7 +512,6 @@ async def activar_panico(
     
     latitud, longitud, chofer_vehiculo_id = row
     
-    # Update panic status
     update_query = text("""
         UPDATE fleet.chofer_vehiculo
         SET estado_panico = true
@@ -523,7 +519,6 @@ async def activar_panico(
     """)
     await db.execute(update_query, {"driver_id": driver_id})
     
-    # Record panic event (if there's an active trip)
     trip_query = text("""
         SELECT id FROM trip.viaje_solicitado
         WHERE chofer_id = :driver_id AND estado IN ('aceptado', 'en_curso')
@@ -578,7 +573,6 @@ async def desactivar_panico(
     if not result.first():
         raise HTTPException(status_code=404, detail="Driver not found")
     
-    # Update panic record
     update_panic = text("""
         UPDATE trip.panico
         SET activo = false, resuelto_en = NOW()
@@ -588,6 +582,7 @@ async def desactivar_panico(
     await db.commit()
     
     return {"success": True, "message": "Alerta de pánico desactivada"}
+
 
 # ============================================
 # VINCULACIÓN CHOFER (Escaneo QR)
@@ -600,100 +595,104 @@ async def vincular_chofer(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Chofer escanea QR y solicita vinculación con un vehículo
+    LEGACY: Vinculación de chofer con vehículo via QR.
+    DEPRECADO: Este endpoint ya no crea contratos.
+    Para iniciar jornada, usar POST /escaneo-qr
     """
-    chofer_id = current_user[0]
-    
-    # Verificar que el vehículo existe y QR activo
-    query = text("""
-        SELECT v.id, v.patente, v.qr_activo, v.activo
-        FROM fleet.vehiculo v
-        WHERE v.id = :vehiculo_id
-    """)
-    result = await db.execute(query, {"vehiculo_id": vehiculo_id})
-    row = result.first()
-    
-    if not row:
-        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
-    
-    if not row[2] or not row[3]:
-        raise HTTPException(status_code=400, detail="QR del vehículo inactivo o vehículo deshabilitado")
-    
-    # Verificar que el chofer no tenga contrato activo
-    contrato_activo = text("""
-        SELECT id FROM fleet.contrato_vehiculo
-        WHERE chofer_id = :chofer_id AND estado_contrato = 'ACTIVO'
-    """)
-    result = await db.execute(contrato_activo, {"chofer_id": chofer_id})
-    if result.first():
-        raise HTTPException(status_code=400, detail="Ya tienes un contrato activo con otro vehículo")
-    
-    # Verificar que el vehículo no tenga contrato activo
-    contrato_vehiculo = text("""
-        SELECT id FROM fleet.contrato_vehiculo
-        WHERE vehiculo_id = :vehiculo_id AND estado_contrato = 'ACTIVO'
-    """)
-    result = await db.execute(contrato_vehiculo, {"vehiculo_id": vehiculo_id})
-    if result.first():
-        raise HTTPException(status_code=400, detail="El vehículo ya tiene un contrato activo con otro chofer")
-    
-    # Obtener propietario del vehículo
-    propietario = text("""
-        SELECT pv.propietario_id
-        FROM fleet.propietario_vehiculo pv
-        WHERE pv.vehiculo_id = :vehiculo_id AND pv.activo = true
-        LIMIT 1
-    """)
-    result = await db.execute(propietario, {"vehiculo_id": vehiculo_id})
-    propietario_row = result.first()
-    
-    if not propietario_row:
-        raise HTTPException(status_code=400, detail="El vehículo no tiene un propietario asignado")
-    
-    propietario_id = propietario_row[0]
-    
-    # Obtener control_base_id
-    control_base = text("""
-        SELECT control_base_id FROM fleet.vehiculo WHERE id = :vehiculo_id
-    """)
-    result = await db.execute(control_base, {"vehiculo_id": vehiculo_id})
-    control_base_id = result.scalar()
-    
-    # Crear contrato en estado PENDIENTE_CONFIGURACION
-    insert_contrato = text("""
-        INSERT INTO fleet.contrato_vehiculo (
-            id, control_base_id, propietario_id, vehiculo_id, chofer_id,
-            tipo_contrato, turno_asignado, estado_contrato, fecha_inicio, activo
-        )
-        VALUES (
-            gen_random_uuid(), :control_base_id, :propietario_id, :vehiculo_id, :chofer_id,
-            'PORCENTAJE', 'mañana', 'PENDIENTE_CONFIGURACION', NOW(), true
-        )
-        RETURNING id
-    """)
-    result = await db.execute(insert_contrato, {
-        "control_base_id": control_base_id,
-        "propietario_id": propietario_id,
-        "vehiculo_id": vehiculo_id,
-        "chofer_id": chofer_id
-    })
-    contrato_id = result.scalar()
-    await db.commit()
-    
-    # Crear notificación para el propietario
-    insert_notificacion = text("""
-        INSERT INTO notification.notificacion (id, usuario_id, titulo, mensaje, tipo, leida, created_at)
-        VALUES (gen_random_uuid(), :propietario_id, 'Nueva solicitud de vinculación', 
-                'El chofer ha solicitado vincularse al vehículo', 'contrato_pendiente', false, NOW())
-    """)
-    await db.execute(insert_notificacion, {"propietario_id": propietario_id})
-    await db.commit()
-    
     return {
-        "success": True,
-        "contrato_id": str(contrato_id),
-        "mensaje": "Solicitud enviada. Esperando configuración del propietario."
+        "success": False,
+        "mensaje": "Este endpoint está deprecado. Use /escaneo-qr para iniciar jornada."
     }
+
+
+# ============================================
+# C2 — ESCANEO QR OPERATIVO
+# ============================================
+
+@router.post("/escaneo-qr", response_model=EscaneoQrResponse)
+async def escanear_qr_operativo(
+    request: EscaneoQrRequest,
+    current_user: tuple = Depends(get_current_driver_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Escanea un QR operativo.
+    Valida el token, ejecuta C1 y genera autorización temporal (auth_token).
+    """
+    conductor_id = current_user[0]
+    
+    resultado = await QRService.escanear_qr(
+        conductor_id=conductor_id,
+        token=request.token,
+        db=db
+    )
+    
+    return EscaneoQrResponse(
+        autorizado=resultado["autorizado"],
+        mensaje=resultado["mensaje"],
+        auth_token=resultado.get("auth_token"),
+        expires_at=resultado.get("expires_at")
+    )
+
+
+# ============================================
+# C1 — ENDPOINT DE PRUEBA (mantenido para regresión)
+# ============================================
+
+from app.schemas.turno_schemas import AutorizacionTurnoRequest, AutorizacionTurnoResult
+from app.services.turno_authorization import TurnoAuthorizationService
+
+@router.post("/test/autorizar-turno", response_model=AutorizacionTurnoResult)
+async def test_autorizar_turno(
+    request: AutorizacionTurnoRequest,
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    ENDPOINT TEMPORAL PARA PRUEBAS (BLOQUE C1).
+    Verifica si el usuario autenticado puede iniciar jornada bajo un contrato.
+    """
+    usuario_id = current_user[0]
+    resultado = await TurnoAuthorizationService.autorizar_inicio_jornada(
+        usuario_id=usuario_id,
+        contrato_id=request.contrato_id,
+        db=db,
+        fecha_referencia=request.fecha_referencia
+    )
+    return resultado
+
+
+# ============================================
+# C3 — INICIAR JORNADA CON AUTORIZACIÓN
+# ============================================
+
+@router.post("/turnos/iniciar", response_model=IniciarJornadaResponse)
+async def iniciar_jornada(
+    request: IniciarJornadaRequest,
+    current_user: tuple = Depends(get_current_driver_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Inicia una jornada operativa usando un auth_token de C2.
+    """
+    resultado = await QRService.consumir_autorizacion(
+        auth_token=request.auth_token,
+        km_inicial=request.km_inicial,
+        combustible_inicial=request.combustible_inicial,
+        db=db
+    )
+
+    if not resultado["success"]:
+        raise HTTPException(status_code=400, detail=resultado["mensaje"])
+
+    return IniciarJornadaResponse(
+        success=True,
+        turno_id=resultado["turno_id"],
+        mensaje=resultado["mensaje"],
+        contrato_id=resultado["contrato_id"],
+        vehiculo_id=resultado["vehiculo_id"],
+        patente=resultado["patente"]
+    )
 
 
 # ============================================
@@ -740,11 +739,12 @@ async def registrar_gasto_turno(
         tipo_gasto=request.tipo_gasto,
         monto=request.monto,
         km_registro=request.km_registro,
-        url_comprobante=request.url_comprobante
+        url_comprobante=request.url_comprobante,
+        categoria_id=request.categoria_id,  # NUEVO
+        subcategoria=request.subcategoria   # NUEVO
     )
     
     return result
-
 
 @router.post("/turnos/check-out")
 async def check_out(
@@ -768,7 +768,6 @@ async def check_out(
     
     return result
 
-
 @router.get("/turnos/activo", response_model=TurnoActivoResponse)
 async def turno_activo(
     current_user: tuple = Depends(get_current_driver_user),
@@ -781,7 +780,8 @@ async def turno_activo(
     
     query = text("""
         SELECT t.id, t.vehiculo_id, v.patente, t.inicio_turno, t.km_inicial, t.combustible_inicial,
-               t.estado, c.id as contrato_id
+               t.estado, c.id as contrato_id,
+               t.snapshot_hora_inicio, t.snapshot_hora_fin, t.snapshot_dia_contractual
         FROM fleet.turno_chofer t
         JOIN fleet.vehiculo v ON v.id = t.vehiculo_id
         JOIN fleet.contrato_vehiculo c ON c.id = t.contrato_id
@@ -799,8 +799,14 @@ async def turno_activo(
             mensaje="No hay turno activo"
         )
     
+    # Construir horario a partir de los snapshots
+    hora_inicio = row[8].strftime("%H:%M") if row[8] else None
+    hora_fin = row[9].strftime("%H:%M") if row[9] else None
+    horario_str = f"{hora_inicio}-{hora_fin}" if hora_inicio and hora_fin else None
+    
     return TurnoActivoResponse(
         tiene_turno_activo=True,
+        mensaje="Turno activo encontrado",  # ✅ AGREGADO: campo requerido
         turno_id=str(row[0]),
         vehiculo_id=str(row[1]),
         patente=row[2],

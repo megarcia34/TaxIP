@@ -11,13 +11,19 @@ import {
   DollarSign,
   CreditCard,
   Wrench,
-  BarChart,
+  BarChart3,
   ChevronLeft,
   Users,
   Briefcase,
   Loader2,
   LogOut,
+  MapPin,
+  CalendarClock,
+  AlertTriangle,
+  CircleDot,
+  ClipboardList,
 } from 'lucide-react'
+import { useAlertas } from '@/hooks/useAlertas'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -30,7 +36,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const propietarioId = searchParams?.get('propietario_id')
   const user = session?.user
 
-  // Manejar redirección al login
+  // Obtener total de alertas
+  const { totalUrgentes } = useAlertas()
+
   useEffect(() => {
     if (status === 'loading') return
     if (!session) {
@@ -85,15 +93,22 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return null
   }
 
+  // ============================================
+  // MENÚ DEL PROPIETARIO (CORREGIDO)
+  // ============================================
   const menuItems = [
     { title: 'Dashboard', href: '/dashboard-propietario', icon: LayoutDashboard },
     { title: 'Vehículos', href: '/dashboard-propietario/vehiculos', icon: Car },
-    { title: 'Contratos', href: '/dashboard-propietario/contratos', icon: FileText },
+    { title: 'Vehículos en Tiempo Real', href: '/dashboard-propietario/vehiculos-tiempo-real', icon: MapPin },
+    { title: 'Viajes', href: '/dashboard-propietario/viajes', icon: CalendarClock }, // ✅ AGREGADO
+    { title: 'Documentos', href: '/dashboard-propietario/documentos', icon: FileText, badge: totalUrgentes },
+    { title: 'Neumáticos', href: '/dashboard-propietario/neumaticos', icon: CircleDot },
+    { title: 'Contratos', href: '/dashboard-propietario/contratos', icon: Briefcase },
     { title: 'Ingresos', href: '/dashboard-propietario/ingresos', icon: DollarSign },
     { title: 'Gastos', href: '/dashboard-propietario/gastos', icon: CreditCard },
     { title: 'Mantenimientos', href: '/dashboard-propietario/mantenimientos', icon: Wrench },
-    { title: 'Rentabilidad', href: '/dashboard-propietario/rentabilidad', icon: BarChart },
-    { title: 'Reportes', href: '/dashboard-propietario/reportes', icon: FileText },
+    { title: 'Rentabilidad', href: '/dashboard-propietario/rentabilidad', icon: BarChart3 },
+    { title: 'Reportes', href: '/dashboard-propietario/reportes', icon: ClipboardList },
   ]
 
   const handleLogout = async () => {
@@ -179,18 +194,31 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 href = item.href
               }
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+              const badge = item.badge || 0
+
               return (
                 <Link
                   key={item.href}
                   href={href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-gray-100'
                   }`}
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.title}
+                  <div className="flex items-center gap-3">
+                    <item.icon className="h-4 w-4" />
+                    {item.title}
+                  </div>
+                  {badge > 0 && (
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                      isActive
+                        ? 'bg-primary-foreground text-primary'
+                        : 'bg-red-500 text-white'
+                    }`}>
+                      {badge}
+                    </span>
+                  )}
                 </Link>
               )
             })}
@@ -205,7 +233,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             </button>
           </div>
         </aside>
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 overflow-y-auto h-screen">
           {children}
         </main>
       </div>

@@ -3,18 +3,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from uuid import UUID
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from app.database import get_db
 from app.dependencies import get_current_user, get_propietario_id
+from app.routers.propietario.utils import verificar_vehiculo_propietario
 
 router = APIRouter()
 
 
+# ============================================================
+# ENDPOINTS EXISTENTES (se mantienen igual)
+# ============================================================
+
 @router.get("/rentabilidad")
 async def obtener_rentabilidad(
     request: Request,
-    propietario_id: UUID = Depends(get_propietario_id),  # ✅ Ya es UUID
+    propietario_id: UUID = Depends(get_propietario_id),
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     vehiculo_id: Optional[UUID] = None,
@@ -36,7 +41,6 @@ async def obtener_rentabilidad(
         INNER JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
         WHERE pv.propietario_id = :propietario_id AND v.activo = true
     """)
-    # ✅ CORREGIDO: propietario_id ya es UUID
     result = await db.execute(query_vehiculos, {"propietario_id": propietario_id})
     vehiculos = result.all()
     
@@ -108,7 +112,7 @@ async def obtener_rentabilidad(
 @router.get("/resumen-financiero")
 async def resumen_financiero(
     request: Request,
-    propietario_id: UUID = Depends(get_propietario_id),  # ✅ Ya es UUID
+    propietario_id: UUID = Depends(get_propietario_id),
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     periodo: str = Query("mes", pattern="^(dia|semana|mes|ano)$"),
@@ -165,7 +169,6 @@ async def resumen_financiero(
         INNER JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
         WHERE pv.propietario_id = :propietario_id AND v.activo = true
     """)
-    # ✅ CORREGIDO: propietario_id ya es UUID
     result = await db.execute(query_vehiculos, {"propietario_id": propietario_id})
     total_vehiculos = result.scalar() or 0
     
@@ -193,53 +196,67 @@ async def resumen_financiero(
 @router.get("/flujo-efectivo")
 async def flujo_efectivo(
     request: Request,
-    propietario_id: UUID = Depends(get_propietario_id),  # ✅ Ya es UUID
+    propietario_id: UUID = Depends(get_propietario_id),
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    meses: int = Query(6, ge=1, le=24, description="Número de meses a mostrar"),
 ):
+    """
+    Flujo de efectivo mensual usando liquidaciones (D9).
+    """
     query = text("""
         SELECT 
-            DATE_TRUNC('month', t.created_at) as mes,
-            t.tipo,
-            COALESCE(SUM(t.monto), 0) as total
-        FROM payment.transaccion t
-        WHERE t.tipo IN ('viaje', 'recaudacion_manual', 'canon')
-          AND t.created_at >= NOW() - INTERVAL '6 months'
-        GROUP BY mes, t.tipo
-        ORDER BY mes DESC, t.tipo
+            DATE_TRUNC('month', l.calculada_en) as mes,
+            COALESCE(SUM(l.total_propietario), 0) as utilidad,
+            COALESCE(SUM(l.monto_bruto), 0) as ingresos_brutos,
+            COALESCE(SUM(l.total_gastos), 0) as gastos_totales
+        FROM fleet.liquidacion l
+        JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = l.vehiculo_id
+        WHERE pv.propietario_id = :propietario_id
+          AND pv.activo = true
+          AND l.estado IN ('APROBADA', 'PAGADA')
+          AND l.calculada_en >= NOW() - INTERVAL ':meses months'
+        GROUP BY DATE_TRUNC('month', l.calculada_en)
+        ORDER BY mes ASC
     """)
-    result = await db.execute(query)
+    result = await db.execute(query, {
+        "propietario_id": propietario_id,
+        "meses": meses
+    })
     rows = result.all()
     
-    meses = {}
-    for row in rows:
-        mes = row[0].strftime("%Y-%m") if row[0] else None
-        if mes not in meses:
-            meses[mes] = {"electronico": 0, "manual": 0}
-        if row[1] == "viaje":
-            meses[mes]["electronico"] = float(row[2])
-        else:
-            meses[mes]["manual"] = float(row[2])
+    labels = []
+    utilidad = []
+    ingresos = []
+    gastos = []
     
-    labels = sorted(meses.keys())
-    electronico = [meses[m]["electronico"] for m in labels]
-    manual = [meses[m]["manual"] for m in labels]
+    for row in rows:
+        labels.append(row[0].strftime("%b %Y") if row[0] else "")
+        utilidad.append(float(row[1] or 0))
+        ingresos.append(float(row[2] or 0))
+        gastos.append(float(row[3] or 0))
     
     return {
         "labels": labels,
-        "electronico": electronico,
-        "manual": manual,
+        "utilidad": utilidad,
+        "ingresos": ingresos,
+        "gastos": gastos,
         "totales": {
-            "electronico": sum(electronico),
-            "manual": sum(manual)
+            "total_utilidad": sum(utilidad),
+            "total_ingresos": sum(ingresos),
+            "total_gastos": sum(gastos)
         }
     }
 
 
+# ============================================================
+# CORREGIDO: DEUDA CHOFERES (CANON_FIJO → ALQUILER)
+# ============================================================
+
 @router.get("/deuda-choferes")
 async def deuda_choferes(
     request: Request,
-    propietario_id: UUID = Depends(get_propietario_id),  # ✅ Ya es UUID
+    propietario_id: UUID = Depends(get_propietario_id),
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -249,7 +266,7 @@ async def deuda_choferes(
             u.email,
             COALESCE(p.nombre || ' ' || p.apellido, u.email) as chofer_nombre,
             c.id as contrato_id,
-            c.patente,
+            v.patente,
             c.monto_diario,
             c.fecha_inicio,
             EXTRACT(DAY FROM NOW() - c.fecha_inicio) as dias_deuda,
@@ -257,8 +274,9 @@ async def deuda_choferes(
         FROM fleet.contrato_vehiculo c
         JOIN auth.usuario u ON u.id = c.chofer_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+        JOIN fleet.vehiculo v ON v.id = c.vehiculo_id
         WHERE c.propietario_id = :propietario_id
-          AND c.tipo_contrato = 'CANON_FIJO'
+          AND c.tipo_contrato = 'ALQUILER'
           AND c.activo = true
           AND c.fecha_fin IS NULL
           AND NOT EXISTS (
@@ -268,7 +286,6 @@ async def deuda_choferes(
           )
         ORDER BY deuda_estimada DESC
     """)
-    # ✅ CORREGIDO: propietario_id ya es UUID
     result = await db.execute(query, {"propietario_id": propietario_id})
     rows = result.all()
     
@@ -286,3 +303,264 @@ async def deuda_choferes(
         }
         for row in rows
     ]
+
+
+# ============================================================
+# NUEVOS ENDPOINTS
+# ============================================================
+
+@router.get("/costo-por-viaje/{vehiculo_id}")
+async def costo_por_viaje(
+    vehiculo_id: UUID,
+    desde: Optional[date] = Query(None, description="Fecha inicio (YYYY-MM-DD)"),
+    hasta: Optional[date] = Query(None, description="Fecha fin (YYYY-MM-DD)"),
+    limit: int = Query(50, ge=1, le=200, description="Límite de registros"),
+    propietario_id: UUID = Depends(get_propietario_id),
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Desglose detallado de costo y ganancia por cada viaje.
+    """
+    
+    await verificar_vehiculo_propietario(vehiculo_id, propietario_id, db)
+    
+    hoy = datetime.now().date()
+    if not desde:
+        desde = hoy - timedelta(days=30)
+    if not hasta:
+        hasta = hoy
+    
+    query_config = text("""
+        SELECT 
+            costo_combustible_por_km,
+            costo_mantenimiento_por_dia,
+            costo_seguro_por_dia,
+            costo_impuesto_por_dia,
+            depreciacion_vehiculo_por_dia
+        FROM tenant.configuracion_tenant
+        WHERE control_base_id = (
+            SELECT control_base_id FROM fleet.vehiculo WHERE id = :vehiculo_id
+        )
+    """)
+    result = await db.execute(query_config, {"vehiculo_id": vehiculo_id})
+    config = result.first()
+    
+    if not config:
+        raise HTTPException(status_code=404, detail="Configuración de costos no encontrada")
+    
+    costo_combustible_por_km = float(config[0] or 0)
+    costo_mantenimiento_por_dia = float(config[1] or 0)
+    costo_seguro_por_dia = float(config[2] or 0)
+    costo_impuesto_por_dia = float(config[3] or 0)
+    depreciacion_por_dia = float(config[4] or 0)
+    
+    query_viajes = text("""
+        SELECT 
+            vs.id,
+            vs.created_at as fecha,
+            vs.direccion_origen,
+            vs.direccion_destino,
+            vs.distancia_metros / 1000 as distancia_km,
+            vs.tiempo_estimado_segundos / 60 as duracion_minutos,
+            vs.precio_final as ingreso_bruto,
+            COALESCE(vs.comision_plataforma, 0) as comision,
+            vs.precio_final - COALESCE(vs.comision_plataforma, 0) as ingreso_neto,
+            vs.estado
+        FROM trip.viaje_solicitado vs
+        WHERE vs.vehiculo_id = :vehiculo_id
+          AND vs.estado = 'finalizado'
+          AND vs.created_at::date BETWEEN :desde AND :hasta
+        ORDER BY vs.created_at DESC
+        LIMIT :limit
+    """)
+    result = await db.execute(query_viajes, {
+        "vehiculo_id": vehiculo_id,
+        "desde": desde,
+        "hasta": hasta,
+        "limit": limit
+    })
+    rows = result.all()
+    
+    resultados = []
+    for row in rows:
+        distancia_km = float(row[4] or 0)
+        duracion_minutos = float(row[5] or 0)
+        ingreso_bruto = float(row[6] or 0)
+        comision = float(row[7] or 0)
+        ingreso_neto = float(row[8] or 0)
+        
+        costo_combustible = distancia_km * costo_combustible_por_km
+        costo_mantenimiento = (duracion_minutos / 60) * costo_mantenimiento_por_dia
+        costo_seguro = (duracion_minutos / 60) * costo_seguro_por_dia
+        costo_impuesto = (duracion_minutos / 60) * costo_impuesto_por_dia
+        costo_depreciacion = (duracion_minutos / 60) * depreciacion_por_dia
+        costo_total = costo_combustible + costo_mantenimiento + costo_seguro + costo_impuesto + costo_depreciacion
+        
+        ganancia_neta = ingreso_neto - costo_total
+        margen = (ganancia_neta / ingreso_neto * 100) if ingreso_neto > 0 else 0
+        
+        resultados.append({
+            "viaje_id": str(row[0]),
+            "fecha": row[1].isoformat() if row[1] else None,
+            "origen": row[2],
+            "destino": row[3],
+            "distancia_km": round(distancia_km, 2),
+            "duracion_minutos": round(duracion_minutos, 2),
+            "ingreso_bruto": round(ingreso_bruto, 2),
+            "comision": round(comision, 2),
+            "ingreso_neto": round(ingreso_neto, 2),
+            "costos": {
+                "combustible": round(costo_combustible, 2),
+                "mantenimiento": round(costo_mantenimiento, 2),
+                "seguro": round(costo_seguro, 2),
+                "impuesto": round(costo_impuesto, 2),
+                "depreciacion": round(costo_depreciacion, 2),
+                "total": round(costo_total, 2)
+            },
+            "ganancia_neta": round(ganancia_neta, 2),
+            "margen": round(margen, 2),
+            "estado": row[9]
+        })
+    
+    total_ingresos = sum(r["ingreso_bruto"] for r in resultados)
+    total_comisiones = sum(r["comision"] for r in resultados)
+    total_costos = sum(r["costos"]["total"] for r in resultados)
+    total_ganancia = sum(r["ganancia_neta"] for r in resultados)
+    
+    return {
+        "vehiculo_id": str(vehiculo_id),
+        "periodo": {
+            "desde": desde.isoformat(),
+            "hasta": hasta.isoformat()
+        },
+        "configuracion_costos": {
+            "combustible_por_km": round(costo_combustible_por_km, 2),
+            "mantenimiento_por_dia": round(costo_mantenimiento_por_dia, 2),
+            "seguro_por_dia": round(costo_seguro_por_dia, 2),
+            "impuesto_por_dia": round(costo_impuesto_por_dia, 2),
+            "depreciacion_por_dia": round(depreciacion_por_dia, 2)
+        },
+        "viajes": resultados,
+        "resumen": {
+            "total_viajes": len(resultados),
+            "total_ingresos_brutos": round(total_ingresos, 2),
+            "total_comisiones": round(total_comisiones, 2),
+            "total_ingresos_netos": round(total_ingresos - total_comisiones, 2),
+            "total_costos": round(total_costos, 2),
+            "total_ganancia_neta": round(total_ganancia, 2),
+            "ganancia_promedio_por_viaje": round(total_ganancia / len(resultados), 2) if resultados else 0,
+            "margen_promedio": round(sum(r["margen"] for r in resultados) / len(resultados), 2) if resultados else 0
+        }
+    }
+
+
+@router.get("/rentabilidad-por-zona/{vehiculo_id}")
+async def rentabilidad_por_zona(
+    vehiculo_id: UUID,
+    desde: Optional[date] = Query(None, description="Fecha inicio (YYYY-MM-DD)"),
+    hasta: Optional[date] = Query(None, description="Fecha fin (YYYY-MM-DD)"),
+    propietario_id: UUID = Depends(get_propietario_id),
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Análisis de rentabilidad agrupado por zona geográfica.
+    """
+    
+    await verificar_vehiculo_propietario(vehiculo_id, propietario_id, db)
+    
+    hoy = datetime.now().date()
+    if not desde:
+        desde = hoy - timedelta(days=30)
+    if not hasta:
+        hasta = hoy
+    
+    query = text("""
+        WITH viajes_con_zonas AS (
+            SELECT 
+                vs.id,
+                vs.precio_final,
+                vs.comision_plataforma,
+                vs.distancia_metros / 1000 as distancia_km,
+                vs.created_at,
+                SPLIT_PART(vs.direccion_origen, ',', 1) as zona_origen,
+                SPLIT_PART(vs.direccion_destino, ',', 1) as zona_destino
+            FROM trip.viaje_solicitado vs
+            WHERE vs.vehiculo_id = :vehiculo_id
+              AND vs.estado = 'finalizado'
+              AND vs.created_at::date BETWEEN :desde AND :hasta
+        ),
+        costos_por_viaje AS (
+            SELECT 
+                v.id,
+                v.precio_final,
+                v.comision_plataforma,
+                v.distancia_km,
+                v.zona_origen,
+                v.zona_destino,
+                COALESCE(c.costo_combustible_por_km, 0) * v.distancia_km as costo_combustible,
+                COALESCE(c.costo_mantenimiento_por_dia, 0) * 0.1 as costo_mantenimiento_estimado,
+                COALESCE(c.costo_seguro_por_dia, 0) * 0.1 as costo_seguro_estimado
+            FROM viajes_con_zonas v
+            CROSS JOIN tenant.configuracion_tenant c
+            WHERE c.control_base_id = (
+                SELECT control_base_id FROM fleet.vehiculo WHERE id = :vehiculo_id
+            )
+        )
+        SELECT 
+            zona_origen as zona,
+            COUNT(*) as total_viajes,
+            SUM(precio_final) as ingresos_brutos,
+            SUM(comision_plataforma) as comisiones,
+            SUM(precio_final - comision_plataforma) as ingresos_netos,
+            SUM(costo_combustible + costo_mantenimiento_estimado + costo_seguro_estimado) as costos_totales,
+            SUM(precio_final - comision_plataforma - costo_combustible - costo_mantenimiento_estimado - costo_seguro_estimado) as ganancia_neta,
+            AVG(distancia_km) as distancia_promedio
+        FROM costos_por_viaje
+        WHERE zona_origen IS NOT NULL AND zona_origen != ''
+        GROUP BY zona_origen
+        ORDER BY ganancia_neta DESC
+    """)
+    result = await db.execute(query, {
+        "vehiculo_id": vehiculo_id,
+        "desde": desde,
+        "hasta": hasta
+    })
+    rows = result.all()
+    
+    resultados = []
+    total_ganancia = 0
+    for row in rows:
+        ganancia = float(row[6] or 0)
+        total_ganancia += ganancia
+        resultados.append({
+            "zona": row[0],
+            "total_viajes": int(row[1] or 0),
+            "ingresos_brutos": round(float(row[2] or 0), 2),
+            "comisiones": round(float(row[3] or 0), 2),
+            "ingresos_netos": round(float(row[4] or 0), 2),
+            "costos_totales": round(float(row[5] or 0), 2),
+            "ganancia_neta": round(ganancia, 2),
+            "distancia_promedio": round(float(row[7] or 0), 2),
+            "margen": round((ganancia / float(row[4] or 1) * 100) if float(row[4] or 0) > 0 else 0, 2)
+        })
+    
+    for r in resultados:
+        r["porcentaje_contribucion"] = round((r["ganancia_neta"] / total_ganancia * 100) if total_ganancia > 0 else 0, 2)
+    
+    return {
+        "vehiculo_id": str(vehiculo_id),
+        "periodo": {
+            "desde": desde.isoformat(),
+            "hasta": hasta.isoformat()
+        },
+        "zonas": resultados,
+        "resumen": {
+            "total_zonas": len(resultados),
+            "total_viajes": sum(r["total_viajes"] for r in resultados),
+            "total_ganancia": round(total_ganancia, 2),
+            "zona_mas_rentable": resultados[0]["zona"] if resultados else None,
+            "zona_menos_rentable": resultados[-1]["zona"] if resultados else None
+        }
+    }

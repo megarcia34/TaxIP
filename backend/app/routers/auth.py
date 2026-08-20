@@ -152,12 +152,14 @@ async def registrar_propietario(
     - Valida que la ciudad exista y tenga tenant activo
     - Asigna control_base_id = tenant asociado a la ciudad
     - Crea usuario, perfil y wallet
+    - Opcionalmente: agrega capacidad CONDUCTOR si registrar_como_conductor = True
     """
     
     print("=" * 60)
     print("🔍 [REGISTRO PROPIETARIO] INICIANDO REGISTRO")
     print(f"📧 Email: {request.email}")
     print(f"🏙️ Ciudad ID: {request.ciudad_id}")
+    print(f"🚗 Registrar como conductor: {request.registrar_como_conductor}")
     print("=" * 60)
     
     # 1. Validar email único
@@ -218,73 +220,118 @@ async def registrar_propietario(
     tipo_propietario_id = tipo_row[0]
     print(f"✅ [PASO 3] Tipo propietario encontrado (ID: {tipo_propietario_id})")
     
+    # 3b. Obtener ID del tipo 'chofer' (para capacidad adicional)
+    tipo_chofer_query = text("SELECT id FROM auth.tipo_usuario WHERE nombre = 'chofer'")
+    result = await db.execute(tipo_chofer_query)
+    tipo_chofer_row = result.first()
+    tipo_chofer_id = tipo_chofer_row[0] if tipo_chofer_row else None
+    
+    if request.registrar_como_conductor and not tipo_chofer_id:
+        print("⚠️ [PASO 3b] Tipo 'chofer' no encontrado, no se puede agregar capacidad")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de usuario 'chofer' no encontrado para agregar capacidad"
+        )
+    
     # 4. Hash de la contraseña
     print("📌 [PASO 4] Generando hash de contraseña...")
     password_hash = get_password_hash(request.password)
     print("✅ [PASO 4] Hash generado correctamente")
     
-    # 5. Crear usuario
+    # 5. Crear usuario (SIN async with db.begin())
     print("📌 [PASO 5] Creando usuario en la base de datos...")
     user_id = uuid_lib.uuid4()
     print(f"🆔 User ID generado: {user_id}")
     
-    insert_user = text("""
-        INSERT INTO auth.usuario (
-            id, control_base_id, tipo_usuario_id, email, password_hash, activo, created_at, updated_at
+    try:
+        # 5a. Insertar usuario
+        insert_user = text("""
+            INSERT INTO auth.usuario (
+                id, control_base_id, tipo_usuario_id, email, password_hash, activo, created_at, updated_at
+            )
+            VALUES (
+                :id, :tenant_id, :tipo_usuario_id, :email, :password_hash, true, NOW(), NOW()
+            )
+        """)
+        
+        await db.execute(insert_user, {
+            "id": user_id,
+            "tenant_id": tenant_id,
+            "tipo_usuario_id": tipo_propietario_id,
+            "email": request.email,
+            "password_hash": password_hash
+        })
+        print("✅ [PASO 5a] Usuario creado correctamente")
+        
+        # 5b. Crear perfil
+        print("📌 [PASO 5b] Creando perfil del usuario...")
+        insert_perfil = text("""
+            INSERT INTO auth.perfil_general (
+                id, usuario_id, nombre, apellido, telefono, ciudad_id, created_at
+            )
+            VALUES (
+                gen_random_uuid(), :usuario_id, :nombre, :apellido, :telefono, :ciudad_id, NOW()
+            )
+        """)
+        
+        await db.execute(insert_perfil, {
+            "usuario_id": user_id,
+            "nombre": request.nombre,
+            "apellido": request.apellido,
+            "telefono": request.telefono,
+            "ciudad_id": ciudad_id
+        })
+        print("✅ [PASO 5b] Perfil creado correctamente")
+        
+        # 5c. Crear wallet
+        print("📌 [PASO 5c] Creando wallet (billetera)...")
+        insert_wallet = text("""
+            INSERT INTO payment.billetera (id, usuario_id, saldo, moneda, created_at, updated_at)
+            VALUES (gen_random_uuid(), :usuario_id, 0, 'ARS', NOW(), NOW())
+            ON CONFLICT (usuario_id) DO NOTHING
+        """)
+        
+        await db.execute(insert_wallet, {"usuario_id": user_id})
+        print("✅ [PASO 5c] Wallet creada correctamente")
+        
+        # 5d. Si checkbox activado, agregar capacidad CONDUCTOR
+        if request.registrar_como_conductor and tipo_chofer_id:
+            print("📌 [PASO 5d] Agregando capacidad CONDUCTOR...")
+            insert_capacidad = text("""
+                INSERT INTO auth.usuario_rol (
+                    id, usuario_id, tipo_usuario_id, activo, fecha_inicio, created_at, updated_at
+                )
+                VALUES (
+                    gen_random_uuid(), :usuario_id, :tipo_chofer_id, true, CURRENT_DATE, NOW(), NOW()
+                )
+                ON CONFLICT (usuario_id, tipo_usuario_id) DO NOTHING
+            """)
+            
+            await db.execute(insert_capacidad, {
+                "usuario_id": user_id,
+                "tipo_chofer_id": tipo_chofer_id
+            })
+            print("✅ [PASO 5d] Capacidad CONDUCTOR agregada correctamente")
+        
+        # Confirmar transacción explícitamente
+        await db.commit()
+        print("💾 [COMMIT] Transacción completada exitosamente")
+        
+    except Exception as e:
+        print(f"❌ [ERROR] Falló la transacción: {str(e)}")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al registrar propietario: {str(e)}"
         )
-        VALUES (
-            :id, :tenant_id, :tipo_usuario_id, :email, :password_hash, true, NOW(), NOW()
-        )
-    """)
-    
-    await db.execute(insert_user, {
-        "id": user_id,
-        "tenant_id": tenant_id,
-        "tipo_usuario_id": tipo_propietario_id,
-        "email": request.email,
-        "password_hash": password_hash
-    })
-    print("✅ [PASO 5] Usuario creado correctamente")
-    
-    # 6. Crear perfil
-    print("📌 [PASO 6] Creando perfil del usuario...")
-    insert_perfil = text("""
-        INSERT INTO auth.perfil_general (
-            id, usuario_id, nombre, apellido, telefono, ciudad_id, created_at
-        )
-        VALUES (
-            gen_random_uuid(), :usuario_id, :nombre, :apellido, :telefono, :ciudad_id, NOW()
-        )
-    """)
-    
-    await db.execute(insert_perfil, {
-        "usuario_id": user_id,
-        "nombre": request.nombre,
-        "apellido": request.apellido,
-        "telefono": request.telefono,
-        "ciudad_id": ciudad_id
-    })
-    print("✅ [PASO 6] Perfil creado correctamente")
-    
-    # 7. Crear wallet
-    print("📌 [PASO 7] Creando wallet (billetera)...")
-    insert_wallet = text("""
-        INSERT INTO payment.billetera (id, usuario_id, saldo, moneda, created_at, updated_at)
-        VALUES (gen_random_uuid(), :usuario_id, 0, 'ARS', NOW(), NOW())
-        ON CONFLICT (usuario_id) DO NOTHING
-    """)
-    
-    await db.execute(insert_wallet, {"usuario_id": user_id})
-    print("✅ [PASO 7] Wallet creada correctamente")
-    
-    await db.commit()
-    print("💾 [COMMIT] Transacción completada exitosamente")
     
     print("=" * 60)
     print("✅ [REGISTRO PROPIETARIO] REGISTRO EXITOSO")
     print(f"👤 Usuario: {request.email}")
     print(f"🏙️ Ciudad: {ciudad_nombre}")
     print(f"🏢 Tenant: {tenant_nombre}")
+    if request.registrar_como_conductor:
+        print("🚗 Capacidad CONDUCTOR: ACTIVADA")
     print("=" * 60)
     
     return RegistroPropietarioResponse(
@@ -296,8 +343,11 @@ async def registrar_propietario(
         tenant_id=tenant_id,
         tenant_nombre=tenant_nombre,
         message="Propietario registrado exitosamente",
-        first_login=True
+        first_login=True,
+        registrado_como_conductor=request.registrar_como_conductor
     )
+
+
 
 
 # ============================================

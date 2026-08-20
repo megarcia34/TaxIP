@@ -52,6 +52,11 @@ class ViajeSolicitado(Base):
         ForeignKey("fleet.vehiculo.id", ondelete="SET NULL"),
         nullable=True
     )
+    turno_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.turno_chofer.id", ondelete="SET NULL"),
+        nullable=True
+    )
     
     # PostGIS Geography points
     origen: Mapped[Geography] = mapped_column(
@@ -103,7 +108,6 @@ class ViajeSolicitado(Base):
     )
 
     # Relationships
-    # NOTA: Sin back_populates para evitar ciclo de mapeo con ControlBase
     control_base: Mapped["ControlBase"] = relationship(
         "ControlBase",
         lazy="selectin"
@@ -118,6 +122,7 @@ class ViajeSolicitado(Base):
     )
     chofer_vehiculo: Mapped["ChoferVehiculo"] = relationship(back_populates="viajes")
     vehiculo: Mapped["Vehiculo"] = relationship(back_populates="viajes")
+    turno: Mapped["TurnoChofer"] = relationship(lazy="selectin")
     historial_estados: Mapped[list["HistorialEstadoViaje"]] = relationship(
         back_populates="viaje",
         lazy="selectin",
@@ -140,12 +145,7 @@ class ViajeSolicitado(Base):
         back_populates="viaje",
         lazy="selectin"
     )
-    # NOTA: Sin back_populates porque FotoViaje no tiene relationship inversa
-    fotos: Mapped[list["FotoViaje"]] = relationship(
-        "FotoViaje",
-        lazy="selectin",
-        cascade="all, delete-orphan"
-    )
+    
 
 
 class HistorialEstadoViaje(Base):
@@ -278,6 +278,7 @@ class ObjetoOlvidado(Base):
     viaje: Mapped["ViajeSolicitado"] = relationship(back_populates="objetos_olvidados")
     pasajero: Mapped["Usuario"] = relationship(foreign_keys=[pasajero_id])
     chofer: Mapped["Usuario"] = relationship(foreign_keys=[chofer_id])
+
 
 
 class TipoVehiculo(Base):

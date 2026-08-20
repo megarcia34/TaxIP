@@ -34,6 +34,7 @@ async def listar_turnos(
 ):
     """
     Listar turnos de los vehículos del propietario
+    Incluye datos de liquidación desde la tabla liquidacion
     """
     propietario_id = ctx["propietario_id"]
     
@@ -75,9 +76,16 @@ async def listar_turnos(
             t.recaudacion_app_efectivo,
             t.recaudacion_app_debito,
             t.recaudacion_ticketera_calle,
-            t.monto_bruto_calculado,
-            t.comision_chofer_calculada,
-            t.utilidad_propietario_calculada,
+            -- ⚠️ CAMPOS LEGACY DEPRECADOS - Usar liquidacion en su lugar
+            -- t.monto_bruto_calculado,
+            -- t.comision_chofer_calculada,
+            -- t.utilidad_propietario_calculada,
+            -- ✅ NUEVOS CAMPOS DESDE LIQUIDACION
+            COALESCE(l.monto_bruto, 0) as monto_bruto,
+            COALESCE(l.total_chofer, 0) as total_chofer,
+            COALESCE(l.total_propietario, 0) as total_propietario,
+            l.estado as estado_liquidacion,
+            l.id as liquidacion_id,
             t.inicio_turno,
             t.fin_turno,
             c.tipo_contrato,
@@ -89,6 +97,7 @@ async def listar_turnos(
         JOIN fleet.contrato_vehiculo c ON c.id = t.contrato_id
         JOIN auth.usuario u ON u.id = t.chofer_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+        LEFT JOIN fleet.liquidacion l ON l.turno_id = t.id
         WHERE {where_clause}
         ORDER BY t.inicio_turno DESC
         LIMIT :limit OFFSET :offset
@@ -114,14 +123,17 @@ async def listar_turnos(
             "recaudacion_app_efectivo": float(row[12]) if row[12] else 0,
             "recaudacion_app_debito": float(row[13]) if row[13] else 0,
             "recaudacion_ticketera": float(row[14]) if row[14] else 0,
+            # ✅ Datos desde liquidacion
             "monto_bruto": float(row[15]) if row[15] else 0,
-            "comision_chofer": float(row[16]) if row[16] else 0,
-            "utilidad_propietario": float(row[17]) if row[17] else 0,
-            "inicio_turno": row[18],
-            "fin_turno": row[19],
-            "tipo_contrato": row[20],
-            "porcentaje_chofer": float(row[21]) if row[21] else None,
-            "monto_diario": float(row[22]) if row[22] else None
+            "total_chofer": float(row[16]) if row[16] else 0,
+            "total_propietario": float(row[17]) if row[17] else 0,
+            "estado_liquidacion": row[18],
+            "liquidacion_id": str(row[19]) if row[19] else None,
+            "inicio_turno": row[20],
+            "fin_turno": row[21],
+            "tipo_contrato": row[22],
+            "porcentaje_chofer": float(row[23]) if row[23] else None,
+            "monto_diario": float(row[24]) if row[24] else None
         }
         for row in rows
     ]
@@ -134,7 +146,7 @@ async def obtener_turno(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Obtener detalle de un turno específico
+    Obtener detalle de un turno específico con su liquidación
     """
     propietario_id = ctx["propietario_id"]
     
@@ -155,9 +167,12 @@ async def obtener_turno(
             t.recaudacion_app_efectivo,
             t.recaudacion_app_debito,
             t.recaudacion_ticketera_calle,
-            t.monto_bruto_calculado,
-            t.comision_chofer_calculada,
-            t.utilidad_propietario_calculada,
+            -- ✅ Datos desde liquidacion
+            COALESCE(l.monto_bruto, 0) as monto_bruto,
+            COALESCE(l.total_chofer, 0) as total_chofer,
+            COALESCE(l.total_propietario, 0) as total_propietario,
+            l.estado as estado_liquidacion,
+            l.id as liquidacion_id,
             t.inicio_turno,
             t.fin_turno,
             c.tipo_contrato,
@@ -169,6 +184,7 @@ async def obtener_turno(
         JOIN fleet.contrato_vehiculo c ON c.id = t.contrato_id
         JOIN auth.usuario u ON u.id = t.chofer_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+        LEFT JOIN fleet.liquidacion l ON l.turno_id = t.id
         WHERE t.id = :turno_id AND pv.propietario_id = :propietario_id
     """)
     
@@ -216,22 +232,24 @@ async def obtener_turno(
         "recaudacion_app_efectivo": float(row[12]) if row[12] else 0,
         "recaudacion_app_debito": float(row[13]) if row[13] else 0,
         "recaudacion_ticketera": float(row[14]) if row[14] else 0,
+        # ✅ Datos desde liquidacion
         "monto_bruto": float(row[15]) if row[15] else 0,
-        "comision_chofer": float(row[16]) if row[16] else 0,
-        "utilidad_propietario": float(row[17]) if row[17] else 0,
-        "inicio_turno": row[18],
-        "fin_turno": row[19],
-        "tipo_contrato": row[20],
-        "porcentaje_chofer": float(row[21]) if row[21] else None,
-        "monto_diario": float(row[22]) if row[22] else None,
+        "total_chofer": float(row[16]) if row[16] else 0,
+        "total_propietario": float(row[17]) if row[17] else 0,
+        "estado_liquidacion": row[18],
+        "liquidacion_id": str(row[19]) if row[19] else None,
+        "inicio_turno": row[20],
+        "fin_turno": row[21],
+        "tipo_contrato": row[22],
+        "porcentaje_chofer": float(row[23]) if row[23] else None,
+        "monto_diario": float(row[24]) if row[24] else None,
         "gastos": gastos
     }
-
 
 @router.post("/turnos/{turno_id}/confirmar")
 async def confirmar_liquidacion(
     turno_id: UUID,
-    request: ConfirmarLiquidacionRequest,
+    request: Optional[ConfirmarLiquidacionRequest] = None,  # ✅ Hacer opcional
     ctx: dict = Depends(get_propietario_context),
     db: AsyncSession = Depends(get_db)
 ):
