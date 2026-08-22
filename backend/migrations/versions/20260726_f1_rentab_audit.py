@@ -1,4 +1,4 @@
-"""rentabilidad y auditoria - fase 1
+﻿"""rentabilidad y auditoria - fase 1
 
 Revision ID: 20260726_f1_rentab_audit
 Revises: c6bc69974304
@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # ── 1. Agregar 19 columnas a tenant.configuracion_tenant ──
+    #  1. Agregar 19 columnas a tenant.configuracion_tenant
     op.add_column('configuracion_tenant', sa.Column('canon_mensual_por_vehiculo', sa.Numeric(), server_default='10000', nullable=True), schema='tenant')
     op.add_column('configuracion_tenant', sa.Column('porcentaje_taxip_por_viaje', sa.Numeric(), server_default='1.5', nullable=True), schema='tenant')
     op.add_column('configuracion_tenant', sa.Column('iva', sa.Numeric(), server_default='21.0', nullable=True), schema='tenant')
@@ -38,11 +38,11 @@ def upgrade() -> None:
     op.add_column('configuracion_tenant', sa.Column('depreciacion_vehiculo_por_dia', sa.Numeric(), server_default='400.0', nullable=True), schema='tenant')
     op.add_column('configuracion_tenant', sa.Column('updated_at', sa.DateTime(), server_default=sa.text('NOW()'), nullable=True), schema='tenant')
 
-    # ── 2. Crear schemas ──
+    #  2. Crear schemas
     op.execute("CREATE SCHEMA IF NOT EXISTS rentabilidad")
     op.execute("CREATE SCHEMA IF NOT EXISTS audit")
 
-    # ── 3. Tabla rentabilidad.rentabilidad_diaria_vehiculo ──
+    #  3. Tabla rentabilidad.rentabilidad_diaria_vehiculo
     op.create_table(
         'rentabilidad_diaria_vehiculo',
         sa.Column('id', postgresql.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -66,7 +66,7 @@ def upgrade() -> None:
     op.create_index('idx_rentabilidad_vehiculo_fecha', 'rentabilidad_diaria_vehiculo', ['vehiculo_id', 'fecha'], schema='rentabilidad')
     op.create_index('idx_rentabilidad_fecha', 'rentabilidad_diaria_vehiculo', ['fecha'], schema='rentabilidad')
 
-    # ── 4. Tabla rentabilidad.rentabilidad_mensual_vehiculo ──
+    #  4. Tabla rentabilidad.rentabilidad_mensual_vehiculo
     op.create_table(
         'rentabilidad_mensual_vehiculo',
         sa.Column('id', postgresql.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -93,7 +93,7 @@ def upgrade() -> None:
     op.create_index('idx_rentabilidad_mensual_vehiculo', 'rentabilidad_mensual_vehiculo', ['vehiculo_id', 'anio', 'mes'], schema='rentabilidad')
     op.create_index('idx_rentabilidad_mensual_periodo', 'rentabilidad_mensual_vehiculo', ['anio', 'mes'], schema='rentabilidad')
 
-    # ── 5. Tabla rentabilidad.analisis_medios_pago ──
+    #  5. Tabla rentabilidad.analisis_medios_pago
     op.create_table(
         'analisis_medios_pago',
         sa.Column('id', postgresql.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -113,7 +113,7 @@ def upgrade() -> None:
     op.create_index('idx_analisis_vehiculo_periodo', 'analisis_medios_pago', ['vehiculo_id', 'anio', 'mes'], schema='rentabilidad')
     op.create_index('idx_analisis_periodo', 'analisis_medios_pago', ['anio', 'mes'], schema='rentabilidad')
 
-    # ── 6. Tabla audit.log_acciones ──
+    #  6. Tabla audit.log_acciones
     op.create_table(
         'log_acciones',
         sa.Column('id', postgresql.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -138,7 +138,7 @@ def upgrade() -> None:
     op.create_index('idx_log_acciones_created', 'log_acciones', ['created_at'], schema='audit')
     op.create_index('idx_log_acciones_accion', 'log_acciones', ['accion'], schema='audit')
 
-    # ── 7. Función y triggers para updated_at ──
+    #  7. FunciÃ³n y triggers para updated_at
     op.execute("""
         CREATE OR REPLACE FUNCTION actualizar_updated_at()
         RETURNS TRIGGER AS $$
@@ -170,31 +170,31 @@ def upgrade() -> None:
             EXECUTE FUNCTION actualizar_updated_at();
     """)
 
-    # ── 8. Comentarios en columnas de configuracion_tenant ──
+    #  8. Comentarios en columnas de configuracion_tenant
     op.execute("""
         COMMENT ON COLUMN tenant.configuracion_tenant.canon_mensual_por_vehiculo IS 'Canon fijo mensual que paga el propietario al Tenant';
         COMMENT ON COLUMN tenant.configuracion_tenant.porcentaje_taxip_por_viaje IS '% que retiene TAXIP por viaje (marketing, premios, etc.)';
         COMMENT ON COLUMN tenant.configuracion_tenant.iva IS 'IVA sobre comisiones de procesadoras';
         COMMENT ON COLUMN tenant.configuracion_tenant.iibb IS 'Ingresos Brutos';
-        COMMENT ON COLUMN tenant.configuracion_tenant.idc IS 'Impuesto Débitos y Créditos';
+        COMMENT ON COLUMN tenant.configuracion_tenant.idc IS 'Impuesto DÃ©bitos y CrÃ©ditos';
         COMMENT ON COLUMN tenant.configuracion_tenant.mix_efectivo IS '% de viajes en efectivo';
         COMMENT ON COLUMN tenant.configuracion_tenant.mix_transferencia IS '% de viajes por transferencia';
         COMMENT ON COLUMN tenant.configuracion_tenant.mix_qr IS '% de viajes por QR';
-        COMMENT ON COLUMN tenant.configuracion_tenant.mix_debito IS '% de viajes por débito';
-        COMMENT ON COLUMN tenant.configuracion_tenant.mix_credito IS '% de viajes por crédito';
-        COMMENT ON COLUMN tenant.configuracion_tenant.comision_qr IS 'Comisión de procesadora QR (%)';
-        COMMENT ON COLUMN tenant.configuracion_tenant.comision_debito IS 'Comisión de procesadora débito (%)';
-        COMMENT ON COLUMN tenant.configuracion_tenant.comision_credito IS 'Comisión de procesadora crédito (%)';
+        COMMENT ON COLUMN tenant.configuracion_tenant.mix_debito IS '% de viajes por dÃ©bito';
+        COMMENT ON COLUMN tenant.configuracion_tenant.mix_credito IS '% de viajes por crÃ©dito';
+        COMMENT ON COLUMN tenant.configuracion_tenant.comision_qr IS 'ComisiÃ³n de procesadora QR (%)';
+        COMMENT ON COLUMN tenant.configuracion_tenant.comision_debito IS 'ComisiÃ³n de procesadora dÃ©bito (%)';
+        COMMENT ON COLUMN tenant.configuracion_tenant.comision_credito IS 'ComisiÃ³n de procesadora crÃ©dito (%)';
         COMMENT ON COLUMN tenant.configuracion_tenant.costo_combustible_por_km IS 'Costo promedio de combustible por km';
-        COMMENT ON COLUMN tenant.configuracion_tenant.costo_mantenimiento_por_dia IS 'Mantenimiento prorrateado por día';
-        COMMENT ON COLUMN tenant.configuracion_tenant.costo_seguro_por_dia IS 'Seguro prorrateado por día';
-        COMMENT ON COLUMN tenant.configuracion_tenant.costo_impuesto_por_dia IS 'Impuestos/patente por día';
-        COMMENT ON COLUMN tenant.configuracion_tenant.depreciacion_vehiculo_por_dia IS 'Depreciación del vehículo por día';
+        COMMENT ON COLUMN tenant.configuracion_tenant.costo_mantenimiento_por_dia IS 'Mantenimiento prorrateado por dÃ­a';
+        COMMENT ON COLUMN tenant.configuracion_tenant.costo_seguro_por_dia IS 'Seguro prorrateado por dÃ­a';
+        COMMENT ON COLUMN tenant.configuracion_tenant.costo_impuesto_por_dia IS 'Impuestos/patente por dÃ­a';
+        COMMENT ON COLUMN tenant.configuracion_tenant.depreciacion_vehiculo_por_dia IS 'DepreciaciÃ³n del vehÃ­culo por dÃ­a';
     """)
 
 
 def downgrade() -> None:
-    # 1. Eliminar triggers y función
+    # 1. Eliminar triggers y funciÃ³n
     op.execute("DROP TRIGGER IF EXISTS trigger_rentabilidad_diaria_updated_at ON rentabilidad.rentabilidad_diaria_vehiculo")
     op.execute("DROP TRIGGER IF EXISTS trigger_rentabilidad_mensual_updated_at ON rentabilidad.rentabilidad_mensual_vehiculo")
     op.execute("DROP TRIGGER IF EXISTS trigger_configuracion_tenant_updated_at ON tenant.configuracion_tenant")

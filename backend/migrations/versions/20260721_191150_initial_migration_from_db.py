@@ -33,8 +33,6 @@ def upgrade() -> None:
         sa.Column('longitud', sa.NUMERIC(), nullable=False),
         sa.Column('timestamp', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -49,7 +47,6 @@ def upgrade() -> None:
         sa.Column('resuelto', sa.BOOLEAN(), server_default=sa.text('false')),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -73,9 +70,6 @@ def upgrade() -> None:
         sa.Column('motivo_suspension', sa.TEXT()),
         sa.Column('suspendido_por', sa.UUID()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id']),
-        sa.ForeignKeyConstraint(['suspendido_por'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['tipo_usuario_id'], ['auth.tipo_usuario.id'])
     )
 
     op.create_table(
@@ -97,8 +91,6 @@ def upgrade() -> None:
         sa.Column('tipo_conductor', sa.VARCHAR()),
         sa.Column('agencia', sa.VARCHAR()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['ciudad_id'], ['geo.ciudad.id']),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -110,7 +102,6 @@ def upgrade() -> None:
         sa.Column('usado', sa.BOOLEAN(), server_default=sa.text('false')),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -122,7 +113,6 @@ def upgrade() -> None:
         sa.Column('usado', sa.BOOLEAN(), server_default=sa.text('false')),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -135,7 +125,6 @@ def upgrade() -> None:
         sa.Column('direccion_texto', sa.TEXT()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -145,8 +134,6 @@ def upgrade() -> None:
         sa.Column('chofer_id', sa.UUID(), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['chofer_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['pasajero_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -158,8 +145,6 @@ def upgrade() -> None:
         sa.Column('activo', sa.BOOLEAN(), server_default=sa.text('true')),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['empresa_id'], ['tenant.empresa.id']),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -175,8 +160,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['empleado_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['empresa_id'], ['tenant.empresa.id'])
     )
 
     op.create_table(
@@ -204,8 +187,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), nullable=False, server_default=sa.text('now()')),
         sa.Column('updated_at', sa.TIMESTAMP(), nullable=False, server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['participante_1'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['participante_2'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -219,9 +200,6 @@ def upgrade() -> None:
         sa.Column('leido_en', sa.TIMESTAMP()),
         sa.Column('created_at', sa.TIMESTAMP(), nullable=False, server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['conversacion_id'], ['comunicacion.conversacion.id']),
-        sa.ForeignKeyConstraint(['remitente_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -236,7 +214,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), nullable=False, server_default=sa.text('now()')),
         sa.Column('enviado_en', sa.TIMESTAMP()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -249,8 +226,6 @@ def upgrade() -> None:
         sa.Column('fecha_fin', sa.DATE()),
         sa.Column('activo', sa.BOOLEAN(), server_default=sa.text('true')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['propietario_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -262,8 +237,6 @@ def upgrade() -> None:
         sa.Column('fecha_fin', sa.TIMESTAMP()),
         sa.Column('estado', sa.VARCHAR()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['chofer_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -280,7 +253,6 @@ def upgrade() -> None:
         sa.Column('qr_uuid', sa.UUID(), server_default=sa.text('gen_random_uuid()')),
         sa.Column('qr_activo', sa.BOOLEAN(), server_default=sa.text('true')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id'])
     )
 
     op.create_table(
@@ -297,8 +269,6 @@ def upgrade() -> None:
         sa.Column('fecha_gasto', sa.DATE()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['propietario_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -315,8 +285,6 @@ def upgrade() -> None:
         sa.Column('fecha_servicio', sa.DATE()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['propietario_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -339,9 +307,6 @@ def upgrade() -> None:
         sa.Column('estado_aprobacion', sa.VARCHAR(), server_default=sa.text("'pendiente'::character varying")),
         sa.Column('total_viajes', sa.INTEGER(), server_default=sa.text('0')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id']),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -359,7 +324,6 @@ def upgrade() -> None:
         sa.Column('nombre', sa.VARCHAR(), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['marca_id'], ['fleet.marca.id'])
     )
 
     op.create_table(
@@ -374,8 +338,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['propietario_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -391,7 +353,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -402,7 +363,6 @@ def upgrade() -> None:
         sa.Column('url', sa.TEXT(), nullable=False),
         sa.Column('subido_en', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -422,10 +382,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('estado_contrato', sa.VARCHAR(), server_default=sa.text("'PENDIENTE_CONFIGURACION'::character varying")),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['chofer_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id']),
-        sa.ForeignKeyConstraint(['propietario_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -450,9 +406,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['chofer_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['contrato_id'], ['fleet.contrato_vehiculo.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -465,7 +418,6 @@ def upgrade() -> None:
         sa.Column('url_comprobante', sa.VARCHAR()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['turno_id'], ['fleet.turno_chofer.id'])
     )
 
     op.create_table(
@@ -484,7 +436,6 @@ def upgrade() -> None:
         sa.Column('nombre', sa.VARCHAR(), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['pais_id'], ['geo.pais.id'])
     )
 
     op.create_table(
@@ -494,7 +445,6 @@ def upgrade() -> None:
         sa.Column('nombre', sa.VARCHAR(), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['provincia_id'], ['geo.provincia.id'])
     )
 
     op.create_table(
@@ -507,7 +457,6 @@ def upgrade() -> None:
         sa.Column('leida', sa.BOOLEAN(), server_default=sa.text('false')),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -531,9 +480,6 @@ def upgrade() -> None:
         sa.Column('descripcion', sa.TEXT()),
         sa.Column('billetera_id', sa.UUID()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['billetera_id'], ['payment.billetera.id']),
-        sa.ForeignKeyConstraint(['metodo_pago_id'], ['payment.metodo_pago.id']),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -559,7 +505,6 @@ def upgrade() -> None:
         sa.Column('moneda', sa.VARCHAR(), server_default=sa.text("'ARS'::character varying")),
         sa.Column('descripcion', sa.TEXT()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id'])
     )
 
     op.create_table(
@@ -571,7 +516,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -587,7 +531,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('pagada_at', sa.TIMESTAMP()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['empresa_id'], ['tenant.empresa.id'])
     )
 
     op.create_table(
@@ -607,9 +550,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['confirmado_por'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['empresa_id'], ['tenant.empresa.id']),
-        sa.ForeignKeyConstraint(['factura_id'], ['payment.factura_empresa.id'])
     )
 
     op.create_table(
@@ -628,7 +568,6 @@ def upgrade() -> None:
         sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.Column('control_base_id', sa.UUID(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id'])
     )
 
     op.create_table(
@@ -640,8 +579,6 @@ def upgrade() -> None:
         sa.Column('ip_address', sa.TEXT()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['comercio_id'], ['comercio.id']),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -655,7 +592,6 @@ def upgrade() -> None:
         sa.Column('habilitar_pagos_online', sa.BOOLEAN(), server_default=sa.text('true')),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id'])
     )
 
     op.create_table(
@@ -673,7 +609,6 @@ def upgrade() -> None:
         sa.Column('motivo_suspension', sa.TEXT()),
         sa.Column('suspendido_por', sa.UUID()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['suspendido_por'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -700,8 +635,6 @@ def upgrade() -> None:
         sa.Column('motivo_suspension', sa.TEXT()),
         sa.Column('suspendido_por', sa.UUID()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id']),
-        sa.ForeignKeyConstraint(['suspendido_por'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -723,8 +656,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(), nullable=False, server_default=sa.text('now()')),
         sa.Column('updated_at', sa.TIMESTAMP(), nullable=False, server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id']),
-        sa.ForeignKeyConstraint(['pagada_por'], ['auth.usuario.id'])
     )
 
     op.create_table(
@@ -735,7 +666,6 @@ def upgrade() -> None:
         sa.Column('observacion', sa.TEXT()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -746,7 +676,6 @@ def upgrade() -> None:
         sa.Column('activo', sa.BOOLEAN(), server_default=sa.text('true')),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -760,9 +689,6 @@ def upgrade() -> None:
         sa.Column('foto_url', sa.TEXT()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['chofer_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['pasajero_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -775,9 +701,6 @@ def upgrade() -> None:
         sa.Column('comentario', sa.TEXT()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['calificado_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['calificador_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -790,8 +713,6 @@ def upgrade() -> None:
         sa.Column('metadata_json', sa.TEXT()),
         sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['usuario_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['viaje_id'], ['trip.viaje_solicitado.id'])
     )
 
     op.create_table(
@@ -830,12 +751,6 @@ def upgrade() -> None:
         sa.Column('notas', sa.TEXT()),
         sa.Column('facturado', sa.BOOLEAN(), server_default=sa.text('false')),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['chofer_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['comercio_id'], ['public.comercio.id']),
-        sa.ForeignKeyConstraint(['control_base_id'], ['tenant.control_base.id']),
-        sa.ForeignKeyConstraint(['empresa_id'], ['tenant.empresa.id']),
-        sa.ForeignKeyConstraint(['pasajero_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['vehiculo_id'], ['fleet.vehiculo.id'])
     )
 
     op.create_table(
@@ -870,13 +785,6 @@ def upgrade() -> None:
         sa.Column('cantidad_equipaje', sa.INTEGER(), server_default=sa.text('0')),
         sa.Column('centro_costo', sa.VARCHAR()),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['empleado_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['empresa_id'], ['tenant.empresa.id']),
-        sa.ForeignKeyConstraint(['turno_id'], ['auth.turno_empleado.id']),
-        sa.ForeignKeyConstraint(['creado_por'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['empleado_id'], ['auth.usuario.id']),
-        sa.ForeignKeyConstraint(['empresa_id'], ['tenant.empresa.id']),
-        sa.ForeignKeyConstraint(['turno_id'], ['auth.turno_empleado.id'])
     )
 
     op.create_table(
@@ -898,7 +806,907 @@ def upgrade() -> None:
     )
 
 
+
+    # ============================================================
+    # FASE B: CREACION DE FOREIGN KEYS
+    # ============================================================
+    op.create_foreign_key(
+        'fk_log_gps_usuario_id',
+        'log_gps',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='audit',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_log_gps_viaje_id',
+        'log_gps',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='audit',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_alerta_desvio_viaje_id',
+        'alerta_desvio',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='audit',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_usuario_control_base_id',
+        'usuario',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_usuario_suspendido_por',
+        'usuario',
+        'usuario',
+        ['suspendido_por'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_usuario_tipo_usuario_id',
+        'usuario',
+        'tipo_usuario',
+        ['tipo_usuario_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_perfil_general_ciudad_id',
+        'perfil_general',
+        'ciudad',
+        ['ciudad_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='geo'
+    )
+    op.create_foreign_key(
+        'fk_perfil_general_usuario_id',
+        'perfil_general',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_reset_token_usuario_id',
+        'reset_token',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_refresh_token_usuario_id',
+        'refresh_token',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_direccion_frecuente_usuario_id',
+        'direccion_frecuente',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_taxista_favorito_chofer_id',
+        'taxista_favorito',
+        'usuario',
+        ['chofer_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_taxista_favorito_pasajero_id',
+        'taxista_favorito',
+        'usuario',
+        ['pasajero_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_usuario_empresa_empresa_id',
+        'usuario_empresa',
+        'empresa',
+        ['empresa_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_usuario_empresa_usuario_id',
+        'usuario_empresa',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_turno_empleado_empleado_id',
+        'turno_empleado',
+        'usuario',
+        ['empleado_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_turno_empleado_empresa_id',
+        'turno_empleado',
+        'empresa',
+        ['empresa_id'],
+        ['id'],
+        source_schema='auth',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_conversacion_participante_1',
+        'conversacion',
+        'usuario',
+        ['participante_1'],
+        ['id'],
+        source_schema='comunicacion',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_conversacion_participante_2',
+        'conversacion',
+        'usuario',
+        ['participante_2'],
+        ['id'],
+        source_schema='comunicacion',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_mensaje_conversacion_id',
+        'mensaje',
+        'conversacion',
+        ['conversacion_id'],
+        ['id'],
+        source_schema='comunicacion',
+        referent_schema='comunicacion'
+    )
+    op.create_foreign_key(
+        'fk_mensaje_remitente_id',
+        'mensaje',
+        'usuario',
+        ['remitente_id'],
+        ['id'],
+        source_schema='comunicacion',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_mensaje_viaje_id',
+        'mensaje',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='comunicacion',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_email_enviado_usuario_id',
+        'email_enviado',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='comunicacion',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_relacion_propietario_vehiculo_propietario_id',
+        'relacion_propietario_vehiculo',
+        'usuario',
+        ['propietario_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_relacion_propietario_vehiculo_vehiculo_id',
+        'relacion_propietario_vehiculo',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_historial_chofer_vehiculo_chofer_id',
+        'historial_chofer_vehiculo',
+        'usuario',
+        ['chofer_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_historial_chofer_vehiculo_vehiculo_id',
+        'historial_chofer_vehiculo',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_vehiculo_control_base_id',
+        'vehiculo',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_gasto_vehiculo_propietario_id',
+        'gasto_vehiculo',
+        'usuario',
+        ['propietario_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_gasto_vehiculo_vehiculo_id',
+        'gasto_vehiculo',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_mantenimiento_vehiculo_propietario_id',
+        'mantenimiento_vehiculo',
+        'usuario',
+        ['propietario_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_mantenimiento_vehiculo_vehiculo_id',
+        'mantenimiento_vehiculo',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_chofer_vehiculo_control_base_id',
+        'chofer_vehiculo',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_chofer_vehiculo_usuario_id',
+        'chofer_vehiculo',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_chofer_vehiculo_vehiculo_id',
+        'chofer_vehiculo',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_modelo_marca_id',
+        'modelo',
+        'marca',
+        ['marca_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_propietario_vehiculo_propietario_id',
+        'propietario_vehiculo',
+        'usuario',
+        ['propietario_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_propietario_vehiculo_vehiculo_id',
+        'propietario_vehiculo',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_documento_vehiculo_vehiculo_id',
+        'documento_vehiculo',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_documentos_chofer_usuario_id',
+        'documentos_chofer',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_contrato_vehiculo_chofer_id',
+        'contrato_vehiculo',
+        'usuario',
+        ['chofer_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_contrato_vehiculo_control_base_id',
+        'contrato_vehiculo',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_contrato_vehiculo_propietario_id',
+        'contrato_vehiculo',
+        'usuario',
+        ['propietario_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_contrato_vehiculo_vehiculo_id',
+        'contrato_vehiculo',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_turno_chofer_chofer_id',
+        'turno_chofer',
+        'usuario',
+        ['chofer_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_turno_chofer_contrato_id',
+        'turno_chofer',
+        'contrato_vehiculo',
+        ['contrato_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_turno_chofer_vehiculo_id',
+        'turno_chofer',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_gasto_turno_turno_id',
+        'gasto_turno',
+        'turno_chofer',
+        ['turno_id'],
+        ['id'],
+        source_schema='fleet',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_provincia_pais_id',
+        'provincia',
+        'pais',
+        ['pais_id'],
+        ['id'],
+        source_schema='geo',
+        referent_schema='geo'
+    )
+    op.create_foreign_key(
+        'fk_ciudad_provincia_id',
+        'ciudad',
+        'provincia',
+        ['provincia_id'],
+        ['id'],
+        source_schema='geo',
+        referent_schema='geo'
+    )
+    op.create_foreign_key(
+        'fk_notificacion_usuario_id',
+        'notificacion',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='notification',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_transaccion_billetera_id',
+        'transaccion',
+        'billetera',
+        ['billetera_id'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='payment'
+    )
+    op.create_foreign_key(
+        'fk_transaccion_metodo_pago_id',
+        'transaccion',
+        'metodo_pago',
+        ['metodo_pago_id'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='payment'
+    )
+    op.create_foreign_key(
+        'fk_transaccion_viaje_id',
+        'transaccion',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_configuracion_tarifa_control_base_id',
+        'configuracion_tarifa',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_billetera_usuario_id',
+        'billetera',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_factura_empresa_empresa_id',
+        'factura_empresa',
+        'empresa',
+        ['empresa_id'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_pago_empresa_confirmado_por',
+        'pago_empresa',
+        'usuario',
+        ['confirmado_por'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_pago_empresa_empresa_id',
+        'pago_empresa',
+        'empresa',
+        ['empresa_id'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_pago_empresa_factura_id',
+        'pago_empresa',
+        'factura_empresa',
+        ['factura_id'],
+        ['id'],
+        source_schema='payment',
+        referent_schema='payment'
+    )
+    op.create_foreign_key(
+        'fk_comercio_control_base_id',
+        'comercio',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='public',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_escaneo_qr_comercio_id',
+        'escaneo_qr',
+        'comercio',
+        ['comercio_id'],
+        ['id'],
+        source_schema='public',
+        referent_schema='public'
+    )
+    op.create_foreign_key(
+        'fk_escaneo_qr_viaje_id',
+        'escaneo_qr',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='public',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_configuracion_tenant_control_base_id',
+        'configuracion_tenant',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='tenant',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_control_base_suspendido_por',
+        'control_base',
+        'usuario',
+        ['suspendido_por'],
+        ['id'],
+        source_schema='tenant',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_empresa_control_base_id',
+        'empresa',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='tenant',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_empresa_suspendido_por',
+        'empresa',
+        'usuario',
+        ['suspendido_por'],
+        ['id'],
+        source_schema='tenant',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_factura_control_base_id',
+        'factura',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='tenant',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_factura_pagada_por',
+        'factura',
+        'usuario',
+        ['pagada_por'],
+        ['id'],
+        source_schema='tenant',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_historial_estado_viaje_viaje_id',
+        'historial_estado_viaje',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_panico_viaje_id',
+        'panico',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_objeto_olvidado_chofer_id',
+        'objeto_olvidado',
+        'usuario',
+        ['chofer_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_objeto_olvidado_pasajero_id',
+        'objeto_olvidado',
+        'usuario',
+        ['pasajero_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_objeto_olvidado_viaje_id',
+        'objeto_olvidado',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_calificacion_calificado_id',
+        'calificacion',
+        'usuario',
+        ['calificado_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_calificacion_calificador_id',
+        'calificacion',
+        'usuario',
+        ['calificador_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_calificacion_viaje_id',
+        'calificacion',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_foto_viaje_usuario_id',
+        'foto_viaje',
+        'usuario',
+        ['usuario_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_foto_viaje_viaje_id',
+        'foto_viaje',
+        'viaje_solicitado',
+        ['viaje_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='trip'
+    )
+    op.create_foreign_key(
+        'fk_viaje_solicitado_chofer_id',
+        'viaje_solicitado',
+        'usuario',
+        ['chofer_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_viaje_solicitado_comercio_id',
+        'viaje_solicitado',
+        'comercio',
+        ['comercio_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='public'
+    )
+    op.create_foreign_key(
+        'fk_viaje_solicitado_control_base_id',
+        'viaje_solicitado',
+        'control_base',
+        ['control_base_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_viaje_solicitado_empresa_id',
+        'viaje_solicitado',
+        'empresa',
+        ['empresa_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_viaje_solicitado_pasajero_id',
+        'viaje_solicitado',
+        'usuario',
+        ['pasajero_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_viaje_solicitado_vehiculo_id',
+        'viaje_solicitado',
+        'vehiculo',
+        ['vehiculo_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='fleet'
+    )
+    op.create_foreign_key(
+        'fk_reserva_empleado_id',
+        'reserva',
+        'usuario',
+        ['empleado_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_reserva_empresa_id',
+        'reserva',
+        'empresa',
+        ['empresa_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='tenant'
+    )
+    op.create_foreign_key(
+        'fk_reserva_turno_id',
+        'reserva',
+        'turno_empleado',
+        ['turno_id'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+    op.create_foreign_key(
+        'fk_reserva_creado_por',
+        'reserva',
+        'usuario',
+        ['creado_por'],
+        ['id'],
+        source_schema='trip',
+        referent_schema='auth'
+    )
+
 def downgrade() -> None:
+
+    # ============================================================
+    # ELIMINAR FOREIGN KEYS
+    # ============================================================
+    op.drop_constraint('fk_reserva_creado_por', 'reserva', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_reserva_turno_id', 'reserva', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_reserva_empresa_id', 'reserva', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_reserva_empleado_id', 'reserva', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_viaje_solicitado_vehiculo_id', 'viaje_solicitado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_viaje_solicitado_pasajero_id', 'viaje_solicitado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_viaje_solicitado_empresa_id', 'viaje_solicitado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_viaje_solicitado_control_base_id', 'viaje_solicitado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_viaje_solicitado_comercio_id', 'viaje_solicitado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_viaje_solicitado_chofer_id', 'viaje_solicitado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_foto_viaje_viaje_id', 'foto_viaje', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_foto_viaje_usuario_id', 'foto_viaje', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_calificacion_viaje_id', 'calificacion', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_calificacion_calificador_id', 'calificacion', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_calificacion_calificado_id', 'calificacion', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_objeto_olvidado_viaje_id', 'objeto_olvidado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_objeto_olvidado_pasajero_id', 'objeto_olvidado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_objeto_olvidado_chofer_id', 'objeto_olvidado', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_panico_viaje_id', 'panico', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_historial_estado_viaje_viaje_id', 'historial_estado_viaje', schema='trip', type_='foreignkey')
+    op.drop_constraint('fk_factura_pagada_por', 'factura', schema='tenant', type_='foreignkey')
+    op.drop_constraint('fk_factura_control_base_id', 'factura', schema='tenant', type_='foreignkey')
+    op.drop_constraint('fk_empresa_suspendido_por', 'empresa', schema='tenant', type_='foreignkey')
+    op.drop_constraint('fk_empresa_control_base_id', 'empresa', schema='tenant', type_='foreignkey')
+    op.drop_constraint('fk_control_base_suspendido_por', 'control_base', schema='tenant', type_='foreignkey')
+    op.drop_constraint('fk_configuracion_tenant_control_base_id', 'configuracion_tenant', schema='tenant', type_='foreignkey')
+    op.drop_constraint('fk_escaneo_qr_viaje_id', 'escaneo_qr', schema='public', type_='foreignkey')
+    op.drop_constraint('fk_escaneo_qr_comercio_id', 'escaneo_qr', schema='public', type_='foreignkey')
+    op.drop_constraint('fk_comercio_control_base_id', 'comercio', schema='public', type_='foreignkey')
+    op.drop_constraint('fk_pago_empresa_factura_id', 'pago_empresa', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_pago_empresa_empresa_id', 'pago_empresa', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_pago_empresa_confirmado_por', 'pago_empresa', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_factura_empresa_empresa_id', 'factura_empresa', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_billetera_usuario_id', 'billetera', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_configuracion_tarifa_control_base_id', 'configuracion_tarifa', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_transaccion_viaje_id', 'transaccion', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_transaccion_metodo_pago_id', 'transaccion', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_transaccion_billetera_id', 'transaccion', schema='payment', type_='foreignkey')
+    op.drop_constraint('fk_notificacion_usuario_id', 'notificacion', schema='notification', type_='foreignkey')
+    op.drop_constraint('fk_ciudad_provincia_id', 'ciudad', schema='geo', type_='foreignkey')
+    op.drop_constraint('fk_provincia_pais_id', 'provincia', schema='geo', type_='foreignkey')
+    op.drop_constraint('fk_gasto_turno_turno_id', 'gasto_turno', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_turno_chofer_vehiculo_id', 'turno_chofer', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_turno_chofer_contrato_id', 'turno_chofer', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_turno_chofer_chofer_id', 'turno_chofer', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_contrato_vehiculo_vehiculo_id', 'contrato_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_contrato_vehiculo_propietario_id', 'contrato_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_contrato_vehiculo_control_base_id', 'contrato_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_contrato_vehiculo_chofer_id', 'contrato_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_documentos_chofer_usuario_id', 'documentos_chofer', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_documento_vehiculo_vehiculo_id', 'documento_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_propietario_vehiculo_vehiculo_id', 'propietario_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_propietario_vehiculo_propietario_id', 'propietario_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_modelo_marca_id', 'modelo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_chofer_vehiculo_vehiculo_id', 'chofer_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_chofer_vehiculo_usuario_id', 'chofer_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_chofer_vehiculo_control_base_id', 'chofer_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_mantenimiento_vehiculo_vehiculo_id', 'mantenimiento_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_mantenimiento_vehiculo_propietario_id', 'mantenimiento_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_gasto_vehiculo_vehiculo_id', 'gasto_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_gasto_vehiculo_propietario_id', 'gasto_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_vehiculo_control_base_id', 'vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_historial_chofer_vehiculo_vehiculo_id', 'historial_chofer_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_historial_chofer_vehiculo_chofer_id', 'historial_chofer_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_relacion_propietario_vehiculo_vehiculo_id', 'relacion_propietario_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_relacion_propietario_vehiculo_propietario_id', 'relacion_propietario_vehiculo', schema='fleet', type_='foreignkey')
+    op.drop_constraint('fk_email_enviado_usuario_id', 'email_enviado', schema='comunicacion', type_='foreignkey')
+    op.drop_constraint('fk_mensaje_viaje_id', 'mensaje', schema='comunicacion', type_='foreignkey')
+    op.drop_constraint('fk_mensaje_remitente_id', 'mensaje', schema='comunicacion', type_='foreignkey')
+    op.drop_constraint('fk_mensaje_conversacion_id', 'mensaje', schema='comunicacion', type_='foreignkey')
+    op.drop_constraint('fk_conversacion_participante_2', 'conversacion', schema='comunicacion', type_='foreignkey')
+    op.drop_constraint('fk_conversacion_participante_1', 'conversacion', schema='comunicacion', type_='foreignkey')
+    op.drop_constraint('fk_turno_empleado_empresa_id', 'turno_empleado', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_turno_empleado_empleado_id', 'turno_empleado', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_usuario_empresa_usuario_id', 'usuario_empresa', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_usuario_empresa_empresa_id', 'usuario_empresa', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_taxista_favorito_pasajero_id', 'taxista_favorito', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_taxista_favorito_chofer_id', 'taxista_favorito', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_direccion_frecuente_usuario_id', 'direccion_frecuente', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_refresh_token_usuario_id', 'refresh_token', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_reset_token_usuario_id', 'reset_token', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_perfil_general_usuario_id', 'perfil_general', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_perfil_general_ciudad_id', 'perfil_general', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_usuario_tipo_usuario_id', 'usuario', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_usuario_suspendido_por', 'usuario', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_usuario_control_base_id', 'usuario', schema='auth', type_='foreignkey')
+    op.drop_constraint('fk_alerta_desvio_viaje_id', 'alerta_desvio', schema='audit', type_='foreignkey')
+    op.drop_constraint('fk_log_gps_viaje_id', 'log_gps', schema='audit', type_='foreignkey')
+    op.drop_constraint('fk_log_gps_usuario_id', 'log_gps', schema='audit', type_='foreignkey')
+
     """Drop all tables in reverse dependency order."""
 
     op.drop_table('trip.tipo_vehiculo')

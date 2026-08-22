@@ -1,4 +1,4 @@
-
+﻿
 
 
 """fix documentos alertas vencimiento
@@ -45,7 +45,7 @@ def upgrade() -> None:
     op.add_column('documentos_chofer', sa.Column('notificar_dias', sa.Integer(), server_default='30', nullable=False), schema='fleet')
     op.add_column('documentos_chofer', sa.Column('activo', sa.Boolean(), server_default='true', nullable=False), schema='fleet')
 
-    # 3. Recrear la función con los nombres correctos de tablas y schemas
+    # 3. Recrear la funciÃ³n con los nombres correctos de tablas y schemas
     FUNCION_SQL = """
     CREATE OR REPLACE FUNCTION audit.generar_alertas_vencimiento()
     RETURNS VOID AS $$
@@ -54,9 +54,9 @@ def upgrade() -> None:
         v_dias INTEGER;
         v_nivel VARCHAR(20);
     BEGIN
-        -- Alertas para documentos de vehículos
-        FOR v_registro IN 
-            SELECT 
+        -- Alertas para documentos de vehÃ­culos
+        FOR v_registro IN
+            SELECT
                 dv.id as documento_id,
                 dv.vehiculo_id as entidad_id,
                 'vehiculo' as entidad_tipo,
@@ -70,7 +70,7 @@ def upgrade() -> None:
               AND dv.fecha_vencimiento >= CURRENT_DATE
         LOOP
             v_dias := EXTRACT(DAY FROM v_registro.fecha_vencimiento - CURRENT_DATE)::INTEGER;
-            
+
             IF v_dias <= v_registro.notificar_dias THEN
                 IF v_dias <= 7 THEN
                     v_nivel := 'critical';
@@ -79,7 +79,7 @@ def upgrade() -> None:
                 ELSE
                     v_nivel := 'info';
                 END IF;
-                
+
                 INSERT INTO audit.alertas_vencimiento (
                     id, entidad_id, entidad_tipo, documento_id,
                     mensaje, nivel, fecha_vencimiento, created_at
@@ -88,7 +88,7 @@ def upgrade() -> None:
                     v_registro.entidad_id,
                     v_registro.entidad_tipo,
                     v_registro.documento_id,
-                    '📄 ' || v_registro.tipo_documento || ' del vehículo ' || v_registro.patente || ' vence en ' || v_dias || ' días',
+                    ' ' || v_registro.tipo_documento || ' del vehÃ­culo ' || v_registro.patente || ' vence en ' || v_dias || ' dÃ­as',
                     v_nivel,
                     v_registro.fecha_vencimiento,
                     NOW()
@@ -97,8 +97,8 @@ def upgrade() -> None:
         END LOOP;
 
         -- Alertas para documentos de conductores
-        FOR v_registro IN 
-            SELECT 
+        FOR v_registro IN
+            SELECT
                 dc.id as documento_id,
                 dc.usuario_id as entidad_id,
                 'chofer' as entidad_tipo,
@@ -113,7 +113,7 @@ def upgrade() -> None:
               AND dc.fecha_vencimiento >= CURRENT_DATE
         LOOP
             v_dias := EXTRACT(DAY FROM v_registro.fecha_vencimiento - CURRENT_DATE)::INTEGER;
-            
+
             IF v_dias <= v_registro.notificar_dias THEN
                 IF v_dias <= 7 THEN
                     v_nivel := 'critical';
@@ -122,7 +122,7 @@ def upgrade() -> None:
                 ELSE
                     v_nivel := 'info';
                 END IF;
-                
+
                 INSERT INTO audit.alertas_vencimiento (
                     id, entidad_id, entidad_tipo, documento_id,
                     mensaje, nivel, fecha_vencimiento, created_at
@@ -131,7 +131,7 @@ def upgrade() -> None:
                     v_registro.entidad_id,
                     v_registro.entidad_tipo,
                     v_registro.documento_id,
-                    '📄 ' || v_registro.tipo_documento || ' del conductor ' || v_registro.nombre || ' vence en ' || v_dias || ' días',
+                    ' ' || v_registro.tipo_documento || ' del conductor ' || v_registro.nombre || ' vence en ' || v_dias || ' dÃ­as',
                     v_nivel,
                     v_registro.fecha_vencimiento,
                     NOW()

@@ -1,4 +1,4 @@
-
+﻿
 
 
 """documento vehiculo campos detallados
@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # ── Datos generales del vehículo ──
+    #  Datos generales del vehÃ­culo
     op.add_column('documento_vehiculo', sa.Column('marca', sa.String(50), nullable=True), schema='fleet')
     op.add_column('documento_vehiculo', sa.Column('modelo', sa.String(50), nullable=True), schema='fleet')
     op.add_column('documento_vehiculo', sa.Column('tipo_vehiculo', sa.String(50), nullable=True), schema='fleet')
@@ -27,7 +27,7 @@ def upgrade() -> None:
     op.add_column('documento_vehiculo', sa.Column('dominio', sa.String(20), nullable=True), schema='fleet')
     op.add_column('documento_vehiculo', sa.Column('vtv_fecha_vencimiento', sa.Date(), nullable=True), schema='fleet')
 
-    # ── Datos del seguro ──
+    #  Datos del seguro
     op.add_column('documento_vehiculo', sa.Column('seguro_compania', sa.String(100), nullable=True), schema='fleet')
     op.add_column('documento_vehiculo', sa.Column('seguro_poliza', sa.String(50), nullable=True), schema='fleet')
     op.add_column('documento_vehiculo', sa.Column('seguro_fecha_emision', sa.Date(), nullable=True), schema='fleet')

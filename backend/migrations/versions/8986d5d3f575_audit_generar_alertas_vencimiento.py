@@ -1,4 +1,4 @@
-
+﻿
 """audit generar alertas vencimiento
 
 Revision ID: '8986d5d3f575'
@@ -21,7 +21,7 @@ DECLARE
     v_dias INTEGER;
     v_nivel VARCHAR(20);
 BEGIN
-    -- Alertas para documentos de vehículos
+    -- Alertas para documentos de vehÃ­culos
     FOR v_registro IN
         SELECT
             dv.id AS documento_id,
@@ -55,7 +55,7 @@ BEGIN
                 v_registro.entidad_id,
                 v_registro.entidad_tipo,
                 v_registro.documento_id,
-                '📄 ' || v_registro.tipo_documento || ' del vehículo ' || v_registro.patente || ' vence en ' || v_dias || ' días',
+                ' ' || v_registro.tipo_documento || ' del vehÃ­culo ' || v_registro.patente || ' vence en ' || v_dias || ' dÃ­as',
                 v_nivel,
                 v_registro.fecha_vencimiento,
                 NOW()
@@ -98,7 +98,7 @@ BEGIN
                 v_registro.entidad_id,
                 v_registro.entidad_tipo,
                 v_registro.documento_id,
-                '📄 ' || v_registro.tipo_documento || ' del conductor ' || v_registro.nombre || ' vence en ' || v_dias || ' días',
+                ' ' || v_registro.tipo_documento || ' del conductor ' || v_registro.nombre || ' vence en ' || v_dias || ' dÃ­as',
                 v_nivel,
                 v_registro.fecha_vencimiento,
                 NOW()

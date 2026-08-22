@@ -1,4 +1,4 @@
-"""add alquiler fields to contrato
+﻿"""add alquiler fields to contrato
 
 Revision ID: 276dc5da658a
 Revises: 8a991310d13c
@@ -16,15 +16,15 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # ─────────────────────────────────────────────────────────
-    # 0. Eliminar constraints antiguos que bloquean la migración de datos
-    # ─────────────────────────────────────────────────────────
+    #
+    # 0. Eliminar constraints antiguos que bloquean la migraciÃ³n de datos
+    #
     op.execute("ALTER TABLE fleet.contrato_vehiculo DROP CONSTRAINT IF EXISTS check_monto")
     op.execute("ALTER TABLE fleet.contrato_vehiculo DROP CONSTRAINT IF EXISTS check_tipo_contrato")
-    
-    # ─────────────────────────────────────────────────────────
+
+    #
     # 1. Agregar nuevas columnas
-    # ─────────────────────────────────────────────────────────
+    #
     op.add_column('contrato_vehiculo', sa.Column('canon_diario', sa.Numeric(10, 2), nullable=True), schema='fleet')
     op.add_column('contrato_vehiculo', sa.Column('km_incluidos_dia', sa.Numeric(10, 2), nullable=True), schema='fleet')
     op.add_column('contrato_vehiculo', sa.Column('valor_km_excedente', sa.Numeric(10, 2), nullable=True), schema='fleet')
@@ -32,9 +32,9 @@ def upgrade() -> None:
     op.add_column('contrato_vehiculo', sa.Column('dias_contractuales', postgresql.JSONB, nullable=True), schema='fleet')
     op.add_column('contrato_vehiculo', sa.Column('tratamiento_dia_no_trabajado', sa.String(30), server_default='POR_DISPONIBILIDAD', nullable=False), schema='fleet')
 
-    # ─────────────────────────────────────────────────────────
+    #
     # 2. CHECK constraints para integridad de datos (Nuevos)
-    # ─────────────────────────────────────────────────────────
+    #
     op.create_check_constraint(
         'chk_contrato_modalidad_computo',
         'contrato_vehiculo',
@@ -47,7 +47,7 @@ def upgrade() -> None:
         "tratamiento_dia_no_trabajado IN ('POR_DISPONIBILIDAD', 'NO_COBRA', 'DESCUENTO_PROPORCIONAL')",
         schema='fleet'
     )
-    
+
     # (Opcional) Si necesitas un nuevo constraint para tipo_contrato, descomenta esto:
     # op.create_check_constraint(
     #     'check_tipo_contrato',
@@ -56,10 +56,10 @@ def upgrade() -> None:
     #     schema='fleet'
     # )
 
-    # ─────────────────────────────────────────────────────────
-    # 3. Migración de datos existentes
-    # ─────────────────────────────────────────────────────────
-    
+    #
+    # 3. MigraciÃ³n de datos existentes
+    #
+
     # 3.1 Convertir CANON_FIJO -> ALQUILER
     op.execute(text("""
         UPDATE fleet.contrato_vehiculo
@@ -74,10 +74,10 @@ def upgrade() -> None:
         WHERE tipo_contrato = 'ALQUILER' AND monto_diario IS NOT NULL
     """))
 
-    # 3.3 Asignar defaults para contratos ALQUILER históricos
+    # 3.3 Asignar defaults para contratos ALQUILER histÃ³ricos
     op.execute(text("""
         UPDATE fleet.contrato_vehiculo
-        SET 
+        SET
             km_incluidos_dia = COALESCE(km_incluidos_dia, 200),
             valor_km_excedente = COALESCE(valor_km_excedente, 200),
             modalidad_computo = COALESCE(modalidad_computo, 'DIARIO'),
@@ -86,24 +86,24 @@ def upgrade() -> None:
         WHERE tipo_contrato = 'ALQUILER'
     """))
 
-    # 3.4 Normalizar turnos: mañana -> DIURNO, tarde -> NOCTURNO, noche -> COMPLETO
+    # 3.4 Normalizar turnos: maÃ±ana -> DIURNO, tarde -> NOCTURNO, noche -> COMPLETO
     op.execute(text("""
         UPDATE fleet.contrato_vehiculo
-        SET turno_asignado = 
+        SET turno_asignado =
             CASE turno_asignado
-                WHEN 'mañana' THEN 'DIURNO'
+                WHEN 'maÃ±ana' THEN 'DIURNO'
                 WHEN 'tarde'  THEN 'NOCTURNO'
                 WHEN 'noche'  THEN 'COMPLETO'
                 ELSE turno_asignado
             END
-        WHERE turno_asignado IN ('mañana', 'tarde', 'noche')
+        WHERE turno_asignado IN ('maÃ±ana', 'tarde', 'noche')
     """))
 
     # 3.5 Sincronizar estado_contrato y activo
     op.execute(text("""
         UPDATE fleet.contrato_vehiculo
-        SET estado_contrato = 
-            CASE 
+        SET estado_contrato =
+            CASE
                 WHEN activo = true AND fecha_fin IS NULL THEN 'ACTIVO'
                 WHEN activo = false AND fecha_fin IS NOT NULL THEN 'FINALIZADO'
                 ELSE estado_contrato
@@ -121,7 +121,7 @@ def downgrade() -> None:
     # 1. Eliminar CHECK constraints nuevos
     op.drop_constraint('chk_contrato_tratamiento_dia', 'contrato_vehiculo', schema='fleet')
     op.drop_constraint('chk_contrato_modalidad_computo', 'contrato_vehiculo', schema='fleet')
-    
+
     # 2. Eliminar columnas en orden inverso
     op.drop_column('contrato_vehiculo', 'tratamiento_dia_no_trabajado', schema='fleet')
     op.drop_column('contrato_vehiculo', 'dias_contractuales', schema='fleet')
@@ -129,6 +129,6 @@ def downgrade() -> None:
     op.drop_column('contrato_vehiculo', 'valor_km_excedente', schema='fleet')
     op.drop_column('contrato_vehiculo', 'km_incluidos_dia', schema='fleet')
     op.drop_column('contrato_vehiculo', 'canon_diario', schema='fleet')
-    
-    # Nota: Los constraints originales (check_monto, check_tipo_contrato) fueron eliminados 
-    # en el upgrade. Si eran críticos, deberás recrearlos manualmente o agregarlos aquí.
+
+    # Nota: Los constraints originales (check_monto, check_tipo_contrato) fueron eliminados
+    # en el upgrade. Si eran crÃ­ticos, deberÃ¡s recrearlos manualmente o agregarlos aquÃ­.

@@ -1,4 +1,4 @@
-
+﻿
 
 
 """Add neumaticos tables
@@ -18,9 +18,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # ─────────────────────────────────────────────────────────
-    # 1. Tabla: neumatico_vehiculo (catálogo de neumáticos)
-    # ─────────────────────────────────────────────────────────
+    #
+    # 1. Tabla: neumatico_vehiculo (catÃ¡logo de neumÃ¡ticos)
+    #
     op.create_table(
         'neumatico_vehiculo',
         sa.Column('id', UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -64,10 +64,10 @@ def upgrade() -> None:
     op.create_foreign_key('fk_neumatico_vehiculo_control_base', 'neumatico_vehiculo', 'control_base',
                           ['control_base_id'], ['id'], source_schema='fleet', referent_schema='tenant')
 
-    # ─────────────────────────────────────────────────────────
-    # 2. Tabla: neumatico_operacion (rotación, montaje, desmontaje, etc.)
-    #    Se crea ANTES que historial_posicion porque esta última la referencia
-    # ─────────────────────────────────────────────────────────
+    #
+    # 2. Tabla: neumatico_operacion (rotaciÃ³n, montaje, desmontaje, etc.)
+    #    Se crea ANTES que historial_posicion porque esta Ãºltima la referencia
+    #
     op.create_table(
         'neumatico_operacion',
         sa.Column('id', UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -107,9 +107,9 @@ def upgrade() -> None:
                           ['creado_por'], ['id'], source_schema='fleet', referent_schema='auth',
                           ondelete='SET NULL')
 
-    # ─────────────────────────────────────────────────────────
+    #
     # 3. Tabla: neumatico_historial_posicion
-    # ─────────────────────────────────────────────────────────
+    #
     op.create_table(
         'neumatico_historial_posicion',
         sa.Column('id', UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -136,7 +136,7 @@ def upgrade() -> None:
     op.create_index('idx_historial_pos_vehiculo', 'neumatico_historial_posicion', ['vehiculo_id'], schema='fleet')
     op.create_index('idx_historial_pos_control_base', 'neumatico_historial_posicion', ['control_base_id'], schema='fleet')
     op.create_index('idx_historial_pos_eje', 'neumatico_historial_posicion', ['eje_posicion'], schema='fleet')
-    # Índice parcial: solo posiciones activas (montajes vigentes)
+    # Ãndice parcial: solo posiciones activas (montajes vigentes)
     op.create_index(
         'idx_historial_pos_activa_vehiculo',
         'neumatico_historial_posicion',
@@ -157,9 +157,9 @@ def upgrade() -> None:
                           ['operacion_id'], ['id'], source_schema='fleet', referent_schema='fleet',
                           ondelete='SET NULL')
 
-    # ─────────────────────────────────────────────────────────
+    #
     # 4. Tabla: neumatico_medicion (profundidad de dibujo)
-    # ─────────────────────────────────────────────────────────
+    #
     op.create_table(
         'neumatico_medicion',
         sa.Column('id', UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -189,9 +189,9 @@ def upgrade() -> None:
                           ['medido_por'], ['id'], source_schema='fleet', referent_schema='auth',
                           ondelete='SET NULL')
 
-    # ─────────────────────────────────────────────────────────
+    #
     # 5. Tabla: neumatico_operacion_detalle
-    # ─────────────────────────────────────────────────────────
+    #
     op.create_table(
         'neumatico_operacion_detalle',
         sa.Column('id', UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -216,9 +216,9 @@ def upgrade() -> None:
                           ['neumatico_vehiculo_id'], ['id'], source_schema='fleet', referent_schema='fleet',
                           ondelete='CASCADE')
 
-    # ─────────────────────────────────────────────────────────
+    #
     # 6. Tabla: neumatico_sugerencia (alertas inteligentes)
-    # ─────────────────────────────────────────────────────────
+    #
     op.create_table(
         'neumatico_sugerencia',
         sa.Column('id', UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -255,7 +255,7 @@ def upgrade() -> None:
     op.create_index('idx_sugerencia_vehiculo', 'neumatico_sugerencia', ['vehiculo_id'], schema='fleet')
     op.create_index('idx_sugerencia_estado', 'neumatico_sugerencia', ['estado'], schema='fleet')
     op.create_index('idx_sugerencia_control_base', 'neumatico_sugerencia', ['control_base_id'], schema='fleet')
-    # Índice parcial: solo sugerencias pendientes (las activas)
+    # Ãndice parcial: solo sugerencias pendientes (las activas)
     op.create_index(
         'idx_sugerencia_pendientes',
         'neumatico_sugerencia',
@@ -276,9 +276,9 @@ def upgrade() -> None:
                           ['atendida_por'], ['id'], source_schema='fleet', referent_schema='auth',
                           ondelete='SET NULL')
 
-    # ─────────────────────────────────────────────────────────
+    #
     # 7. Tabla: neumatico_imagen (fotos en Cloudinary)
-    # ─────────────────────────────────────────────────────────
+    #
     op.create_table(
         'neumatico_imagen',
         sa.Column('id', UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
@@ -322,10 +322,10 @@ def upgrade() -> None:
                           ['subido_por'], ['id'], source_schema='fleet', referent_schema='auth',
                           ondelete='SET NULL')
 
-    # ─────────────────────────────────────────────────────────
+    #
     # 8. Triggers de updated_at
-    # ─────────────────────────────────────────────────────────
-    # La función actualizar_updated_at() ya existe (creada en la migración 20260726)
+    #
+    # La funciÃ³n actualizar_updated_at() ya existe (creada en la migraciÃ³n 20260726)
     for tabla in ['neumatico_vehiculo', 'neumatico_operacion', 'neumatico_sugerencia']:
         op.execute(f"""
             CREATE TRIGGER trigger_{tabla}_updated_at
