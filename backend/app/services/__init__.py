@@ -13,6 +13,14 @@ from app.services.rentabilidad import (
     recalcular_tablas_rentabilidad
 )
 
+# app/services/__init__.py - AGREGAR
+
+from app.services.cuenta_corriente_service import CuentaCorrienteService
+from app.services.facturacion_service import FacturacionService
+
+from app.services.cuenta_corriente_service import CuentaCorrienteService
+from app.services.facturacion_service import FacturacionService
+
 # Optimización
 from app.services.optimizacion import (
     analizar_medios_pago,

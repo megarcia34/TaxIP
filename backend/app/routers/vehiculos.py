@@ -36,7 +36,6 @@ class VehiculoResponse(BaseModel):
     propietario_id: Optional[UUID] = None
     tenant_nombre: Optional[str] = None
     contrato_tipo: Optional[str] = None
-    contrato_turno: Optional[str] = None
     contrato_estado: Optional[str] = None
     qr_uuid: Optional[str] = None  # Cambiado a str
     qr_activo: Optional[bool] = None
@@ -94,6 +93,10 @@ async def listar_vehiculos(
     
     where_clause = " AND ".join(filters)
     
+    # ============================================================
+    # NOTA: turno_asignado ya NO existe en la BD
+    # Se eliminó del SELECT
+    # ============================================================
     query = text(f"""
         SELECT 
             v.id,
@@ -114,10 +117,13 @@ async def listar_vehiculos(
             uprop.id as propietario_id,
             -- Tenant
             cb.nombre as tenant_nombre,
-            -- Contrato
+            -- Contrato (sin turno_asignado)
             c.tipo_contrato as contrato_tipo,
-            c.turno_asignado as contrato_turno,
             c.estado_contrato as contrato_estado,
+            -- Horarios flexibles
+            c.hora_inicio,
+            c.hora_fin,
+            c.dias_contractuales,
             -- Fechas
             v.created_at
         FROM fleet.vehiculo v
@@ -148,7 +154,7 @@ async def listar_vehiculos(
             anio=row[4],
             activo=row[5],
             numero_licencia=row[6],
-            qr_uuid=str(row[7]) if row[7] else None,  # Convertir UUID a str
+            qr_uuid=str(row[7]) if row[7] else None,
             qr_activo=row[8],
             chofer_nombre=row[9],
             chofer_id=row[10],
@@ -157,8 +163,7 @@ async def listar_vehiculos(
             propietario_id=row[13],
             tenant_nombre=row[14],
             contrato_tipo=row[15],
-            contrato_turno=row[16],
-            contrato_estado=row[17]
+            contrato_estado=row[16]
         )
         for row in rows
     ]
@@ -175,6 +180,10 @@ async def obtener_vehiculo(
     """
     control_base_id = current_user[1]
     
+    # ============================================================
+    # NOTA: turno_asignado ya NO existe en la BD
+    # Se eliminó del SELECT
+    # ============================================================
     query = text("""
         SELECT 
             v.id,
@@ -195,12 +204,15 @@ async def obtener_vehiculo(
             uprop.id as propietario_id,
             -- Tenant
             cb.nombre as tenant_nombre,
-            -- Contrato
+            -- Contrato (sin turno_asignado)
             c.tipo_contrato as contrato_tipo,
-            c.turno_asignado as contrato_turno,
             c.estado_contrato as contrato_estado,
             c.fecha_inicio as contrato_inicio,
             c.fecha_fin as contrato_fin,
+            -- Horarios flexibles
+            c.hora_inicio,
+            c.hora_fin,
+            c.dias_contractuales,
             -- Fechas
             v.created_at
         FROM fleet.vehiculo v
@@ -234,7 +246,7 @@ async def obtener_vehiculo(
         anio=row[4],
         activo=row[5],
         numero_licencia=row[6],
-        qr_uuid=str(row[7]) if row[7] else None,  # Convertir UUID a str
+        qr_uuid=str(row[7]) if row[7] else None,
         qr_activo=row[8],
         chofer_nombre=row[9],
         chofer_id=row[10],
@@ -243,8 +255,7 @@ async def obtener_vehiculo(
         propietario_id=row[13],
         tenant_nombre=row[14],
         contrato_tipo=row[15],
-        contrato_turno=row[16],
-        contrato_estado=row[17]
+        contrato_estado=row[16]
     )
 
 

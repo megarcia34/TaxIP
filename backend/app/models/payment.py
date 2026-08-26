@@ -5,9 +5,7 @@ Tablas: metodo_pago, billetera, transaccion, configuracion_tarifa
 import uuid
 from datetime import datetime, time
 from typing import Optional
-from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Integer, DECIMAL, Text, Time
-)
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -191,3 +189,87 @@ class ConfiguracionTarifa(Base):
         "ControlBase",
         lazy="selectin"
     )
+
+    # ============================================================
+# MODELOS FACTURA_EMPRESA Y PAGO_EMPRESA
+# ============================================================
+
+class FacturaEmpresa(Base):
+    """
+    Corporate invoices
+    Tabla: payment.factura_empresa
+    """
+    __tablename__ = "factura_empresa"
+    __table_args__ = {"schema": "payment"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    empresa_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.empresa.id"),
+        nullable=False
+    )
+    periodo: Mapped[datetime] = mapped_column(Date, nullable=False)
+    total: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=True)
+    descuento: Mapped[float] = mapped_column(DECIMAL(10, 2), default=0.0)
+    total_final: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=True)
+    estado: Mapped[str] = mapped_column(String(20), default="pendiente")
+    pdf_url: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    pagada_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+    # Relationships
+    empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
+    pagos: Mapped[list["PagoEmpresa"]] = relationship(
+        "PagoEmpresa",
+        back_populates="factura",
+        lazy="selectin"
+    )
+
+
+class PagoEmpresa(Base):
+    """
+    Corporate payments
+    Tabla: payment.pago_empresa
+    """
+    __tablename__ = "pago_empresa"
+    __table_args__ = {"schema": "payment"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    empresa_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.empresa.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    monto: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False)
+    metodo_pago: Mapped[str] = mapped_column(String(50), nullable=False)
+    referencia: Mapped[str] = mapped_column(String(100), nullable=True)
+    estado: Mapped[str] = mapped_column(String(20), default="pendiente")
+    comprobante_url: Mapped[str] = mapped_column(Text, nullable=True)
+    factura_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("payment.factura_empresa.id"),
+        nullable=True
+    )
+    observaciones: Mapped[str] = mapped_column(Text, nullable=True)
+    fecha_pago: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    confirmado_en: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    confirmado_por: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    # Relationships
+    empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
+    factura: Mapped["FacturaEmpresa"] = relationship("FacturaEmpresa", back_populates="pagos", lazy="selectin")
+    confirmado_por_usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")

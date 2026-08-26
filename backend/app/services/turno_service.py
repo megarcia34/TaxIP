@@ -6,12 +6,13 @@ import uuid
 from uuid import UUID
 from datetime import datetime, timedelta
 from typing import Optional
+from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy import text
 from fastapi import HTTPException, status
 
-from app.models.fleet import ContratoVehiculo, Vehiculo, ChoferVehiculo, CategoriaGasto
+from app.models.fleet import ContratoVehiculo, Vehiculo, ChoferVehiculo, CategoriaGasto, IngresoTurno
 from app.models.turno import TurnoChofer
 from app.models.gasto_turno import GastoTurno
 from app.models.auth import Usuario
@@ -281,6 +282,7 @@ class TurnoService:
         """
         Cerrar turno (Check-out)
         SOLO registra hechos operativos, NO calcula liquidación.
+        Los ingresos declarados (ticketera) se registran como IngresoTurno con estado PENDIENTE.
         """
         combustibles_validos = ['RESERVA', '1/4', '1/2', '3/4', 'LLENO']
         if combustible_final not in combustibles_validos:
@@ -308,11 +310,28 @@ class TurnoService:
                 detail=f"El turno ya está en estado {turno.estado}"
             )
 
+        # Actualizar datos del turno
         turno.km_final = km_final
         turno.combustible_final = combustible_final
-        turno.recaudacion_ticketera_calle = recaudacion_ticketera
         turno.fin_turno = datetime.now()
         turno.estado = 'PENDIENTE_CONFIRMACION'
+
+        # ============================================================
+        # REGISTRAR INGRESO TICKETERA COMO INGRESO_TURNO PENDIENTE
+        # Los campos legacy (recaudacion_ticketera_calle) ya NO existen
+        # ============================================================
+        if recaudacion_ticketera > 0:
+            ingreso = IngresoTurno(
+                turno_id=turno.id,
+                tipo_ingreso="taximetro",
+                medio_pago="efectivo",
+                origen="taximetro",
+                monto=Decimal(str(recaudacion_ticketera)),
+                declarado_por=chofer_id,
+                estado="pendiente",
+                observaciones="Declaración de ticketera al cierre de turno"
+            )
+            db.add(ingreso)
 
         await db.commit()
         await db.refresh(turno)
@@ -320,7 +339,8 @@ class TurnoService:
         return {
             "turno_id": turno.id,
             "estado": turno.estado,
-            "mensaje": "Turno cerrado correctamente. Pendiente de confirmación y liquidación."
+            "mensaje": "Turno cerrado correctamente. Pendiente de confirmación y liquidación.",
+            "ingresos_registrados": 1 if recaudacion_ticketera > 0 else 0
         }
 
     @staticmethod
@@ -501,6 +521,10 @@ class TurnoService:
         auth_token = str(uuid.uuid4())
         expires_at = datetime.now() + timedelta(minutes=5)
 
+        # ============================================================
+        # NOTA: auth.autorizacion_inicio.turno_contractual se mantiene
+        # como metadata. No se usa como selector rígido de turno.
+        # ============================================================
         insert_autorizacion = text("""
             INSERT INTO auth.autorizacion_inicio (
                 id, token, contrato_id, chofer_id, vehiculo_id, control_base_id,

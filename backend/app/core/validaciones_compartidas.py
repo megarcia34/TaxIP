@@ -4,6 +4,9 @@ Validaciones compartidas entre módulos (sin dependencias circulares)
 """
 
 from uuid import UUID
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
@@ -38,3 +41,18 @@ async def es_conductor(usuario_id: UUID, db: AsyncSession) -> bool:
     """)
     result = await db.execute(query_capacidad, {"usuario_id": usuario_id})
     return result.first() is not None
+
+
+def calcular_duracion_horas(inicio: datetime, fin: Optional[datetime] = None) -> Decimal:
+    """
+    Calcula la duración en horas entre dos fechas.
+    Si fin es None, usa datetime.now()
+    """
+    if inicio is None:
+        return Decimal(0)
+    
+    if fin is None:
+        fin = datetime.now()
+    
+    diff = fin - inicio
+    return Decimal(str(diff.total_seconds() / 3600))

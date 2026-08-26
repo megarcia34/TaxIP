@@ -13,10 +13,25 @@ from app.models.auth import (
     ResetToken,
 )
 
+# app/models/__init__.py - AGREGAR
+
+from app.models.corporate import (
+    CuentaCorriente,
+    MovimientoCuenta,
+    FacturaCorporativa,
+    PagoCorporativo
+)
+
+from app.models.public import (
+    Comercio,
+    EscaneoQr
+)
+
 # Tenant
 from app.models.tenant import (
     ControlBase,
-    Configuracion,
+    Configuracion,  # <-- Cambiar a ConfiguracionTenant
+    Empresa
 )
 
 # Audit
@@ -76,8 +91,35 @@ from app.models.liquidacion import (
     LiquidacionAjuste
 )
 
+# app/models/__init__.py - AGREGAR
+
+from app.models.corporate import (
+    CuentaCorriente,
+    MovimientoCuenta,
+    FacturaCorporativa,
+    PagoCorporativo
+)
+
 # Turno
 from app.models.turno import TurnoChofer
+
+# app/models/__init__.py - AGREGAR
+
+from app.models.corporate import (
+    CuentaCorriente,
+    MovimientoCuenta,
+    FacturaCorporativa,
+    PagoCorporativo
+)
+
+# app/models/__init__.py - AGREGAR
+
+from app.models.corporate import (
+    CuentaCorriente,
+    MovimientoCuenta,
+    FacturaCorporativa,
+    PagoCorporativo
+)
 
 # Gasto
 from app.models.gasto_turno import GastoTurno

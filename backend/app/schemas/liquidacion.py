@@ -64,8 +64,7 @@ class LiquidacionDetalleCreate(BaseModel):
     signo: SignoLinea
     meta_data: Optional[Dict[str, Any]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class LiquidacionCreate(BaseModel):
@@ -90,8 +89,7 @@ class LiquidacionCreate(BaseModel):
     estado: EstadoLiquidacion = EstadoLiquidacion.BORRADOR
     detalles: List[LiquidacionDetalleCreate] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============================================================
@@ -110,9 +108,7 @@ class LiquidacionDetalleResponse(BaseModel):
     meta_data: Optional[Dict[str, Any]] = Field(None, alias="meta_data")
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class LiquidacionEstadoHistorialResponse(BaseModel):
@@ -123,8 +119,7 @@ class LiquidacionEstadoHistorialResponse(BaseModel):
     motivo: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class LiquidacionAjusteResponse(BaseModel):
@@ -137,8 +132,7 @@ class LiquidacionAjusteResponse(BaseModel):
     usuario_id: Optional[UUID]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class LiquidacionResponse(BaseModel):
@@ -169,8 +163,7 @@ class LiquidacionResponse(BaseModel):
     updated_at: datetime
     detalles: Optional[List[LiquidacionDetalleResponse]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ============================================================
@@ -219,6 +212,17 @@ class LiquidacionContextSchema(BaseModel):
     hora_fin_extension: Optional[str] = None
     dia_inicio_semana: Optional[str] = None
     duracion_turno_horas: Optional[Decimal] = None
+    
+    # ============================================================
+    # NUEVOS CAMPOS PARA INGRESOS (fuente de verdad)
+    # ============================================================
+    ingresos: List[Dict[str, Any]] = Field(default_factory=list)
+    total_ingresos_aprobados: Decimal = Field(default=Decimal(0))
+    total_efectivo: Decimal = Field(default=Decimal(0))
+    total_electronico: Decimal = Field(default=Decimal(0))
+    total_taximetro: Decimal = Field(default=Decimal(0))
+    total_manual: Decimal = Field(default=Decimal(0))
+    total_corporativo: Decimal = Field(default=Decimal(0))
 
 
 # ============================================================

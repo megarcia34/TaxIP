@@ -27,6 +27,7 @@ from app.routers import turnos
 from dotenv import load_dotenv
 from app.routers import operativo
 from app.routers.liquidacion import router as liquidacion_router
+from app.routers import corporate
 
 from app.database import get_db, AsyncSessionLocal
 from app.websocket.handlers import handle_websocket
@@ -157,7 +158,7 @@ app.include_router(control_base.router)
 print("🔧 Registrando router de propietario...")
 app.include_router(propietario_router, prefix="/api")
 print("✅ Router de propietario registrado correctamente")
-
+app.include_router(corporate.router)
 app.include_router(choferes_public_router)
 app.include_router(liquidacion_router)
 

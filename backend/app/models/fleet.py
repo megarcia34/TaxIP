@@ -605,3 +605,299 @@ class NeumaticoImagen(Base):
     fecha_subida = Column(DateTime(timezone=True), default=now)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=now)
+
+    # ============================================================
+# MODELO CONTRATO_QR - AGREGADO PARA COMPLETAR EL ESQUEMA FLEET
+# ============================================================
+
+class ContratoQr(Base):
+    """
+    QR codes generated for vehicle contracts
+    Used for shift start authorization and traceability
+    Tabla: fleet.contrato_qr
+    """
+    __tablename__ = "contrato_qr"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    contrato_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.contrato_vehiculo.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    fecha_expiracion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    usos: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Relationships
+    contrato: Mapped["ContratoVehiculo"] = relationship("ContratoVehiculo", lazy="selectin")
+    creador: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+
+    # ============================================================
+# MODELO DOCUMENTOS_CHOFER
+# ============================================================
+
+class DocumentosChofer(Base):
+    """
+    Driver documents (license, insurance, background checks)
+    Tabla: fleet.documentos_chofer
+    """
+    __tablename__ = "documentos_chofer"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    tipo_documento: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        comment="Valores: licencia, seguro, antecedentes"
+    )
+    url: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        comment="URL del documento almacenado (local, S3, etc)"
+    )
+    subido_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    fecha_vencimiento: Mapped[datetime] = mapped_column(Date, nullable=True)
+    notificar_dias: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Relationships
+    usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+
+
+# ============================================================
+# MODELO FOTO_VEHICULO
+# ============================================================
+
+class FotoVehiculo(Base):
+    """
+    Vehicle photos (Cloudinary)
+    Tabla: fleet.foto_vehiculo
+    """
+    __tablename__ = "foto_vehiculo"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    vehiculo_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    public_id: Mapped[str] = mapped_column(Text, nullable=False)
+    descripcion: Mapped[str] = mapped_column(Text, nullable=True)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    es_principal: Mapped[bool] = mapped_column(Boolean, default=False)
+    subida_por: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+    # Relationships
+    vehiculo: Mapped["Vehiculo"] = relationship("Vehiculo", lazy="selectin")
+    subido_por_usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+
+
+# ============================================================
+# MODELO NOTIFICACION_VENCIMIENTO
+# ============================================================
+
+class NotificacionVencimiento(Base):
+    """
+    Expiration notifications for documents
+    Tabla: fleet.notificacion_vencimiento
+    """
+    __tablename__ = "notificacion_vencimiento"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    documento_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=False
+    )
+    entidad_tipo: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        comment="propietario | vehiculo | chofer"
+    )
+    propietario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    tipo_documento: Mapped[str] = mapped_column(String(50), nullable=False)
+    numero: Mapped[str] = mapped_column(String(50), nullable=False)
+    nivel: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        comment="vencido | critico | urgente | preventivo | vigente"
+    )
+    dias_restantes: Mapped[int] = mapped_column(Integer, nullable=False)
+    fecha_vencimiento: Mapped[datetime] = mapped_column(Date, nullable=False)
+    email_enviado: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_enviado_en: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    sms_enviado: Mapped[bool] = mapped_column(Boolean, default=False)
+    sms_enviado_en: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+    # Relationships
+    propietario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+
+    # ============================================================
+# MODELOS MARCA Y MODELO - CATÁLOGO DE VEHÍCULOS
+# ============================================================
+
+class Marca(Base):
+    """
+    Vehicle brands catalog
+    Tabla: fleet.marca
+    """
+    __tablename__ = "marca"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+    # Relationships
+    modelos: Mapped[list["Modelo"]] = relationship(
+        "Modelo",
+        back_populates="marca",
+        lazy="selectin"
+    )
+
+
+class Modelo(Base):
+    """
+    Vehicle models catalog
+    Tabla: fleet.modelo
+    """
+    __tablename__ = "modelo"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    marca_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.marca.id"),
+        nullable=False
+    )
+    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+    # Relationships
+    marca: Mapped["Marca"] = relationship("Marca", back_populates="modelos", lazy="selectin")
+
+    # ============================================================
+# MODELO INGRESO_TURNO - RECAUDACIÓN POR JORNADA
+# ============================================================
+
+class IngresoTurno(Base):
+    """
+    Income/collection records per shift
+    Reemplaza los campos legacy de recaudación en turno_chofer
+    Tabla: fleet.ingreso_turno (NUEVA - aún no existe en BD)
+    """
+    __tablename__ = "ingreso_turno"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    turno_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.turno_chofer.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    viaje_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("trip.viaje_solicitado.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Viaje asociado, si corresponde"
+    )
+    tipo_ingreso: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        comment="efectivo | electronico | taximetro | manual | corporativo"
+    )
+    medio_pago: Mapped[str] = mapped_column(
+        String(30),
+        nullable=True,
+        comment="efectivo | debito | credito | qr | transferencia | billetera"
+    )
+    origen: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="app",
+        comment="app | taximetro | manual | corporativo"
+    )
+    monto: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False)
+    moneda: Mapped[str] = mapped_column(String(10), default="ARS", nullable=False)
+    fecha_hora: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    declarado_por: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Usuario que declaró el ingreso (chofer)"
+    )
+    estado: Mapped[str] = mapped_column(
+        String(20),
+        default="pendiente",
+        nullable=False,
+        comment="pendiente | aprobado | rechazado | disputado"
+    )
+    observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    referencia_pago: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    transaccion_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("payment.transaccion.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Referencia a transacción electrónica si aplica"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    # Relationships
+    turno: Mapped["TurnoChofer"] = relationship("TurnoChofer", lazy="selectin")
+    viaje: Mapped["ViajeSolicitado"] = relationship("ViajeSolicitado", lazy="selectin")
+    declarante: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[declarado_por], lazy="selectin")
+    transaccion: Mapped["Transaccion"] = relationship("Transaccion", lazy="selectin")

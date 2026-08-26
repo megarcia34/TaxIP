@@ -1,6 +1,7 @@
 """
 Authentication routes: register, login, refresh, password recovery
 Incluye validaciones de suspensión a nivel Tenant, Empresa y Usuario
+Incluye endpoints forenses para auditoría y requerimientos judiciales
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -10,9 +11,10 @@ from uuid import UUID
 from datetime import datetime, timedelta
 import uuid as uuid_lib
 from typing import Optional
+import json
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_current_forense_user
 from app.core.security import (
     get_password_hash,
     verify_password,
@@ -139,7 +141,7 @@ async def registrar_usuario(
 
 
 # ============================================
-# REGISTRO DE PROPIETARIO (MOVIDO AQUÍ)
+# REGISTRO DE PROPIETARIO
 # ============================================
 
 @router.post("/registro/propietario", response_model=RegistroPropietarioResponse)
@@ -238,7 +240,7 @@ async def registrar_propietario(
     password_hash = get_password_hash(request.password)
     print("✅ [PASO 4] Hash generado correctamente")
     
-    # 5. Crear usuario (SIN async with db.begin())
+    # 5. Crear usuario
     print("📌 [PASO 5] Creando usuario en la base de datos...")
     user_id = uuid_lib.uuid4()
     print(f"🆔 User ID generado: {user_id}")
@@ -313,7 +315,6 @@ async def registrar_propietario(
             })
             print("✅ [PASO 5d] Capacidad CONDUCTOR agregada correctamente")
         
-        # Confirmar transacción explícitamente
         await db.commit()
         print("💾 [COMMIT] Transacción completada exitosamente")
         
@@ -346,8 +347,6 @@ async def registrar_propietario(
         first_login=True,
         registrado_como_conductor=request.registrar_como_conductor
     )
-
-
 
 
 # ============================================
@@ -807,45 +806,52 @@ async def cambiar_contrasenia(
 
 
 # ============================================
-# Helper: Log owner login attempts
+# HELPER: LOG FORENSE
 # ============================================
 
-async def _log_owner_login_attempt(
+async def _log_forense_attempt(
     db: AsyncSession,
     usuario_id: Optional[UUID],
     ip_address: str,
     success: bool,
-    reason: str = None,
-    vehiculos_count: int = 0
+    reason: str = None
 ):
-    """Log owner login attempts for audit (silent fail if table doesn't exist)"""
+    """Log forensic login attempts to audit.log_acciones"""
     try:
-        # Check if audit table exists (simple way)
-        check_table = text("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'audit' AND table_name = 'log_accesos_propietarios'
+        # Obtener email del usuario si existe
+        email = "unknown"
+        if usuario_id:
+            email_query = text("SELECT email FROM auth.usuario WHERE id = :user_id")
+            email_result = await db.execute(email_query, {"user_id": usuario_id})
+            email_row = email_result.first()
+            if email_row:
+                email = email_row[0]
+        
+        log_query = text("""
+            INSERT INTO audit.log_acciones 
+            (id, usuario_id, email, accion, tabla_afectada, datos_anteriores, datos_nuevos, ip_address, created_at)
+            VALUES (
+                gen_random_uuid(), 
+                :usuario_id, 
+                :email, 
+                'LOGIN_FORENSE', 
+                'auth.login.forense', 
+                NULL, 
+                jsonb_build_object('success', :success, 'reason', :reason, 'ip', :ip_address),
+                :ip_address, 
+                NOW()
             )
         """)
-        exists_result = await db.execute(check_table)
-        table_exists = exists_result.scalar()
-        
-        if table_exists:
-            log_query = text("""
-                INSERT INTO audit.log_accesos_propietarios 
-                (id, usuario_id, ip_address, success, reason, vehiculos_count, created_at)
-                VALUES (gen_random_uuid(), :usuario_id, :ip_address, :success, :reason, :vehiculos_count, NOW())
-            """)
-            await db.execute(log_query, {
-                "usuario_id": usuario_id,
-                "ip_address": ip_address,
-                "success": success,
-                "reason": reason,
-                "vehiculos_count": vehiculos_count
-            })
+        await db.execute(log_query, {
+            "usuario_id": usuario_id,
+            "email": email,
+            "success": success,
+            "reason": reason,
+            "ip_address": ip_address
+        })
     except Exception as e:
-        # Silent fail - don't break login flow if logging fails
-        print(f"Warning: Could not log owner login attempt: {e}")
+        # Silent fail - no romper el login si falla el log
+        print(f"Warning: Could not log forensic attempt: {e}")
 
 
 # ============================================
@@ -892,7 +898,7 @@ async def login_propietario(
     
     # 2. Validate user exists
     if not row:
-        await _log_owner_login_attempt(db, None, client_ip, False, "User not found")
+        await _log_forense_attempt(db, None, client_ip, False, "User not found")
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -903,7 +909,7 @@ async def login_propietario(
     
     # 3. Validate password
     if not verify_password(request.password, password_hash):
-        await _log_owner_login_attempt(db, user_id, client_ip, False, "Invalid password")
+        await _log_forense_attempt(db, user_id, client_ip, False, "Invalid password")
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -912,7 +918,7 @@ async def login_propietario(
     
     # 4. Validate user is active
     if not activo:
-        await _log_owner_login_attempt(db, user_id, client_ip, False, "User inactive")
+        await _log_forense_attempt(db, user_id, client_ip, False, "User inactive")
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -932,7 +938,7 @@ async def login_propietario(
     
     # 7. Validate role is 'propietario'
     if tipo_usuario.lower() != "propietario":
-        await _log_owner_login_attempt(db, user_id, client_ip, False, f"Invalid role: {tipo_usuario}")
+        await _log_forense_attempt(db, user_id, client_ip, False, f"Invalid role: {tipo_usuario}")
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -966,7 +972,7 @@ async def login_propietario(
     
     # 9. Validate has at least one active vehicle
     if not tiene_vehiculos_activos:
-        await _log_owner_login_attempt(db, user_id, client_ip, False, "No active vehicles", total_vehiculos)
+        await _log_forense_attempt(db, user_id, client_ip, False, "No active vehicles", total_vehiculos)
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -997,7 +1003,7 @@ async def login_propietario(
     })
     
     # 12. Log successful login
-    await _log_owner_login_attempt(db, user_id, client_ip, True, "Success", total_vehiculos)
+    await _log_forense_attempt(db, user_id, client_ip, True, "Success", total_vehiculos)
     await db.commit()
     
     # Prepare vehicles summary for response (max 10 as per LIMIT)
@@ -1027,3 +1033,219 @@ async def login_propietario(
         total_vehiculos=total_vehiculos,
         vehiculos=vehiculos_summary if vehiculos_summary else None
     )
+
+
+# ============================================
+# ENDPOINTS FORENSES
+# ============================================
+
+@router.post("/forense/login", response_model=LoginResponse)
+async def login_forense(
+    request: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+    request_fastapi: Request = None
+):
+    """
+    Exclusive login for forensic roles (forense_tenant and forense_maestro)
+    - Registra automáticamente el acceso en audit.log_acciones
+    - forense_tenant: solo ve datos de su tenant
+    - forense_maestro: ve datos de TODOS los tenants
+    """
+    
+    # Get client IP
+    client_ip = "unknown"
+    if request_fastapi and hasattr(request_fastapi, 'client') and request_fastapi.client:
+        client_ip = request_fastapi.client.host
+    
+    # Get user by email
+    query = text("""
+        SELECT u.id, u.email, u.password_hash, u.control_base_id, u.activo,
+               tu.nombre as tipo_usuario,
+               COALESCE(p.nombre || ' ' || p.apellido, u.email) as nombre_completo
+        FROM auth.usuario u
+        JOIN auth.tipo_usuario tu ON u.tipo_usuario_id = tu.id
+        LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+        WHERE u.email = :email
+    """)
+    
+    result = await db.execute(query, {"email": request.email})
+    row = result.first()
+    
+    if not row:
+        await _log_forense_attempt(db, None, client_ip, False, "User not found")
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas"
+        )
+    
+    user_id, email, password_hash, control_base_id, activo, tipo_usuario, nombre_completo = row
+    
+    # Verify password
+    if not verify_password(request.password, password_hash):
+        await _log_forense_attempt(db, user_id, client_ip, False, "Invalid password")
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas"
+        )
+    
+    # Validate user is active
+    if not activo:
+        await _log_forense_attempt(db, user_id, client_ip, False, "User inactive")
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario inactivo. Contacte al administrador."
+        )
+    
+    # Validar que el usuario no esté suspendido
+    await validar_usuario_activo(user_id, db)
+    
+    # ============================================
+    # VALIDAR ROL FORENSE
+    # ============================================
+    
+    # Verificar que el usuario tiene rol forense (tenant o maestro)
+    forense_query = text("""
+        SELECT ur.id, ur.control_base_id, tu.nombre as rol_nombre
+        FROM auth.usuario_rol ur
+        JOIN auth.tipo_usuario tu ON ur.tipo_usuario_id = tu.id
+        WHERE ur.usuario_id = :user_id
+          AND ur.activo = true
+          AND (tu.nombre = 'forense_tenant' OR tu.nombre = 'forense_maestro')
+          AND (ur.fecha_fin IS NULL OR ur.fecha_fin > NOW())
+        LIMIT 1
+    """)
+    
+    forense_result = await db.execute(forense_query, {"user_id": user_id})
+    forense_row = forense_result.first()
+    
+    if not forense_row:
+        await _log_forense_attempt(db, user_id, client_ip, False, "No tiene rol forense")
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso solo para roles forenses"
+        )
+    
+    forense_rol_id = forense_row[0]
+    forense_control_base_id = forense_row[1]
+    forense_rol_nombre = forense_row[2]
+    
+    # Si es forense_tenant, validar que tenga control_base_id asignado
+    if forense_rol_nombre == 'forense_tenant' and not forense_control_base_id:
+        await _log_forense_attempt(db, user_id, client_ip, False, "forense_tenant sin tenant asignado")
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Rol forense_tenant sin tenant asignado"
+        )
+    
+    # Si es forense_maestro, puede tener NULL o cualquier tenant
+    # Validar tenant si tiene uno asignado
+    if forense_control_base_id:
+        await validar_tenant_activo(forense_control_base_id, db)
+    
+    # ============================================
+    # CREAR TOKENS CON DATOS FORENSES
+    # ============================================
+    
+    token_data = {
+        "sub": str(user_id),
+        "email": email,
+        "tipo": tipo_usuario,
+        "rol_forense": forense_rol_nombre,
+        "control_base_id": str(forense_control_base_id) if forense_control_base_id else None,
+        "es_maestro": forense_rol_nombre == 'forense_maestro'
+    }
+    
+    access_token = create_access_token(token_data)
+    refresh_token = create_refresh_token(token_data)
+    
+    # Store refresh token
+    store_refresh = text("""
+        INSERT INTO auth.refresh_token (id, usuario_id, token, expiracion, created_at)
+        VALUES (gen_random_uuid(), :user_id, :token, NOW() + INTERVAL '7 days', NOW())
+        ON CONFLICT (usuario_id, token) DO NOTHING
+    """)
+    
+    await db.execute(store_refresh, {
+        "user_id": user_id,
+        "token": refresh_token
+    })
+    
+    # ============================================
+    # REGISTRAR EN AUDITORÍA
+    # ============================================
+    
+    await _log_forense_attempt(db, user_id, client_ip, True, f"Login exitoso como {forense_rol_nombre}")
+    await db.commit()
+    
+    return LoginResponse(
+        success=True,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user_id=user_id,
+        email=email,
+        tipo_usuario=forense_rol_nombre,
+        nombre_completo=nombre_completo,
+        control_base_id=str(forense_control_base_id) if forense_control_base_id else None
+    )
+
+
+@router.post("/forense/log")
+async def log_forense_action(
+    request: dict,
+    current_user: tuple = Depends(get_current_forense_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Registrar acción forense en audit.log_acciones
+    Usado por el frontend para auditar todas las consultas forenses
+    """
+    user_id, control_base_id, email, rol_nombre, es_maestro = current_user
+    
+    accion = request.get("accion")
+    tabla_afectada = request.get("tabla_afectada")
+    registro_id = request.get("registro_id")
+    detalles = request.get("detalles")
+    
+    if not accion:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El campo 'accion' es obligatorio"
+        )
+    
+    log_query = text("""
+        INSERT INTO audit.log_acciones 
+        (id, usuario_id, email, accion, tabla_afectada, registro_id, datos_nuevos, ip_address, created_at)
+        VALUES (
+            gen_random_uuid(), 
+            :usuario_id, 
+            :email, 
+            :accion, 
+            :tabla_afectada, 
+            :registro_id, 
+            :detalles::jsonb,
+            :ip_address,
+            NOW()
+        )
+    """)
+    
+    # Obtener IP del request
+    ip_address = request.get("ip_address", "unknown")
+    
+    await db.execute(log_query, {
+        "usuario_id": user_id,
+        "email": email,
+        "accion": accion,
+        "tabla_afectada": tabla_afectada,
+        "registro_id": registro_id,
+        "detalles": json.dumps(detalles) if detalles else "{}",
+        "ip_address": ip_address
+    })
+    
+    await db.commit()
+    
+    return {"success": True, "message": "Acción registrada en auditoría"}

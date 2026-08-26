@@ -387,6 +387,11 @@ async def calcular_proximo_mantenimiento(
     # 5. Calcular próximos mantenimientos
     proximos = _calcular_proximos_mantenimientos(ultimo, km_actual, contrato_activo)
 
+    # ============================================================
+    # NOTA: turno_asignado ya NO existe en la BD
+    # Se elimina del response. Solo se mantiene información
+    # contractual relevante: chofer_id y tipo_contrato
+    # ============================================================
     return {
         "vehiculo_id": str(vehiculo_id),
         "patente": vehiculo.patente,
@@ -394,7 +399,6 @@ async def calcular_proximo_mantenimiento(
         "contrato_activo": {
             "chofer_id": str(contrato_activo.chofer_id) if contrato_activo else None,
             "tipo_contrato": contrato_activo.tipo_contrato if contrato_activo else None,
-            "turno_asignado": contrato_activo.turno_asignado if contrato_activo else None,
         } if contrato_activo else None,
         "mantenimientos_proximos": proximos[:5]
     }

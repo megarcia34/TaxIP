@@ -95,7 +95,6 @@ async def validar_usuario_activo(user_id: UUID, db: AsyncSession):
     """
     Verifica que el usuario esté activo y no suspendido.
     Lanza HTTP 403 si está inactivo o suspendido.
-    NOTA: Ya verifica `activo`, pero también `fecha_suspension`.
     """
     query = text("""
         SELECT activo, fecha_suspension, motivo_suspension

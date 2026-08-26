@@ -1,12 +1,13 @@
 """
 Authentication and User Profile Models
-Tablas: tipo_usuario, usuario, perfil_general, direccion_frecuente, taxista_favorito, reset_token
+Tablas: tipo_usuario, usuario, perfil_general, direccion_frecuente, taxista_favorito, reset_token,
+       usuario_rol, refresh_token, usuario_empresa, autorizacion_inicio, turno_empleado, auditoria_email
 """
 
 import uuid
 from datetime import datetime
 from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer
+    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -14,7 +15,7 @@ from app.database import Base
 
 
 class TipoUsuario(Base):
-    """User roles: admin, pasajero, chofer, propietario"""
+    """User roles: admin, pasajero, chofer, propietario, forense_tenant, forense_maestro"""
     __tablename__ = "tipo_usuario"
     __table_args__ = {"schema": "auth"}
 
@@ -28,6 +29,11 @@ class TipoUsuario(Base):
     # Relationships
     usuarios: Mapped[list["Usuario"]] = relationship(
         "Usuario",
+        back_populates="tipo_usuario",
+        lazy="selectin"
+    )
+    roles: Mapped[list["UsuarioRol"]] = relationship(
+        "UsuarioRol",
         back_populates="tipo_usuario",
         lazy="selectin"
     )
@@ -56,6 +62,13 @@ class Usuario(Base):
     email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    fecha_suspension: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    motivo_suspension: Mapped[str] = mapped_column(Text, nullable=True)
+    suspendido_por: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="SET NULL"),
+        nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -65,10 +78,9 @@ class Usuario(Base):
 
     # Relationships
     tipo_usuario: Mapped["TipoUsuario"] = relationship(back_populates="usuarios")
-    
-    # NOTA: Sin back_populates para evitar ciclos de mapeo con modelos de otros archivos
     control_base: Mapped["ControlBase"] = relationship(
         "ControlBase",
+        foreign_keys=[control_base_id],
         lazy="selectin"
     )
     
@@ -91,14 +103,46 @@ class Usuario(Base):
         lazy="selectin"
     )
     
-    # NOTA: Sin back_populates para evitar ciclo de mapeo con Billetera (payment.py)
+    # ============================================================
+    # RELACIONES AGREGADAS PARA MODELOS EXTENDIDOS
+    # ============================================================
+    
+    roles: Mapped[list["UsuarioRol"]] = relationship(
+        "UsuarioRol",
+        back_populates="usuario",
+        lazy="selectin"
+    )
+    
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        "RefreshToken",
+        back_populates="usuario",
+        lazy="selectin"
+    )
+    
+    empresas: Mapped[list["UsuarioEmpresa"]] = relationship(
+        "UsuarioEmpresa",
+        back_populates="usuario",
+        lazy="selectin"
+    )
+    
+    autorizaciones_inicio: Mapped[list["AutorizacionInicio"]] = relationship(
+        "AutorizacionInicio",
+        foreign_keys="AutorizacionInicio.chofer_id",
+        lazy="selectin"
+    )
+    
+    turnos_empleado: Mapped[list["TurnoEmpleado"]] = relationship(
+        "TurnoEmpleado",
+        foreign_keys="TurnoEmpleado.empleado_id",
+        lazy="selectin"
+    )
+    
     billetera: Mapped["Billetera"] = relationship(
         "Billetera",
         lazy="selectin",
         uselist=False
     )
     
-    # NOTA: Sin back_populates para evitar ciclo de mapeo con Notificacion (notification.py)
     notificaciones: Mapped[list["Notificacion"]] = relationship(
         "Notificacion",
         lazy="selectin"
@@ -170,12 +214,20 @@ class PerfilGeneral(Base):
         nullable=True
     )
     foto_perfil_url: Mapped[str] = mapped_column(Text, nullable=True)
+    fecha_nacimiento: Mapped[datetime] = mapped_column(Date, nullable=True)
+    barrio: Mapped[str] = mapped_column(String(100), nullable=True)
+    codigo_postal: Mapped[str] = mapped_column(String(20), nullable=True)
+    tipo_conductor: Mapped[str] = mapped_column(String(50), nullable=True)
+    agencia: Mapped[str] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.now,
+        onupdate=datetime.now
+    )
 
     # Relationships
     usuario: Mapped["Usuario"] = relationship(back_populates="perfil")
-    
-    # NOTA: Sin back_populates para evitar ciclo de mapeo con Ciudad (geo.py)
     ciudad: Mapped["Ciudad"] = relationship("Ciudad", lazy="selectin")
 
 
@@ -256,3 +308,202 @@ class ResetToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
     usuario: Mapped["Usuario"] = relationship(back_populates="reset_tokens")
+
+
+# ============================================================
+# MODELOS AGREGADOS PARA COMPLETAR EL ESQUEMA AUTH
+# ============================================================
+
+class UsuarioRol(Base):
+    """User roles (multiple roles per user)"""
+    __tablename__ = "usuario_rol"
+    __table_args__ = {"schema": "auth"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=False
+    )
+    tipo_usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.tipo_usuario.id"),
+        nullable=False
+    )
+    # ❌ ELIMINADO: control_base_id NO debe estar aquí
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    fecha_inicio: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    fecha_fin: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
+
+    # Relationships
+    usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+    tipo_usuario: Mapped["TipoUsuario"] = relationship("TipoUsuario", lazy="selectin")
+
+
+class RefreshToken(Base):
+    """Refresh tokens for JWT authentication"""
+    __tablename__ = "refresh_token"
+    __table_args__ = {"schema": "auth"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    token: Mapped[str] = mapped_column(String(500), nullable=False)
+    expiracion: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    usado: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+    usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+
+
+class UsuarioEmpresa(Base):
+    """User-company relationship for corporate employees"""
+    __tablename__ = "usuario_empresa"
+    __table_args__ = {"schema": "auth"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    empresa_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.empresa.id"),
+        nullable=False
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=False
+    )
+    rol: Mapped[str] = mapped_column(String(20), default="recepcionista")
+    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+    empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
+    usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+
+
+class AutorizacionInicio(Base):
+    """Driver shift authorization (QR-based)"""
+    __tablename__ = "autorizacion_inicio"
+    __table_args__ = {"schema": "auth"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    token: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    contrato_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.contrato_vehiculo.id"),
+        nullable=False
+    )
+    chofer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=False
+    )
+    vehiculo_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.vehiculo.id"),
+        nullable=False
+    )
+    control_base_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.control_base.id"),
+        nullable=False
+    )
+    tipo_contrato: Mapped[str] = mapped_column(String(20), nullable=True)
+    turno_contractual: Mapped[str] = mapped_column(String(20), nullable=True)
+    dia_contractual: Mapped[str] = mapped_column(String(20), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    used_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    qr_referencia: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=True
+    )
+
+    chofer: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[chofer_id], lazy="selectin")
+    vehiculo: Mapped["Vehiculo"] = relationship("Vehiculo", lazy="selectin")
+    contrato: Mapped["ContratoVehiculo"] = relationship("ContratoVehiculo", lazy="selectin")
+    control_base: Mapped["ControlBase"] = relationship(
+        "ControlBase",
+        foreign_keys=[control_base_id],
+        lazy="selectin"
+    )
+
+
+class TurnoEmpleado(Base):
+    """Employee work shifts (corporate module)"""
+    __tablename__ = "turno_empleado"
+    __table_args__ = {"schema": "auth"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    empleado_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=False
+    )
+    empresa_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.empresa.id"),
+        nullable=False
+    )
+    fecha_inicio: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    fecha_fin: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    estado: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="ACTIVO",
+        comment="ACTIVO (puede operar) o CERRADO (no puede operar)"
+    )
+    viajes_gestionados: Mapped[int] = mapped_column(Integer, default=0, comment="Contador de viajes gestionados en el turno")
+    facturado_total: Mapped[float] = mapped_column(DECIMAL(12, 2), default=0.0, comment="Total facturado en el turno")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    empleado: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[empleado_id], lazy="selectin")
+    empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
+
+
+class AuditoriaEmail(Base):
+    """Email validation audit"""
+    __tablename__ = "auditoria_email"
+    __table_args__ = {"schema": "auth"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    email: Mapped[str] = mapped_column(String, nullable=False)
+    valid: Mapped[bool] = mapped_column(Boolean, default=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=True)
+    domain: Mapped[str] = mapped_column(String, nullable=True)
+    mx_records: Mapped[str] = mapped_column(Text, nullable=True)
+    smtp_response: Mapped[str] = mapped_column(Text, nullable=True)
+    ip_address: Mapped[str] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    user_agent: Mapped[str] = mapped_column(Text, nullable=True)

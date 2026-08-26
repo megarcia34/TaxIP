@@ -1,13 +1,13 @@
 """
 Audit/Logging Models
-Tablas: log_gps, alerta_desvio (schema: audit)
+Tablas: log_gps, alerta_desvio, log_acciones (schema: audit)
 """
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, DECIMAL
+from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, DECIMAL, JSON
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, INET, JSONB
 from geoalchemy2 import Geography
 from app.database import Base
 
@@ -69,4 +69,42 @@ class AlertaDesvio(Base):
     ruta_esperada_json: Mapped[str] = mapped_column(Text, nullable=True)
     notificado: Mapped[bool] = mapped_column(default=False)
     resuelto: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+# ============================================================
+# MODELO AGREGADO PARA AUDITORÍA FORENSE
+# ============================================================
+
+class LogAcciones(Base):
+    """
+    Audit log for all user actions
+    Critical for forensic roles and judicial requirements
+    """
+    __tablename__ = "log_acciones"
+    __table_args__ = {"schema": "audit"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    accion: Mapped[str] = mapped_column(String(50), nullable=False)
+    tabla_afectada: Mapped[str] = mapped_column(String(100), nullable=True)
+    registro_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=True)
+    datos_anteriores: Mapped[dict] = mapped_column(JSONB, nullable=True)
+    datos_nuevos: Mapped[dict] = mapped_column(JSONB, nullable=True)
+    control_base_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.control_base.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    ip_address: Mapped[str] = mapped_column(INET, nullable=True)
+    user_agent: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

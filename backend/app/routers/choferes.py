@@ -740,8 +740,8 @@ async def registrar_gasto_turno(
         monto=request.monto,
         km_registro=request.km_registro,
         url_comprobante=request.url_comprobante,
-        categoria_id=request.categoria_id,  # NUEVO
-        subcategoria=request.subcategoria   # NUEVO
+        categoria_id=request.categoria_id,
+        subcategoria=request.subcategoria
     )
     
     return result
@@ -806,7 +806,7 @@ async def turno_activo(
     
     return TurnoActivoResponse(
         tiene_turno_activo=True,
-        mensaje="Turno activo encontrado",  # ✅ AGREGADO: campo requerido
+        mensaje="Turno activo encontrado",
         turno_id=str(row[0]),
         vehiculo_id=str(row[1]),
         patente=row[2],

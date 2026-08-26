@@ -38,38 +38,41 @@ class TurnoChofer(Base):
     combustible_inicial = Column(String(20), nullable=False)
     combustible_final = Column(String(20), nullable=True)
     
-    # Recaudación
-    recaudacion_app_efectivo = Column(Numeric(10,2), default=0)
-    recaudacion_app_debito = Column(Numeric(10,2), default=0)
-    recaudacion_ticketera_calle = Column(Numeric(10,2), default=0)
-    
-    # Liquidación calculada
-    monto_bruto_calculado = Column(Numeric(10,2), default=0)
-    comision_chofer_calculada = Column(Numeric(10,2), default=0)
-    utilidad_propietario_calculada = Column(Numeric(10,2), default=0)
+    # ============================================
+    # ❌ ELIMINADOS - CAMPOS LEGACY DE RECAUDACIÓN
+    # ============================================
+    # recaudacion_app_efectivo = Column(Numeric(10,2), default=0)  # ELIMINADO
+    # recaudacion_app_debito = Column(Numeric(10,2), default=0)    # ELIMINADO
+    # recaudacion_ticketera_calle = Column(Numeric(10,2), default=0) # ELIMINADO
     
     # ============================================
-    # SNAPSHOTS DE HORARIOS (reemplazan snapshot_turno_contractual)
+    # ❌ ELIMINADOS - CAMPOS LEGACY DE LIQUIDACIÓN
+    # ============================================
+    # monto_bruto_calculado = Column(Numeric(10,2), default=0)        # ELIMINADO
+    # comision_chofer_calculada = Column(Numeric(10,2), default=0)    # ELIMINADO
+    # utilidad_propietario_calculada = Column(Numeric(10,2), default=0) # ELIMINADO
+    
+    # ============================================
+    # SNAPSHOTS DE HORARIOS
     # ============================================
     snapshot_hora_inicio = Column(Time, nullable=True)
     snapshot_hora_fin = Column(Time, nullable=True)
     snapshot_duracion_minima_horas = Column(Integer, nullable=True)
     snapshot_permite_extension = Column(Boolean, nullable=True)
     snapshot_hora_fin_extension = Column(Time, nullable=True)
-    
-    # Se mantiene para compatibilidad
     snapshot_dia_contractual = Column(String(20), nullable=True)
     
-    # ⚠️ DEPRECADO: Ya no existe en la base de datos
-    # snapshot_turno_contractual = Column(String(20), nullable=True)  # ELIMINADO
-    
-    # Marcas de tiempo
+    # ============================================
+    # MARCAS DE TIEMPO
+    # ============================================
     inicio_turno = Column(DateTime, default=datetime.now, nullable=False)
     fin_turno = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
-    # Relationships
+    # ============================================
+    # RELATIONSHIPS
+    # ============================================
     contrato = relationship(
         "ContratoVehiculo",
         lazy="selectin"
@@ -90,4 +93,23 @@ class TurnoChofer(Base):
         "GastoTurno",
         lazy="selectin",
         cascade="all, delete-orphan"
+    )
+    
+    # ============================================
+    # NUEVAS RELATIONSHIPS
+    # ============================================
+    ingresos = relationship(
+        "IngresoTurno",
+        lazy="selectin",
+        cascade="all, delete-orphan"
+    )
+    
+    viajes = relationship(
+        "ViajeSolicitado",
+        lazy="selectin"
+    )
+    
+    liquidaciones = relationship(
+        "Liquidacion",
+        lazy="selectin"
     )

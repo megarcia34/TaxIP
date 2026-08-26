@@ -33,13 +33,17 @@ async def verificar_vehiculo_propietario(
 async def verificar_chofer_disponible(
     chofer_id: UUID,
     control_base_id: UUID,
-    turno: str,
     db: AsyncSession
 ):
     """
-    Verifica que un chofer esté disponible para un turno específico.
-    Retorna True si está disponible, lanza HTTPException si no.
+    Verifica que un chofer esté disponible para un nuevo contrato.
+    Ya NO usa turno_asignado (campo eliminado).
+    La verificación se basa en:
+    1. Que el chofer exista y esté activo
+    2. Que no tenga un contrato activo con otro vehículo
+    3. Que no tenga un turno activo
     """
+    # Verificar que el chofer existe, está activo y pertenece al tenant
     query = text("""
         SELECT u.id FROM auth.usuario u
         JOIN auth.tipo_usuario tu ON tu.id = u.tipo_usuario_id
@@ -47,18 +51,46 @@ async def verificar_chofer_disponible(
           AND u.control_base_id = :control_base_id 
           AND u.activo = true 
           AND tu.nombre = 'chofer'
-          AND NOT EXISTS (
-              SELECT 1 FROM fleet.contrato_vehiculo cc
-              WHERE cc.chofer_id = u.id
-                AND cc.turno_asignado = :turno
-                AND cc.activo = true
-                AND cc.fecha_fin IS NULL
-          )
     """)
-    result = await db.execute(query, {"chofer_id": chofer_id, "control_base_id": control_base_id, "turno": turno})
+    result = await db.execute(query, {"chofer_id": chofer_id, "control_base_id": control_base_id})
     if not result.first():
-        raise HTTPException(status_code=409, detail=f"El chofer no está disponible para el turno {turno}")
+        raise HTTPException(
+            status_code=404,
+            detail="Chofer no encontrado o inactivo en este tenant"
+        )
+
+    # Verificar que el chofer no tenga un contrato activo con otro vehículo
+    query_contrato = text("""
+        SELECT cc.id FROM fleet.contrato_vehiculo cc
+        WHERE cc.chofer_id = :chofer_id
+          AND cc.estado_contrato = 'ACTIVO'
+          AND cc.activo = true
+          AND cc.fecha_fin IS NULL
+        LIMIT 1
+    """)
+    result = await db.execute(query_contrato, {"chofer_id": chofer_id})
+    if result.first():
+        raise HTTPException(
+            status_code=409,
+            detail="El chofer ya tiene un contrato activo con otro vehículo"
+        )
+
+    # Verificar que el chofer no tenga un turno activo
+    query_turno = text("""
+        SELECT t.id FROM fleet.turno_chofer t
+        WHERE t.chofer_id = :chofer_id
+          AND t.estado = 'ACTIVO'
+        LIMIT 1
+    """)
+    result = await db.execute(query_turno, {"chofer_id": chofer_id})
+    if result.first():
+        raise HTTPException(
+            status_code=409,
+            detail="El chofer tiene un turno activo en curso"
+        )
+
     return True
+
 
 # ============================================================
 # HELPER PARA KILOMETRAJE DEL VEHÍCULO
@@ -97,6 +129,8 @@ async def obtener_km_actual_vehiculo(
     result = await db.execute(query_viajes, {"vehiculo_id": vehiculo_id})
     km = result.scalar() or 0
     return int(km)
+
+
 # ============================================================
 # HELPER PARA NEUMÁTICOS
 # ============================================================

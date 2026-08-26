@@ -53,6 +53,27 @@ class LiquidacionCalculator(ABC):
             }
         }
 
+    def _crear_linea_ingreso_nuevo(self, ingreso: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Crea una línea de detalle para un ingreso desde IngresoTurno (NUEVO)
+        """
+        return {
+            "tipo_linea": "INGRESO",
+            "concepto": f"Ingreso {ingreso.get('tipo_ingreso', 'sin_tipo')}",
+            "fuente_tipo": "ingreso_turno",
+            "fuente_id": ingreso["id"],
+            "monto": ingreso.get("monto", Decimal(0)),
+            "signo": "HABER",
+            "meta_data": {
+                "tipo_ingreso": ingreso.get("tipo_ingreso"),
+                "medio_pago": ingreso.get("medio_pago"),
+                "origen": ingreso.get("origen"),
+                "fecha_hora": ingreso.get("fecha_hora").isoformat() if ingreso.get("fecha_hora") else None,
+                "viaje_id": str(ingreso.get("viaje_id")) if ingreso.get("viaje_id") else None,
+                "referencia_pago": ingreso.get("referencia_pago"),
+            }
+        }
+
     def _crear_linea_gasto_turno(self, gasto: Dict[str, Any]) -> Dict[str, Any]:
         """Crea una línea de detalle para un gasto de turno"""
         return {
@@ -71,7 +92,7 @@ class LiquidacionCalculator(ABC):
         }
 
     def _crear_linea_gasto_vehiculo(self, gasto: Dict[str, Any]) -> Dict[str, Any]:
-        """Crea una línea de detalle para un gasto de vehículo (NUEVO)"""
+        """Crea una línea de detalle para un gasto de vehículo"""
         return {
             "tipo_linea": "GASTO_VEHICULO",
             "concepto": f"Gasto vehículo: {gasto.get('tipo_gasto', 'sin_tipo')}",
@@ -96,7 +117,7 @@ class LiquidacionCalculator(ABC):
             "fuente_tipo": None,
             "fuente_id": None,
             "monto": monto,
-            "signo": "DEBE",
+            "signo": "HABER",
             "meta_data": {}
         }
 
@@ -125,3 +146,35 @@ class LiquidacionCalculator(ABC):
                 "valor_km": float(valor_km)
             }
         }
+
+    def _calcular_monto_bruto_desde_ingresos(self, contexto: LiquidacionContextSchema) -> tuple:
+        """
+        Calcula el monto bruto desde los ingresos del turno.
+        Prioriza el nuevo modelo IngresoTurno, fallback a legacy.
+        Retorna: (monto_bruto, lineas)
+        """
+        monto_bruto = Decimal(0)
+        lineas = []
+
+        # 1. Priorizar nuevos ingresos desde IngresoTurno
+        if hasattr(contexto, 'ingresos') and contexto.ingresos:
+            for ingreso in contexto.ingresos:
+                if ingreso.get("estado") == "aprobado":
+                    monto = ingreso.get("monto", Decimal(0))
+                    if monto > 0:
+                        monto_bruto += monto
+                        lineas.append(self._crear_linea_ingreso_nuevo(ingreso))
+            return monto_bruto, lineas
+
+        # 2. Fallback: viajes + ticketera (legacy)
+        for viaje in contexto.viajes:
+            monto = viaje["precio_final"]
+            if monto > 0:
+                monto_bruto += monto
+                lineas.append(self._crear_linea_ingreso(viaje))
+
+        if contexto.recaudacion_ticketera and contexto.recaudacion_ticketera > 0:
+            monto_bruto += contexto.recaudacion_ticketera
+            lineas.append(self._crear_linea_ingreso_ticketera(contexto))
+
+        return monto_bruto, lineas

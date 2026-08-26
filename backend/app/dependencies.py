@@ -363,6 +363,91 @@ async def validar_usuario_activo(user_id: UUID, db: AsyncSession) -> bool:
 
 
 # ============================================================
+# DEPENDENCIAS FORENSES
+# ============================================================
+
+async def get_current_forense_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db)
+) -> Tuple[UUID, UUID, str, str, bool]:
+    """
+    Validar que el usuario actual tenga rol forense activo.
+    Retorna: (user_id, control_base_id, email, rol_nombre, es_maestro)
+    """
+    token = credentials.credentials
+    payload = decode_token(token)
+    
+    if not payload or not isinstance(payload, dict) or len(payload) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o expirado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Tipo de token inválido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Payload del token inválido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = UUID(user_id_str)
+    
+    # Obtener usuario y sus roles forenses
+    query = text("""
+        SELECT 
+            u.id,
+            u.control_base_id,
+            u.email,
+            tu.nombre as rol_nombre,
+            ur.control_base_id as rol_tenant_id
+        FROM auth.usuario u
+        JOIN auth.usuario_rol ur ON ur.usuario_id = u.id
+        JOIN auth.tipo_usuario tu ON ur.tipo_usuario_id = tu.id
+        WHERE u.id = :user_id
+          AND u.activo = true
+          AND ur.activo = true
+          AND (ur.fecha_fin IS NULL OR ur.fecha_fin > NOW())
+          AND (tu.nombre = 'forense_tenant' OR tu.nombre = 'forense_maestro')
+        LIMIT 1
+    """)
+    
+    result = await db.execute(query, {"user_id": user_id})
+    row = result.first()
+    
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario no tiene rol forense activo"
+        )
+    
+    user_id_db, control_base_id, email, rol_nombre, rol_tenant_id = row
+    
+    # Validar que el usuario no esté suspendido
+    await validar_usuario_activo(user_id_db, db)
+    
+    # Si es forense_tenant, validar que tenga tenant asignado
+    if rol_nombre == 'forense_tenant' and not rol_tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Rol forense_tenant sin tenant asignado"
+        )
+    
+    es_maestro = rol_nombre == 'forense_maestro'
+    tenant_id = rol_tenant_id if not es_maestro else None
+    
+    return (user_id_db, tenant_id, email, rol_nombre, es_maestro)
+
+
+# ============================================================
 # FUNCIONES DE COMPATIBILIDAD - ROLES
 # ⚠️ DEPRECADAS - Mantener solo para compatibilidad
 # ============================================================
@@ -529,7 +614,7 @@ async def get_propietario_context(
 
     return {
         "user_id": str(user_id),
-        "propietario_id": str(user_id),  # ✅ CORREGIDO: usar user_id
+        "propietario_id": str(user_id),
         "control_base_id": str(control_base_id) if control_base_id else None,
         "email": email,
         "tipo_usuario": tipo,
@@ -555,12 +640,10 @@ async def get_chofer_context(
             detail="Acceso de chofer requerido"
         )
     
-    # ✅ CORREGIDO: obtener activo desde usuario
     query = text("""
         SELECT p.id, p.nombre, p.apellido, p.telefono, p.direccion,
-               c.licencia_numero, c.licencia_categoria, u.activo as usuario_activo
+               u.activo as usuario_activo
         FROM auth.perfil_general p
-        JOIN fleet.chofer c ON c.usuario_id = p.usuario_id
         JOIN auth.usuario u ON u.id = p.usuario_id
         WHERE p.usuario_id = :user_id
     """)
@@ -573,34 +656,16 @@ async def get_chofer_context(
             detail="Perfil de chofer no encontrado"
         )
     
-    # Verificar si tiene vehículo asignado
-    query_vehiculo = text("""
-        SELECT v.id, v.patente, v.activo
-        FROM fleet.vehiculo v
-        WHERE v.chofer_asignado_id = :user_id AND v.activo = true
-        LIMIT 1
-    """)
-    result_vehiculo = await db.execute(query_vehiculo, {"user_id": user_id})
-    vehiculo_row = result_vehiculo.first()
-    
     return {
         "user_id": str(user_id),
         "control_base_id": str(control_base_id) if control_base_id else None,
         "email": email,
         "tipo_usuario": tipo,
-        "chofer_id": str(row[0]),
         "nombre": row[1],
         "apellido": row[2],
         "telefono": row[3],
         "direccion": row[4],
-        "licencia_numero": row[5],
-        "licencia_categoria": row[6],
-        "activo": row[7],  # ✅ Ahora viene de auth.usuario
-        "vehiculo_asignado": {
-            "id": str(vehiculo_row[0]) if vehiculo_row else None,
-            "patente": vehiculo_row[1] if vehiculo_row else None,
-            "activo": vehiculo_row[2] if vehiculo_row else None
-        } if vehiculo_row else None
+        "activo": row[5]
     }
 
 
@@ -774,73 +839,11 @@ async def get_current_empresa_admin_user(
 
 
 # ============================================================
-# TYPE ALIASES PARA ENDPOINTS (SOLUCIÓN DEFINITIVA)
-# ============================================================
-
-CurrentUser = Annotated[Tuple[UUID, UUID, str, str], Depends(get_current_user)]
-SuperAdminUser = Annotated[Tuple[UUID, UUID, str, str], Depends(get_super_admin_user)]
-AdminTenantUser = Annotated[Tuple[UUID, UUID, str, str], Depends(get_admin_tenant_user)]
-AdminEmpresaUser = Annotated[Tuple[UUID, UUID, str, str, UUID, str], Depends(get_admin_empresa_user)]
-EmpleadoUser = Annotated[Tuple[UUID, UUID, str, str, UUID, str, UUID], Depends(get_empleado_user)]
-ControlBaseAdminUser = Annotated[Tuple[UUID, UUID, str, str], Depends(get_control_base_admin_user)]
-
-
-# ============================================================
-# EXPORTAR TODAS LAS FUNCIONES Y TIPOS
-# ============================================================
-
-__all__ = [
-    # Base
-    "get_current_user",
-    
-    # Nuevas (Fases 1 y 2)
-    "get_super_admin_user",
-    "get_admin_tenant_user",
-    "get_admin_empresa_user",
-    "get_empleado_user",
-    "get_empresa_context",
-    "validar_tenant_activo",
-    "validar_empresa_activa",
-    "validar_usuario_activo",
-    
-    # Compatibilidad - Roles
-    "get_current_admin_user",
-    "get_current_driver_user",
-    "get_current_passenger_user",
-    "get_current_empleado_user",
-    "get_current_propietario_user",
-    "get_current_empresa_user",
-    
-    # Dashboard
-    "get_current_empresa_admin_user",
-    
-    # Control Base (NUEVO)
-    "get_control_base_admin_user",
-    
-    # Contextos (CORREGIDOS)
-    "get_propietario_context",
-    "get_chofer_context",
-    "get_empresa_context_compat",
-    
-    # IDs
-    "get_propietario_id",
-    "get_chofer_id",
-    "get_empresa_id_from_user",
-    
-    # Type Aliases
-    "CurrentUser",
-    "SuperAdminUser",
-    "AdminTenantUser",
-    "AdminEmpresaUser",
-    "EmpleadoUser",
-    "ControlBaseAdminUser",
-]
-# ============================================
 # FILTROS PARA REPORTES POR ROL
-# ============================================
+# ============================================================
 
 async def get_filtros_reporte(
-    current_user: tuple = Depends(get_current_user),
+    current_user: Tuple[UUID, UUID, str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
     """
@@ -914,48 +917,12 @@ async def get_filtros_reporte(
     return filtros
 
 
-# ============================================
-# OBTENER PROPIETARIO ID
-# ============================================
-
-async def get_propietario_id(
-    current_user: tuple = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> UUID:
-    """
-    Obtiene el ID del propietario desde el usuario actual
-    Verifica que el usuario tenga rol de propietario
-    """
-    user_id, control_base_id, email, tipo_usuario = current_user
-    
-    if tipo_usuario.lower() not in ["propietario", "admin_propietario"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Se requieren permisos de propietario"
-        )
-    
-    # Verificar que tiene vehículos activos
-    query = text("""
-        SELECT id FROM fleet.propietario_vehiculo
-        WHERE propietario_id = :user_id AND activo = true
-        LIMIT 1
-    """)
-    result = await db.execute(query, {"user_id": user_id})
-    if not result.first():
-        raise HTTPException(
-            status_code=403,
-            detail="El propietario no tiene vehículos activos"
-        )
-    
-    return user_id
-
-
-# ============================================
+# ============================================================
 # OBTENER TENANT ID ACTUAL
-# ============================================
+# ============================================================
 
 async def get_tenant_id_actual(
-    current_user: tuple = Depends(get_current_user)
+    current_user: Tuple[UUID, UUID, str, str] = Depends(get_current_user)
 ) -> Optional[UUID]:
     """
     Obtiene el tenant_id del usuario actual
@@ -965,13 +932,14 @@ async def get_tenant_id_actual(
         return None  # Super Admin ve todos
     return control_base_id
 
-# ============================================
+
+# ============================================================
 # SUPER ADMIN DEPENDENCIES
-# ============================================
+# ============================================================
 
 async def get_current_super_admin_user(
-    current_user: tuple = Depends(get_current_user)
-) -> tuple:
+    current_user: Tuple[UUID, UUID, str, str] = Depends(get_current_user)
+) -> Tuple[UUID, UUID, str, str]:
     """
     Verifica que el usuario sea Super Admin
     """
@@ -984,3 +952,77 @@ async def get_current_super_admin_user(
         )
     
     return current_user
+
+
+# ============================================================
+# TYPE ALIASES PARA ENDPOINTS
+# ============================================================
+
+CurrentUser = Annotated[Tuple[UUID, UUID, str, str], Depends(get_current_user)]
+SuperAdminUser = Annotated[Tuple[UUID, UUID, str, str], Depends(get_super_admin_user)]
+AdminTenantUser = Annotated[Tuple[UUID, UUID, str, str], Depends(get_admin_tenant_user)]
+AdminEmpresaUser = Annotated[Tuple[UUID, UUID, str, str, UUID, str], Depends(get_admin_empresa_user)]
+EmpleadoUser = Annotated[Tuple[UUID, UUID, str, str, UUID, str, UUID], Depends(get_empleado_user)]
+ControlBaseAdminUser = Annotated[Tuple[UUID, UUID, str, str], Depends(get_control_base_admin_user)]
+ForenseUser = Annotated[Tuple[UUID, UUID, str, str, bool], Depends(get_current_forense_user)]
+
+
+# ============================================================
+# EXPORTAR TODAS LAS FUNCIONES Y TIPOS
+# ============================================================
+
+__all__ = [
+    # Base
+    "get_current_user",
+    
+    # Nuevas (Fases 1 y 2)
+    "get_super_admin_user",
+    "get_admin_tenant_user",
+    "get_admin_empresa_user",
+    "get_empleado_user",
+    "get_empresa_context",
+    "validar_tenant_activo",
+    "validar_empresa_activa",
+    "validar_usuario_activo",
+    
+    # Forenses
+    "get_current_forense_user",
+    "ForenseUser",
+    
+    # Compatibilidad - Roles
+    "get_current_admin_user",
+    "get_current_driver_user",
+    "get_current_passenger_user",
+    "get_current_empleado_user",
+    "get_current_propietario_user",
+    "get_current_empresa_user",
+    
+    # Dashboard
+    "get_current_empresa_admin_user",
+    
+    # Control Base
+    "get_control_base_admin_user",
+    
+    # Contextos
+    "get_propietario_context",
+    "get_chofer_context",
+    "get_empresa_context_compat",
+    
+    # IDs
+    "get_propietario_id",
+    "get_chofer_id",
+    "get_empresa_id_from_user",
+    
+    # Filtros
+    "get_filtros_reporte",
+    "get_tenant_id_actual",
+    "get_current_super_admin_user",
+    
+    # Type Aliases
+    "CurrentUser",
+    "SuperAdminUser",
+    "AdminTenantUser",
+    "AdminEmpresaUser",
+    "EmpleadoUser",
+    "ControlBaseAdminUser",
+]

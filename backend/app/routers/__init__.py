@@ -19,6 +19,10 @@ from app.routers.public import qr as public_qr_router
 from .choferes_public import router as choferes_public_router
 from . import liquidacion  # <--- NUEVO
 
+# app/routers/__init__.py - AGREGAR
+
+from .corporate import router as corporate_router
+
 # Importar public_router de viajes
 from app.routers.viajes import public_router as public_viajes_router
 
