@@ -2,7 +2,7 @@
 Trip Service - Centraliza toda la lógica de gestión de viajes
 Elimina SQL directo de routers y unifica el ciclo de vida del viaje
 """
-
+import logging
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -35,6 +35,7 @@ from app.core.exceptions import (
     TripDriverNotAvailableError
 )
 
+logger = logging.getLogger(__name__)
 
 class TripService:
     """
@@ -398,3 +399,85 @@ class TripService:
         await self.db.refresh(viaje)
 
         return viaje
+
+    # ============================================================
+    # METODOS ATOMICOS M3 (broadcast + concurrencia)
+    # ============================================================
+
+    async def marcar_viaje_publicado(
+        self,
+        viaje_id: UUID,
+        radio_metros: int = 2000,
+    ) -> Optional[ViajeSolicitado]:
+        """
+        Marca un viaje como publicado (listo para broadcast).
+        Se llama desde broadcast_service antes de enviar a choferes.
+        """
+        result = await self.db.execute(
+            text("""
+                UPDATE trip.viaje_solicitado
+                SET estado = 'publicado',
+                    fecha_publicacion = COALESCE(fecha_publicacion, NOW()),
+                    fecha_expiracion = NOW() + INTERVAL '50 seconds',
+                    radio_broadcast_metros = :radio,
+                    updated_at = NOW()
+                WHERE id = :viaje_id
+                  AND estado IN ('pendiente', 'publicado')
+                RETURNING id
+            """),
+            {"viaje_id": viaje_id, "radio": radio_metros},
+        )
+        row = result.first()
+
+        if not row:
+            return None
+
+        await self._registrar_historial(viaje_id, "publicado")
+        await self.db.commit()
+
+        return await self.get_viaje(viaje_id)
+
+    async def aceptar_viaje_atomico(
+        self,
+        viaje_id: UUID,
+        chofer_id: UUID,
+        vehiculo_id: UUID,
+        chofer_vehiculo_id: UUID,
+    ) -> Optional[ViajeSolicitado]:
+        """
+        Acepta un viaje de forma ATOMICA (concurrencia segura).
+        """
+        result = await self.db.execute(
+            text("""
+                UPDATE trip.viaje_solicitado
+                SET estado = 'aceptado',
+                    chofer_id = :chofer_id,
+                    vehiculo_id = :vehiculo_id,
+                    chofer_vehiculo_id = :chofer_vehiculo_id,
+                    aceptado_en = NOW(),
+                    updated_at = NOW()
+                WHERE id = :viaje_id
+                  AND estado = 'publicado'
+                  AND chofer_id IS NULL
+                RETURNING id
+            """),
+            {
+                "viaje_id": viaje_id,
+                "chofer_id": chofer_id,
+                "vehiculo_id": vehiculo_id,
+                "chofer_vehiculo_id": chofer_vehiculo_id,
+            },
+        )
+        row = result.first()
+
+        if not row:
+            await self.db.rollback()
+            logger.info(
+                f"TripService: chofer {chofer_id} perdio carrera por viaje {viaje_id}"
+            )
+            return None
+
+        await self._registrar_historial(viaje_id, "aceptado")
+        await self.db.commit()
+
+        return await self.get_viaje(viaje_id)

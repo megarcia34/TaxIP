@@ -2,11 +2,9 @@
 Trip Models
 Tablas: viaje_solicitado, calificacion, historial_estado_viaje, objeto_olvidado, panico, tipo_vehiculo, foto_viaje, reserva
 """
-
 import uuid
 from datetime import datetime
 from typing import Optional
-
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, JSON, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -59,7 +57,7 @@ class ViajeSolicitado(Base):
         nullable=True,
         comment="Turno al que pertenece el viaje; puede ser NULL para viajes históricos no atribuibles o pendientes de inicio"
     )
-    
+
     # PostGIS Geography points
     origen: Mapped[Optional[Geography]] = mapped_column(
         Geography(geometry_type='POINT', srid=4326),
@@ -73,22 +71,21 @@ class ViajeSolicitado(Base):
     )
     direccion_origen: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     direccion_destino: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
     estado: Mapped[str] = mapped_column(String(20), default='pendiente', nullable=False, index=True)
-    
+
     # Pricing
     precio_estimado: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
     precio_final: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
     moneda: Mapped[str] = mapped_column(String(10), default="ARS", nullable=False)
-    
+
     # Time and distance
     tiempo_estimado_segundos: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     distancia_metros: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    
+
     # Sharing/Follow Me feature
     url_seguimiento: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     codigo_compartido: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
-    
+
     # Timestamps
     solicitado_en: Mapped[datetime] = mapped_column(
         DateTime,
@@ -102,12 +99,12 @@ class ViajeSolicitado(Base):
     cancelado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     cancelado_por: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     motivo_cancelacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
+
     # Reservas anticipadas
     fecha_programada: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     reserva_procesada: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     procesado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -116,11 +113,10 @@ class ViajeSolicitado(Base):
         nullable=False,
         comment="Fecha y hora de la última actualización del viaje"
     )
-    
+
     # ============================================================
     # COLUMNAS AGREGADAS EN FASE 2 (COMPLETAR ORM)
     # ============================================================
-    
     comercio_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("comercio.id"),
@@ -151,7 +147,6 @@ class ViajeSolicitado(Base):
     turno: Mapped[Optional["TurnoChofer"]] = relationship(lazy="selectin")
     comercio: Mapped[Optional["Comercio"]] = relationship("Comercio", lazy="selectin")
     empresa: Mapped[Optional["Empresa"]] = relationship("Empresa", lazy="selectin")
-    
     historial_estados: Mapped[list["HistorialEstadoViaje"]] = relationship(
         back_populates="viaje",
         lazy="selectin",
@@ -309,7 +304,15 @@ class ObjetoOlvidado(Base):
 
 
 class TipoVehiculo(Base):
-    """Vehicle types"""
+    """
+    Vehicle types - Catálogo puro
+    
+    ⚠️ IMPORTANTE: Los campos tarifarios están DEPRECADOS.
+    Los precios reales viven en payment.configuracion_tarifa y
+    payment.configuracion_tarifa_vehiculo (factores por tipo).
+    Estos campos se mantienen en 0 por compatibilidad y NO deben
+    usarse en el motor unificado TaxIP 2.1.
+    """
     __tablename__ = "tipo_vehiculo"
     __table_args__ = {"schema": "trip"}
 
@@ -317,9 +320,27 @@ class TipoVehiculo(Base):
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-    tarifa_base: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False, default=0)
-    tarifa_por_km: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False, default=0)
-    tarifa_por_minuto: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False, default=0)
+    # ⚠️ DEPRECATED: Los campos tarifarios quedan deprecados.
+    # Los precios reales viven en payment.configuracion_tarifa.
+    # Estos campos se mantienen en 0 por compatibilidad y no deben usarse en el motor unificado.
+    tarifa_base: Mapped[float] = mapped_column(
+        DECIMAL(10, 2), 
+        nullable=False, 
+        default=0,
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.tarifa_base"
+    )
+    tarifa_por_km: Mapped[float] = mapped_column(
+        DECIMAL(10, 2), 
+        nullable=False, 
+        default=0,
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha con metros_por_ficha=1000"
+    )
+    tarifa_por_minuto: Mapped[float] = mapped_column(
+        DECIMAL(10, 2), 
+        nullable=False, 
+        default=0,
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha con metros_por_ficha=0"
+    )
     
     capacidad_pasajeros: Mapped[int] = mapped_column(Integer, default=4, nullable=False)
     capacidad_equipaje: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
@@ -329,17 +350,20 @@ class TipoVehiculo(Base):
     precio_por_ficha: Mapped[float] = mapped_column(
         DECIMAL(10, 2), 
         default=0,
-        nullable=False
+        nullable=False,
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha"
     )
     distancia_por_ficha: Mapped[float] = mapped_column(
         DECIMAL(10, 2), 
         default=100,
-        nullable=False
+        nullable=False,
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.metros_por_ficha"
     )
     precio_por_minuto_espera: Mapped[float] = mapped_column(
         DECIMAL(10, 2), 
         default=0,
-        nullable=False
+        nullable=False,
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.seg_por_ficha_espera"
     )
 
     def __repr__(self):

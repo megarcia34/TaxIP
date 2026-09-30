@@ -33,7 +33,8 @@ GET_VIAJES_DASHBOARD = text("""
         -- PASAJERO: nombre + apellido o email
         COALESCE(
             p.nombre || ' ' || p.apellido,
-            u.email
+            u.email,
+            'Pasajero anónimo'
         ) as pasajero_nombre,
         
         -- CHOFER: nombre + apellido o "Sin asignar"
@@ -71,15 +72,15 @@ GET_VIAJES_DASHBOARD = text("""
         v.modelo,
         
         -- Coordenadas (para mapa)
-        ST_X(vs.origen::geometry) as origen_lat,
-        ST_Y(vs.origen::geometry) as origen_lng,
-        ST_X(vs.destino::geometry) as destino_lat,
-        ST_Y(vs.destino::geometry) as destino_lng
+        ST_Y(vs.origen::geometry) as origen_lat,
+        ST_X(vs.origen::geometry) as origen_lng,
+        ST_Y(vs.destino::geometry) as destino_lat,
+        ST_X(vs.destino::geometry) as destino_lng
 
     FROM trip.viaje_solicitado vs
 
     -- Pasajero
-    JOIN auth.usuario u ON u.id = vs.pasajero_id
+    LEFT JOIN auth.usuario u ON u.id = vs.pasajero_id
     LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
 
     -- Chofer
@@ -143,7 +144,7 @@ GET_HISTORIAL_VIAJES = text("""
         vs.tiempo_estimado_segundos,
         
         -- Pasajero
-        COALESCE(p.nombre || ' ' || p.apellido, u.email) as pasajero_nombre,
+        COALESCE(p.nombre || ' ' || p.apellido, u.email, 'Pasajero anónimo') as pasajero_nombre,
         
         -- Chofer
         COALESCE(p2.nombre || ' ' || p2.apellido, u2.email, 'Sin asignar') as chofer_nombre,
@@ -179,15 +180,15 @@ GET_HISTORIAL_VIAJES = text("""
         c.puntaje as calificacion,
         
         -- Coordenadas
-        ST_X(vs.origen::geometry) as origen_lat,
-        ST_Y(vs.origen::geometry) as origen_lng,
-        ST_X(vs.destino::geometry) as destino_lat,
-        ST_Y(vs.destino::geometry) as destino_lng
+        ST_Y(vs.origen::geometry) as origen_lat,
+        ST_X(vs.origen::geometry) as origen_lng,
+        ST_Y(vs.destino::geometry) as destino_lat,
+        ST_X(vs.destino::geometry) as destino_lng
 
     FROM trip.viaje_solicitado vs
 
     -- Pasajero
-    JOIN auth.usuario u ON u.id = vs.pasajero_id
+    LEFT JOIN auth.usuario u ON u.id = vs.pasajero_id
     LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
 
     -- Chofer
@@ -235,7 +236,7 @@ GET_VIAJES_POR_ESTADO = text("""
         vs.tiempo_estimado_segundos,
         
         -- Pasajero
-        COALESCE(p.nombre || ' ' || p.apellido, u.email) as pasajero_nombre,
+        COALESCE(p.nombre || ' ' || p.apellido, u.email, 'Pasajero anónimo') as pasajero_nombre,
         
         -- Chofer
         COALESCE(p2.nombre || ' ' || p2.apellido, u2.email, 'Sin asignar') as chofer_nombre,
@@ -268,15 +269,15 @@ GET_VIAJES_POR_ESTADO = text("""
         v.modelo,
         
         -- Coordenadas
-        ST_X(vs.origen::geometry) as origen_lat,
-        ST_Y(vs.origen::geometry) as origen_lng,
-        ST_X(vs.destino::geometry) as destino_lat,
-        ST_Y(vs.destino::geometry) as destino_lng
+        ST_Y(vs.origen::geometry) as origen_lat,
+        ST_X(vs.origen::geometry) as origen_lng,
+        ST_Y(vs.destino::geometry) as destino_lat,
+        ST_X(vs.destino::geometry) as destino_lng
 
     FROM trip.viaje_solicitado vs
 
     -- Pasajero
-    JOIN auth.usuario u ON u.id = vs.pasajero_id
+    LEFT JOIN auth.usuario u ON u.id = vs.pasajero_id
     LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
 
     -- Chofer
@@ -321,7 +322,7 @@ GET_VIAJE_BY_ID = text("""
         vs.tiempo_estimado_segundos,
         
         -- Pasajero
-        COALESCE(p.nombre || ' ' || p.apellido, u.email) as pasajero_nombre,
+        COALESCE(p.nombre || ' ' || p.apellido, u.email, 'Pasajero anónimo') as pasajero_nombre,
         
         -- Chofer
         COALESCE(p2.nombre || ' ' || p2.apellido, u2.email, 'Sin asignar') as chofer_nombre,
@@ -354,15 +355,20 @@ GET_VIAJE_BY_ID = text("""
         v.modelo,
         
         -- Coordenadas
-        ST_X(vs.origen::geometry) as origen_lat,
-        ST_Y(vs.origen::geometry) as origen_lng,
-        ST_X(vs.destino::geometry) as destino_lat,
-        ST_Y(vs.destino::geometry) as destino_lng
+        ST_Y(vs.origen::geometry) as origen_lat,
+        ST_X(vs.origen::geometry) as origen_lng,
+        ST_Y(vs.destino::geometry) as destino_lat,
+        ST_X(vs.destino::geometry) as destino_lng,
+
+        -- M3 - Etapa 10.5.b (G24): metodo_pago y origen_tipo
+        -- (agregados AL FINAL para no romper los índices 0-25 del formatter)
+        vs.metodo_pago,
+        vs.origen_tipo
 
     FROM trip.viaje_solicitado vs
 
     -- Pasajero
-    JOIN auth.usuario u ON u.id = vs.pasajero_id
+    LEFT JOIN auth.usuario u ON u.id = vs.pasajero_id
     LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
 
     -- Chofer
@@ -381,6 +387,7 @@ GET_VIAJE_BY_ID = text("""
     LEFT JOIN auth.perfil_general p_prop ON p_prop.usuario_id = u_prop.id
 
     WHERE vs.id = :viaje_id
+      AND vs.control_base_id = :control_base_id
 """)
 
 
@@ -444,7 +451,7 @@ GET_REPORTE_VIAJES = text("""
         TO_CHAR(vs.created_at, 'DD/MM/YYYY') as fecha,
         TO_CHAR(vs.created_at, 'HH24:MI') as hora,
         vs.created_at,
-        COALESCE(p.nombre || ' ' || p.apellido, u.email) as pasajero_nombre,
+        COALESCE(p.nombre || ' ' || p.apellido, u.email, 'Pasajero anónimo') as pasajero_nombre,
         COALESCE(p2.nombre || ' ' || p2.apellido, u2.email, 'Sin asignar') as chofer_nombre,
         cb.nombre as empresa,
         COALESCE(p_prop.nombre || ' ' || p_prop.apellido, u_prop.email, 'No asignado') as propietario_nombre,
@@ -453,7 +460,7 @@ GET_REPORTE_VIAJES = text("""
         v.modelo,
         v.id as vehiculo_id
     FROM trip.viaje_solicitado vs
-    JOIN auth.usuario u ON u.id = vs.pasajero_id
+    LEFT JOIN auth.usuario u ON u.id = vs.pasajero_id
     LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
     LEFT JOIN auth.usuario u2 ON u2.id = vs.chofer_id
     LEFT JOIN auth.perfil_general p2 ON p2.usuario_id = u2.id

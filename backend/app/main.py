@@ -1,5 +1,25 @@
+﻿"""
+TaxIP 2.0 - Entry point de la aplicacion FastAPI.
+
+FIX CRITICO (2026-09-24): en Windows, Python del sistema usa cp1252 para
+stdout/stderr y falla al imprimir emojis con UnicodeEncodeError. Eso
+rompe el import de app.main cuando Uvicorn spawnea el worker con el
+Python del sistema.
+
+Forzamos UTF-8 al inicio para que todos los print() con emojis funcionen.
+Ver deuda B3.
+"""
+import sys
+import io
+
+if hasattr(sys.stdout, 'buffer') and sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'buffer') and sys.stderr.encoding and sys.stderr.encoding.lower() != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+
 # ============================================
-# FORZAR IMPORTACIÓN TEMPRANA DE TODOS LOS MODELOS
+# FORZAR IMPORTACION TEMPRANA DE TODOS LOS MODELOS
 # ============================================
 from app.models.tenant import ControlBase, Configuracion
 from app.models.auth import Usuario, TipoUsuario, PerfilGeneral, DireccionFrecuente, TaxistaFavorito, ResetToken
@@ -12,11 +32,12 @@ from app.models.foto_viaje import FotoViaje
 from app.models.turno import TurnoChofer
 from app.models.gasto_turno import GastoTurno
 from app.models.audit import LogGps, AlertaDesvio
-print("✅ Todos los modelos importados")
+print("OK: Todos los modelos importados")
 
-from fastapi import FastAPI, WebSocket, Depends, HTTPException
+from fastapi import FastAPI, WebSocket, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+import asyncio
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 from uuid import UUID
@@ -28,7 +49,9 @@ from dotenv import load_dotenv
 from app.routers import operativo
 from app.routers.liquidacion import router as liquidacion_router
 from app.routers import corporate
-
+from app.routers.chofer_registro_progresivo import router as chofer_registro_progresivo_router
+from app.routers.chofer_turnos import router as chofer_turnos_router
+from app.routers.chofer_splash import router as chofer_splash_router
 from app.database import get_db, AsyncSessionLocal
 from app.websocket.handlers import handle_websocket
 
@@ -41,11 +64,11 @@ from app.routers.viajes import router as viajes_router
 from app.routers.viajes import public_router as viajes_public_router
 from app.routers.propietario import router as propietario_router
 
-# Importar routers de rentabilidad y optimización
+# Importar routers de rentabilidad y optimizacion
 from app.routers import rentabilidad
 from app.routers import optimizacion
 
-# Importar routers de super_admin (corregido)
+# Importar routers de super_admin
 from app.routers.super_admin import dashboard_router, tenants_router
 
 # Importar routers de admin
@@ -64,15 +87,13 @@ from app.routers import reservas
 # Importar dashboard de empresa
 from app.routers.empresa_dashboard import router as empresa_dashboard_router
 
-# ROUTER DE VERIFICACIÓN
+# ROUTER DE VERIFICACION
 from app.routers import verificacion
 
 # ROUTER GEO
 from app.routers import geo
 
-# ============================================
-# ROUTER DE NEUMÁTICOS (CORREGIDO)
-# ============================================
+# ROUTER DE NEUMATICOS
 from app.routers.propietario.neumaticos import router as propietario_neumaticos_router
 
 # Cargar variables de entorno
@@ -83,32 +104,43 @@ load_dotenv()
 # ============================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 TaxIP API iniciando...")
-    
+    print("TaxIP API iniciando...")
+
     try:
         async with AsyncSessionLocal() as db:
             await db.execute(text("SELECT 1"))
-            print("✅ Conexión a base de datos establecida")
+            print("Conexion a base de datos establecida")
     except Exception as e:
-        print(f"⚠️  Advertencia: No se pudo verificar la base de datos: {e}")
-    
-    yield
-    print("🛑 TaxIP API cerrando...")
+        print(f"Advertencia: No se pudo verificar la base de datos: {e}")
 
+    from app.core.scheduler import scheduler_loop
+    scheduler_task = asyncio.create_task(scheduler_loop())
+    print("Scheduler arrancado en background")
+
+    yield
+
+    scheduler_task.cancel()
+    try:
+        await scheduler_task
+    except asyncio.CancelledError:
+        pass
+    print("Scheduler detenido")
+
+    print("TaxIP API cerrando...")
 
 # ============================================
-# Crear aplicación FastAPI
+# Crear aplicacion FastAPI
 # ============================================
 app = FastAPI(
     title="TaxIP API",
-    description="API para plataforma de gestión de taxis",
+    description="API para plataforma de gestion de taxis",
     version="2.0.0",
     lifespan=lifespan
 )
 
 
 # ============================================
-# CONFIGURACIÓN CORS
+# CONFIGURACION CORS
 # ============================================
 origins = [
     "http://localhost:3000",
@@ -120,6 +152,7 @@ origins = [
     "http://127.0.0.1:3002",
     "http://127.0.0.1:3003",
     "https://taxip.com.ar",
+    "http://138.36.239.48:3000"
 ]
 
 env_origins = os.getenv("FRONTEND_URL", "")
@@ -129,7 +162,7 @@ if env_origins:
             origins.append(origin.strip())
 
 origins = list(set(origins))
-print(f"🔗 CORS Origins permitidos: {origins}")
+print(f"CORS Origins permitidos: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -144,7 +177,7 @@ app.add_middleware(
 # ============================================
 # ROUTERS PRINCIPALES
 # ============================================
-print("🔧 Registrando routers...")
+print("Registrando routers...")
 app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(choferes.router)
@@ -155,13 +188,15 @@ app.include_router(vehiculo.router)
 app.include_router(viajes_router)
 app.include_router(viajes_public_router)
 app.include_router(control_base.router)
-print("🔧 Registrando router de propietario...")
+print("Registrando router de propietario...")
 app.include_router(propietario_router, prefix="/api")
-print("✅ Router de propietario registrado correctamente")
+print("Router de propietario registrado")
 app.include_router(corporate.router)
 app.include_router(choferes_public_router)
 app.include_router(liquidacion_router)
-
+app.include_router(chofer_registro_progresivo_router)
+app.include_router(chofer_turnos_router)
+app.include_router(chofer_splash_router)
 
 # ============================================
 # ROUTERS DE SUPER ADMIN
@@ -177,9 +212,9 @@ app.include_router(geo.router)
 
 
 # ============================================
-# ROUTER DE NEUMÁTICOS (CORREGIDO)
+# ROUTER DE NEUMATICOS
 # ============================================
-app.include_router(propietario_neumaticos_router, prefix="/api/propietario", tags=["Propietario - Neumáticos"])
+app.include_router(propietario_neumaticos_router, prefix="/api/propietario", tags=["Propietario - Neumaticos"])
 
 
 # ============================================
@@ -191,14 +226,14 @@ app.include_router(turnos.router)
 
 
 # ============================================
-# REGISTRAR RENTABILIDAD Y OPTIMIZACIÓN
+# REGISTRAR RENTABILIDAD Y OPTIMIZACION
 # ============================================
 app.include_router(rentabilidad.router)
 app.include_router(optimizacion.router)
 
 
 # ============================================
-# ROUTERS DE ADMINISTRACIÓN
+# ROUTERS DE ADMINISTRACION
 # ============================================
 app.include_router(admin_dashboard_router)
 app.include_router(admin_propietarios_router, prefix="/api")
@@ -228,16 +263,18 @@ app.include_router(catalogo.router)
 app.include_router(comercio.router)
 app.include_router(verificacion.router)
 
+print("Todos los routers registrados")
+
 
 # ============================================
-# QR PÚBLICO
+# QR PUBLICO
 # ============================================
 @app.get("/public/qr/{qr_uuid}")
 async def servir_qr(
     qr_uuid: UUID,
     db=Depends(get_db)
 ):
-    """Servir imagen QR del vehículo"""
+    """Servir imagen QR del vehiculo"""
     query = text("""
         SELECT v.id, v.patente, v.qr_activo, v.activo
         FROM fleet.vehiculo v
@@ -250,7 +287,7 @@ async def servir_qr(
         raise HTTPException(status_code=404, detail="QR no encontrado")
     
     if not row[2] or not row[3]:
-        raise HTTPException(status_code=410, detail="QR inactivo o vehículo deshabilitado")
+        raise HTTPException(status_code=410, detail="QR inactivo o vehiculo deshabilitado")
     
     content = f"taxip://vincular?vehiculo={row[0]}"
     
@@ -296,12 +333,19 @@ async def debug_routes():
 # WebSocket
 # ============================================
 @app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
-    await handle_websocket(websocket, user_id)
+async def websocket_endpoint(
+    websocket: WebSocket,
+    user_id: str,
+    token: str = Query(..., description="JWT de autenticacion"),
+):
+    from app.core.security import decode_token
+    payload = decode_token(token)
+    rol = payload.get("tipo", "unknown") if payload else "unknown"
+    await handle_websocket(websocket, user_id, rol)
 
 
 # ============================================
-# Endpoints básicos
+# Endpoints basicos
 # ============================================
 @app.get("/")
 async def root():

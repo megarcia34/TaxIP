@@ -78,4 +78,8 @@ cloudinary.config(
     api_secret=settings.CLOUDINARY_API_SECRET
 )
 
-print(f"☁️ Cloudinary configurado con cloud_name: {settings.CLOUDINARY_CLOUD_NAME}")
+import logging
+logging.getLogger(__name__).info(
+    "Cloudinary configurado con cloud_name: %s",
+    settings.CLOUDINARY_CLOUD_NAME,
+)

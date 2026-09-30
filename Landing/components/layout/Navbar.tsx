@@ -46,7 +46,7 @@ export function Navbar() {
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
 
   // URL base del Dashboard tomada de variables de entorno o fallback a IP pública
-  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://138.36.239.48:3000";
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3000";
 
   // Opciones del desplegable "Ingreso al Sistema"
   const loginOptions = [

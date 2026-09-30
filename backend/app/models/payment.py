@@ -1,6 +1,6 @@
 """
 Payment and Wallet Models for TaxIP
-Tablas: metodo_pago, billetera, transaccion, configuracion_tarifa
+Tablas: metodo_pago, billetera, transaccion, configuracion_tarifa, configuracion_tarifa_vehiculo
 """
 import uuid
 from datetime import datetime, time
@@ -94,10 +94,7 @@ class Transaccion(Base):
     monto: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
     saldo_despues: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
     estado: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, default='COMPLETADO')
-    
-    # ✅ ESTA ES LA COLUMNA REAL EN LA BD
     external_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
-    
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
@@ -108,7 +105,15 @@ class Transaccion(Base):
 
 
 class ConfiguracionTarifa(Base):
-    """Fare configuration per tenant"""
+    """
+    Fare configuration per tenant - Motor Unificado TaxIP 2.1
+    
+    Campos legacy (deprecados):
+    - modo_calculo: el motor unificado no usa este campo
+    - distancia_por_ficha: reemplazado por metros_por_ficha
+    - precio_por_minuto_espera: reemplazado por seg_por_ficha_espera
+    - precio_por_km, precio_por_minuto: reemplazados por precio_por_ficha + configuración
+    """
     __tablename__ = "configuracion_tarifa"
     __table_args__ = {"schema": "payment"}
 
@@ -124,29 +129,34 @@ class ConfiguracionTarifa(Base):
         index=True
     )
     nombre: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    tarifa_base: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), default=0)
-    precio_por_km: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), default=0)
-    precio_por_minuto: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), default=0)
-    recargo_nocturno: Mapped[Optional[float]] = mapped_column(DECIMAL(3, 2), default=1.0)
-    recargo_feriado: Mapped[Optional[float]] = mapped_column(DECIMAL(3, 2), default=1.0)
-    activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.now,
-        onupdate=datetime.now
-    )
     
-    # Nuevos campos para soporte multi-tenant
+    # ============================================================
+    # CAMPOS LEGACY (DEPRECADOS - Mantener por compatibilidad)
+    # ============================================================
+    tarifa_base: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(10, 2), 
+        default=0,
+        doc="Bajada de bandera"
+    )
+    precio_por_km: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(10, 2), 
+        default=0,
+        doc="DEPRECATED - Usar precio_por_ficha con metros_por_ficha=1000"
+    )
+    precio_por_minuto: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(10, 2), 
+        default=0,
+        doc="DEPRECATED - Usar precio_por_ficha con metros_por_ficha=0"
+    )
     modo_calculo: Mapped[Optional[str]] = mapped_column(
         String(20), 
         default='por_km',
-        doc="Modo de cálculo: ficha_argentina, por_km, por_minuto, mixto"
+        doc="DEPRECATED - Motor unificado no usa este campo"
     )
     distancia_por_ficha: Mapped[Optional[float]] = mapped_column(
         DECIMAL(10, 2), 
         default=100,
-        doc="Distancia en metros por cada ficha"
+        doc="DEPRECATED - Usar metros_por_ficha"
     )
     precio_por_ficha: Mapped[Optional[float]] = mapped_column(
         DECIMAL(10, 2), 
@@ -156,12 +166,24 @@ class ConfiguracionTarifa(Base):
     precio_por_minuto_espera: Mapped[Optional[float]] = mapped_column(
         DECIMAL(10, 2), 
         default=0,
-        doc="Precio por minuto de espera"
+        doc="DEPRECATED - Usar seg_por_ficha_espera"
+    )
+    
+    # Recargos
+    recargo_nocturno: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(3, 2), 
+        default=1.0,
+        doc="Factor de recargo nocturno (1.0 = sin recargo)"
+    )
+    recargo_feriado: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(3, 2), 
+        default=1.0,
+        doc="Factor de recargo feriado (1.0 = sin recargo)"
     )
     recargo_domingo: Mapped[Optional[float]] = mapped_column(
         DECIMAL(3, 2), 
         default=1.0,
-        doc="Factor de recargo para domingos"
+        doc="Factor de recargo para domingos (1.0 = sin recargo)"
     )
     hora_inicio_nocturno: Mapped[Optional[time]] = mapped_column(
         Time, 
@@ -173,6 +195,9 @@ class ConfiguracionTarifa(Base):
         default=time(6, 0),
         doc="Hora de fin del recargo nocturno"
     )
+    
+    # Metadata
+    activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
     moneda: Mapped[Optional[str]] = mapped_column(
         String(3), 
         default='ARS',
@@ -183,14 +208,116 @@ class ConfiguracionTarifa(Base):
         nullable=True,
         doc="Descripción adicional de la configuración"
     )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.now,
+        onupdate=datetime.now
+    )
+    
+    # ============================================================
+    # NUEVAS COLUMNAS — MOTOR UNIFICADO TAXIP 2.1
+    # ============================================================
+    metros_por_ficha: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(10, 2),
+        default=100,
+        doc="Metros que equivalen a 1 ficha. 0 = desactiva fichas por distancia"
+    )
+    seg_por_ficha_espera: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(10, 2),
+        default=60,
+        doc="Segundos detenido = 1 ficha. 0 = desactiva fichas por tiempo"
+    )
+    velocidad_referencia_kmh: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(5, 2),
+        default=30,
+        doc="Velocidad urbana típica para estimar tiempo detenido en cotización"
+    )
+    velocidad_umbral_kmh: Mapped[Optional[float]] = mapped_column(
+        DECIMAL(5, 2),
+        default=15,
+        doc="Velocidad por debajo de la cual se considera 'detenido' (solo liquidación futura)"
+    )
+    modo_cobro_tiempo: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        default='detenido',
+        doc="'detenido' = solo tiempo detenido estimado; 'total' = todo el tiempo del viaje"
+    )
+    redondeo_comercial: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        default=100,
+        doc="Múltiplo de redondeo comercial. 0 = sin redondeo"
+    )
 
     # Relationships
     control_base: Mapped["ControlBase"] = relationship(
         "ControlBase",
         lazy="selectin"
     )
+    factores_vehiculo: Mapped[list["ConfiguracionTarifaVehiculo"]] = relationship(
+        "ConfiguracionTarifaVehiculo",
+        back_populates="configuracion_tarifa",
+        lazy="selectin",
+        cascade="all, delete-orphan"
+    )
 
-    # ============================================================
+
+class ConfiguracionTarifaVehiculo(Base):
+    """
+    Factores por tipo de vehículo para cada configuración de tarifa.
+    Tabla: payment.configuracion_tarifa_vehiculo
+    
+    Permite definir factores de precio específicos por tipo de vehículo
+    para cada configuración de tarifa del tenant.
+    
+    Ejemplo:
+    - standard: factor_precio = 1.0 (sin cambio)
+    - premium: factor_precio = 1.30 (+30%)
+    - van: factor_precio = 1.40 (+40%)
+    - minivan: factor_precio = 1.50 (+50%)
+    """
+    __tablename__ = "configuracion_tarifa_vehiculo"
+    __table_args__ = {"schema": "payment"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    configuracion_tarifa_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("payment.configuracion_tarifa.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    tipo_vehiculo_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("trip.tipo_vehiculo.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    factor_precio: Mapped[float] = mapped_column(
+        DECIMAL(5, 2),
+        default=1.0,
+        nullable=False,
+        doc="Multiplicador directo del precio (1.0 = sin cambio, 1.30 = +30%)"
+    )
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.now,
+        nullable=False
+    )
+
+    # Relationships
+    configuracion_tarifa: Mapped["ConfiguracionTarifa"] = relationship(
+        back_populates="factores_vehiculo"
+    )
+    tipo_vehiculo: Mapped["TipoVehiculo"] = relationship("TipoVehiculo", lazy="selectin")
+
+    def __repr__(self):
+        return f"<ConfiguracionTarifaVehiculo {self.configuracion_tarifa_id} - {self.tipo_vehiculo_id} = {self.factor_precio}>"
+
+
+# ============================================================
 # MODELOS FACTURA_EMPRESA Y PAGO_EMPRESA
 # ============================================================
 

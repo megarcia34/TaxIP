@@ -91,6 +91,63 @@
       qr_referencia             | uuid                 | NULL
       created_by                | uuid                 | NULL
 
+   📍 TABLA: codigo_metadatos
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      codigo_id                 | uuid                 | NOT NULL
+      contrato_id               | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NOT NULL
+      propietario_id            | uuid                 | NOT NULL
+      created_at                | timestamp with time zone | NOT NULL DEFAULT now()
+
+   📍 TABLA: codigo_metadatos_backup_20260921
+      id                        | uuid                 | NULL
+      codigo_id                 | uuid                 | NULL
+      contrato_id               | uuid                 | NULL
+      vehiculo_id               | uuid                 | NULL
+      propietario_id            | uuid                 | NULL
+      created_at                | timestamp with time zone | NULL
+
+   📍 TABLA: codigo_metadatos_backup_20260922
+      id                        | uuid                 | NULL
+      codigo_id                 | uuid                 | NULL
+      contrato_id               | uuid                 | NULL
+      vehiculo_id               | uuid                 | NULL
+      propietario_id            | uuid                 | NULL
+      created_at                | timestamp with time zone | NULL
+
+   📍 TABLA: codigo_verificacion
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      codigo                    | character varying    | NOT NULL
+      tipo                      | character varying    | NOT NULL DEFAULT 'REGISTRO_CHOFER'::character v
+      usado                     | boolean              | NOT NULL DEFAULT false
+      intentos                  | integer              | NOT NULL DEFAULT 0
+      creado_en                 | timestamp with time zone | NOT NULL DEFAULT now()
+      expira_en                 | timestamp with time zone | NOT NULL
+      metadata                  | jsonb                | NULL
+
+   📍 TABLA: codigo_verificacion_backup_megarcia_20260921
+      id                        | uuid                 | NULL
+      usuario_id                | uuid                 | NULL
+      codigo                    | character varying    | NULL
+      tipo                      | character varying    | NULL
+      usado                     | boolean              | NULL
+      intentos                  | integer              | NULL
+      creado_en                 | timestamp with time zone | NULL
+      expira_en                 | timestamp with time zone | NULL
+      metadata                  | jsonb                | NULL
+
+   📍 TABLA: codigo_verificacion_backup_megarcia_20260922
+      id                        | uuid                 | NULL
+      usuario_id                | uuid                 | NULL
+      codigo                    | character varying    | NULL
+      tipo                      | character varying    | NULL
+      usado                     | boolean              | NULL
+      intentos                  | integer              | NULL
+      creado_en                 | timestamp with time zone | NULL
+      expira_en                 | timestamp with time zone | NULL
+      metadata                  | jsonb                | NULL
+
    📍 TABLA: direccion_frecuente
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
       usuario_id                | uuid                 | NOT NULL
@@ -99,6 +156,8 @@
       longitud                  | numeric              | NULL
       direccion_texto           | text                 | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
+      telefono                  | character varying    | NULL
+      email                     | character varying    | NULL
 
    📍 TABLA: perfil_general
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -117,6 +176,35 @@
       codigo_postal             | character varying    | NULL
       tipo_conductor            | character varying    | NULL
       agencia                   | character varying    | NULL
+
+   📍 TABLA: plantilla_viaje
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      usuario_id                | uuid                 | NOT NULL
+      empresa_id                | uuid                 | NULL
+      nombre                    | character varying    | NOT NULL
+      direccion_origen          | text                 | NULL
+      latitud_origen            | numeric              | NULL
+      longitud_origen           | numeric              | NULL
+      direccion_destino         | text                 | NULL
+      latitud_destino           | numeric              | NULL
+      longitud_destino          | numeric              | NULL
+      paradas_intermedias       | jsonb                | NULL DEFAULT '[]'::jsonb
+      tipo_vehiculo             | character varying    | NULL
+      metodo_pago               | character varying    | NULL
+      cantidad_pasajeros        | integer              | NULL DEFAULT 1
+      cantidad_equipaje         | integer              | NULL DEFAULT 0
+      nota_conductor            | text                 | NULL
+      activo                    | boolean              | NOT NULL DEFAULT true
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
+   📍 TABLA: prestadora_telefonica
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      nombre                    | character varying    | NOT NULL
+      codigo_pais               | character varying    | NULL DEFAULT '+54'::character varying
+      activo                    | boolean              | NOT NULL DEFAULT true
+      created_at                | timestamp with time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp with time zone | NOT NULL DEFAULT now()
 
    📍 TABLA: refresh_token
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -186,6 +274,7 @@
       fecha_fin                 | date                 | NULL
       created_at                | timestamp without time zone | NOT NULL DEFAULT now()
       updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      control_base_id           | uuid                 | NULL
 
 📌 SCHEMA: comunicacion
 ------------------------------------------------------------
@@ -220,6 +309,88 @@
       leido_en                  | timestamp without time zone | NULL
       created_at                | timestamp without time zone | NOT NULL DEFAULT now()
 
+📌 SCHEMA: corporate
+------------------------------------------------------------
+
+   📍 TABLA: cuenta_corriente
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      empresa_id                | uuid                 | NOT NULL
+      saldo_actual              | numeric              | NOT NULL DEFAULT '0'::numeric
+      saldo_disponible          | numeric              | NOT NULL DEFAULT '0'::numeric
+      limite_credito            | numeric              | NOT NULL DEFAULT '0'::numeric
+      moneda                    | character varying    | NOT NULL DEFAULT 'ARS'::character varying
+      ultima_actualizacion      | timestamp without time zone | NOT NULL DEFAULT now()
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      titular_tipo              | character varying    | NULL
+      estado                    | character varying    | NULL DEFAULT 'activa'::character varying
+      periodo_facturacion       | character varying    | NULL DEFAULT 'mensual'::character varying
+      dia_cierre                | integer              | NULL DEFAULT 1
+      responsable_cobro         | character varying    | NULL
+      titular_id                | uuid                 | NULL
+      propietario_id            | uuid                 | NULL
+      fecha_apertura            | timestamp without time zone | NULL DEFAULT now()
+      fecha_ultimo_pago         | timestamp without time zone | NULL
+      fecha_proximo_vencimiento | timestamp without time zone | NULL
+
+   📍 TABLA: factura_corporativa
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      empresa_id                | uuid                 | NOT NULL
+      numero_factura            | character varying    | NOT NULL
+      periodo_desde             | date                 | NOT NULL
+      periodo_hasta             | date                 | NOT NULL
+      fecha_emision             | timestamp without time zone | NOT NULL DEFAULT now()
+      fecha_vencimiento         | timestamp without time zone | NULL
+      subtotal                  | numeric              | NOT NULL
+      descuento                 | numeric              | NOT NULL DEFAULT '0'::numeric
+      iva                       | numeric              | NOT NULL DEFAULT '0'::numeric
+      total                     | numeric              | NOT NULL
+      estado                    | character varying    | NOT NULL DEFAULT 'pendiente'::character varying
+      pdf_url                   | text                 | NULL
+      observaciones             | text                 | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      saldo_anterior            | numeric              | NULL DEFAULT '0'::numeric
+      saldo_final               | numeric              | NULL DEFAULT '0'::numeric
+      total_cargos              | numeric              | NULL DEFAULT '0'::numeric
+      total_pagos               | numeric              | NULL DEFAULT '0'::numeric
+
+   📍 TABLA: movimiento_cuenta
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      cuenta_id                 | uuid                 | NOT NULL
+      viaje_id                  | uuid                 | NULL
+      tipo_movimiento           | character varying    | NOT NULL
+      concepto                  | character varying    | NOT NULL
+      monto                     | numeric              | NOT NULL
+      saldo_anterior            | numeric              | NOT NULL
+      saldo_nuevo               | numeric              | NOT NULL
+      referencia                | character varying    | NULL
+      meta_data                 | jsonb                | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      tipo                      | character varying    | NULL
+      fecha_vencimiento         | timestamp without time zone | NULL
+      estado                    | character varying    | NULL DEFAULT 'pendiente'::character varying
+      metodo_pago               | character varying    | NULL
+      referencia_pago           | character varying    | NULL
+      created_by                | uuid                 | NULL
+
+   📍 TABLA: pago_corporativo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      empresa_id                | uuid                 | NOT NULL
+      factura_id                | uuid                 | NULL
+      monto                     | numeric              | NOT NULL
+      metodo_pago               | character varying    | NOT NULL
+      referencia                | character varying    | NULL
+      comprobante_url           | text                 | NULL
+      estado                    | character varying    | NOT NULL DEFAULT 'pendiente'::character varying
+      fecha_pago                | timestamp without time zone | NOT NULL DEFAULT now()
+      confirmado_por            | uuid                 | NULL
+      confirmado_en             | timestamp without time zone | NULL
+      observaciones             | text                 | NULL
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
+      movimiento_cc_id          | uuid                 | NULL
+
 📌 SCHEMA: fleet
 ------------------------------------------------------------
 
@@ -243,7 +414,7 @@
       latitud                   | numeric              | NULL
       longitud                  | numeric              | NULL
       ubicacion                 | USER-DEFINED         | NULL
-      estado_laboral            | character varying    | NULL DEFAULT 'libre'::character varying
+      estado_laboral            | character varying    | NULL DEFAULT 'fuera_servicio'::character va
       estado_panico             | boolean              | NULL DEFAULT false
       calificacion_promedio     | numeric              | NULL DEFAULT 5.0
       total_calificaciones      | integer              | NULL DEFAULT 0
@@ -291,6 +462,7 @@
       duracion_minima_horas     | integer              | NOT NULL DEFAULT 6
       permite_extension         | boolean              | NOT NULL DEFAULT false
       hora_fin_extension        | time without time zone | NULL
+      compensacion_km           | character varying    | NOT NULL DEFAULT 'DIARIA'::character varying
 
    📍 TABLA: documento_propietario
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -389,6 +561,24 @@
       fecha_fin                 | timestamp without time zone | NULL
       estado                    | character varying    | NULL
 
+   📍 TABLA: ingreso_turno
+      id                        | uuid                 | NOT NULL
+      turno_id                  | uuid                 | NOT NULL
+      viaje_id                  | uuid                 | NULL
+      tipo_ingreso              | character varying    | NOT NULL
+      medio_pago                | character varying    | NULL
+      origen                    | character varying    | NOT NULL
+      monto                     | numeric              | NOT NULL
+      moneda                    | character varying    | NOT NULL
+      fecha_hora                | timestamp without time zone | NOT NULL
+      declarado_por             | uuid                 | NULL
+      estado                    | character varying    | NOT NULL
+      observaciones             | text                 | NULL
+      referencia_pago           | character varying    | NULL
+      transaccion_id            | uuid                 | NULL
+      created_at                | timestamp without time zone | NOT NULL
+      updated_at                | timestamp without time zone | NOT NULL
+
    📍 TABLA: liquidacion
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
       control_base_id           | uuid                 | NOT NULL
@@ -420,6 +610,10 @@
       pagada_en                 | timestamp without time zone | NULL
       metodo_pago               | character varying    | NULL
       referencia_pago           | character varying    | NULL
+      km_excedentes             | numeric              | NOT NULL DEFAULT 0
+      cargo_km_excedentes       | numeric              | NOT NULL DEFAULT 0
+      saldo_chofer              | numeric              | NOT NULL DEFAULT 0
+      saldo_propietario         | numeric              | NOT NULL DEFAULT 0
 
    📍 TABLA: liquidacion_ajuste
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -628,12 +822,6 @@
       km_final                  | numeric              | NULL
       combustible_inicial       | character varying    | NOT NULL
       combustible_final         | character varying    | NULL
-      recaudacion_app_efectivo  | numeric              | NULL DEFAULT 0
-      recaudacion_app_debito    | numeric              | NULL DEFAULT 0
-      recaudacion_ticketera_calle | numeric              | NULL DEFAULT 0
-      monto_bruto_calculado     | numeric              | NULL DEFAULT 0
-      comision_chofer_calculada | numeric              | NULL DEFAULT 0
-      utilidad_propietario_calculada | numeric              | NULL DEFAULT 0
       inicio_turno              | timestamp without time zone | NOT NULL DEFAULT now()
       fin_turno                 | timestamp without time zone | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
@@ -664,6 +852,9 @@
       parches_neumaticos        | integer              | NULL DEFAULT 0
       capacidad                 | integer              | NULL DEFAULT 4
       updated_at                | timestamp without time zone | NULL DEFAULT now()
+      capacidad_baul            | character varying    | NOT NULL DEFAULT 'sin_baul'::character varying
+      estado_vehiculo           | character varying    | NOT NULL DEFAULT 'bueno'::character varying
+      equipamiento              | jsonb                | NOT NULL DEFAULT '[]'::jsonb
 
 📌 SCHEMA: geo
 ------------------------------------------------------------
@@ -710,6 +901,15 @@
       created_at                | timestamp without time zone | NULL DEFAULT now()
       updated_at                | timestamp without time zone | NULL DEFAULT now()
 
+   📍 TABLA: configuracion_pasarela
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      control_base_id           | uuid                 | NOT NULL
+      pasarela                  | character varying    | NOT NULL
+      activa                    | boolean              | NOT NULL DEFAULT true
+      credenciales              | jsonb                | NOT NULL DEFAULT '{}'::jsonb
+      comision_porcentaje       | numeric              | NULL DEFAULT '0'::numeric
+      created_at                | timestamp without time zone | NOT NULL DEFAULT now()
+
    📍 TABLA: configuracion_tarifa
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
       control_base_id           | uuid                 | NOT NULL
@@ -731,6 +931,20 @@
       hora_fin_nocturno         | time without time zone | NULL DEFAULT '06:00:00'::time without time
       moneda                    | character varying    | NULL DEFAULT 'ARS'::character varying
       descripcion               | text                 | NULL
+      metros_por_ficha          | numeric              | NOT NULL DEFAULT '100'::numeric
+      seg_por_ficha_espera      | numeric              | NOT NULL DEFAULT '60'::numeric
+      velocidad_referencia_kmh  | numeric              | NOT NULL DEFAULT '30'::numeric
+      velocidad_umbral_kmh      | numeric              | NOT NULL DEFAULT '15'::numeric
+      modo_cobro_tiempo         | character varying    | NOT NULL DEFAULT 'detenido'::character varying
+      redondeo_comercial        | integer              | NOT NULL DEFAULT 100
+
+   📍 TABLA: configuracion_tarifa_vehiculo
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      configuracion_tarifa_id   | uuid                 | NOT NULL
+      tipo_vehiculo_id          | character varying    | NOT NULL
+      factor_precio             | numeric              | NOT NULL DEFAULT 1.0
+      activo                    | boolean              | NOT NULL DEFAULT true
+      created_at                | timestamp with time zone | NOT NULL DEFAULT now()
 
    📍 TABLA: factura_empresa
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -763,6 +977,20 @@
       confirmado_por            | uuid                 | NULL
       created_at                | timestamp without time zone | NULL DEFAULT now()
       updated_at                | timestamp without time zone | NULL DEFAULT now()
+
+   📍 TABLA: qr_cobro
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NOT NULL
+      token                     | character varying    | NOT NULL
+      monto                     | numeric              | NOT NULL
+      pasarela                  | character varying    | NULL
+      estado                    | character varying    | NOT NULL DEFAULT 'pendiente'::character varying
+      url_pago                  | text                 | NULL
+      id_transaccion_externa    | character varying    | NULL
+      creado_en                 | timestamp without time zone | NOT NULL DEFAULT now()
+      expira_en                 | timestamp without time zone | NOT NULL
+      pagado_en                 | timestamp without time zone | NULL
+      control_base_id           | uuid                 | NOT NULL
 
    📍 TABLA: transaccion
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
@@ -981,6 +1209,19 @@
 📌 SCHEMA: trip
 ------------------------------------------------------------
 
+   📍 TABLA: broadcast_log
+      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
+      viaje_id                  | uuid                 | NOT NULL
+      chofer_id                 | uuid                 | NOT NULL
+      vehiculo_id               | uuid                 | NULL
+      distancia_metros          | integer              | NULL
+      emitido_en                | timestamp without time zone | NOT NULL DEFAULT now()
+      respondido_en             | timestamp without time zone | NULL
+      respuesta                 | character varying    | NULL
+      motivo_exclusion          | character varying    | NULL
+      tiempo_respuesta_segundos | integer              | NULL
+      control_base_id           | uuid                 | NOT NULL
+
    📍 TABLA: calificacion
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
       viaje_id                  | uuid                 | NOT NULL
@@ -1026,37 +1267,6 @@
       created_at                | timestamp without time zone | NULL DEFAULT now()
       usuario_id                | uuid                 | NULL
       resuelto_en               | timestamp without time zone | NULL
-
-   📍 TABLA: reserva
-      id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
-      empresa_id                | uuid                 | NOT NULL
-      empleado_id               | uuid                 | NOT NULL
-      turno_id                  | uuid                 | NULL
-      pasajero_nombre           | character varying    | NULL
-      pasajero_telefono         | character varying    | NULL
-      direccion_origen          | text                 | NOT NULL
-      latitud_origen            | numeric              | NULL
-      longitud_origen           | numeric              | NULL
-      direccion_destino         | text                 | NOT NULL
-      latitud_destino           | numeric              | NULL
-      longitud_destino          | numeric              | NULL
-      paradas_intermedias       | jsonb                | NULL DEFAULT '[]'::jsonb
-      tipo_vehiculo             | character varying    | NULL DEFAULT 'standard'::character varying
-      nota_conductor            | text                 | NULL
-      estado                    | character varying    | NULL DEFAULT 'reservado'::character varying
-      es_programado             | boolean              | NULL DEFAULT false
-      fecha_programada          | timestamp without time zone | NULL
-      distancia_estimada_km     | numeric              | NULL
-      tiempo_estimado_minutos   | integer              | NULL
-      precio_estimado           | numeric              | NULL
-      precio_final              | numeric              | NULL
-      metodo_pago               | character varying    | NULL DEFAULT 'vehiculo'::character varying
-      created_at                | timestamp without time zone | NULL DEFAULT now()
-      updated_at                | timestamp without time zone | NULL DEFAULT now()
-      creado_por                | uuid                 | NULL
-      cantidad_pasajeros        | integer              | NULL DEFAULT 1
-      cantidad_equipaje         | integer              | NULL DEFAULT 0
-      centro_costo              | character varying    | NULL
 
    📍 TABLA: tipo_vehiculo
       id                        | character varying    | NOT NULL
@@ -1111,110 +1321,161 @@
       chofer_vehiculo_id        | uuid                 | NULL
       updated_at                | timestamp without time zone | NULL DEFAULT now()
       solicitado_en             | timestamp without time zone | NULL DEFAULT now()
+      es_anonimo                | boolean              | NOT NULL DEFAULT false
+      pasajero_telefono         | character varying    | NULL
+      lugar_subida              | character varying    | NULL
+      cantidad_pasajeros        | integer              | NULL DEFAULT 1
+      origen_tipo               | character varying    | NULL
+      empleado_id               | uuid                 | NULL
+      turno_empleado_id         | uuid                 | NULL
+      centro_costo              | character varying    | NULL
+      paradas_intermedias       | jsonb                | NULL DEFAULT '[]'::jsonb
+      subestado_despacho        | character varying    | NULL
+      es_programado             | boolean              | NULL DEFAULT false
+      requiere_baul_grande      | boolean              | NULL DEFAULT false
+      cantidad_valijas          | integer              | NULL DEFAULT 0
+      calidad_minima_vehiculo   | character varying    | NULL
+      tipo_vehiculo_solicitado  | character varying    | NULL
+      intentos_broadcast        | integer              | NULL DEFAULT 0
+      radio_broadcast_metros    | integer              | NULL DEFAULT 2000
+      fecha_publicacion         | timestamp without time zone | NULL
+      fecha_expiracion          | timestamp without time zone | NULL
+      qr_cobro_token            | character varying    | NULL
+      qr_cobro_expira           | timestamp without time zone | NULL
+      cuenta_corriente_id       | uuid                 | NULL
+      cargado_a_cuenta          | boolean              | NULL DEFAULT false
+      responsable_cobro         | character varying    | NULL
+      estado_cobro              | character varying    | NULL
+      fecha_cobro               | timestamp without time zone | NULL
+      movimiento_cc_id          | uuid                 | NULL
+      metodo_pago               | character varying    | NULL
+      llegado_en                | timestamp without time zone | NULL
 
 ================================================================================
 🔗 RELACIONES (FOREIGN KEYS)
 ================================================================================
    audit.alerta_desvio.viaje_id → trip.viaje_solicitado.id
-   audit.log_acciones.usuario_id → auth.usuario.id
    audit.log_acciones.control_base_id → tenant.control_base.id
-   audit.log_gps.usuario_id → auth.usuario.id
+   audit.log_acciones.usuario_id → auth.usuario.id
    audit.log_gps.viaje_id → trip.viaje_solicitado.id
-   auth.autorizacion_inicio.chofer_id → auth.usuario.id
+   audit.log_gps.usuario_id → auth.usuario.id
    auth.autorizacion_inicio.contrato_id → fleet.contrato_vehiculo.id
    auth.autorizacion_inicio.created_by → auth.usuario.id
    auth.autorizacion_inicio.control_base_id → tenant.control_base.id
    auth.autorizacion_inicio.vehiculo_id → fleet.vehiculo.id
+   auth.autorizacion_inicio.chofer_id → auth.usuario.id
+   auth.codigo_metadatos.vehiculo_id → fleet.vehiculo.id
+   auth.codigo_metadatos.propietario_id → auth.usuario.id
+   auth.codigo_metadatos.codigo_id → auth.codigo_verificacion.id
+   auth.codigo_metadatos.contrato_id → fleet.contrato_vehiculo.id
+   auth.codigo_verificacion.usuario_id → auth.usuario.id
    auth.direccion_frecuente.usuario_id → auth.usuario.id
    auth.perfil_general.usuario_id → auth.usuario.id
    auth.perfil_general.ciudad_id → geo.ciudad.id
+   auth.plantilla_viaje.empresa_id → tenant.empresa.id
+   auth.plantilla_viaje.usuario_id → auth.usuario.id
    auth.refresh_token.usuario_id → auth.usuario.id
    auth.reset_token.usuario_id → auth.usuario.id
    auth.taxista_favorito.chofer_id → auth.usuario.id
    auth.taxista_favorito.pasajero_id → auth.usuario.id
-   auth.turno_empleado.empleado_id → auth.usuario.id
    auth.turno_empleado.empresa_id → tenant.empresa.id
+   auth.turno_empleado.empleado_id → auth.usuario.id
+   auth.usuario.tipo_usuario_id → auth.tipo_usuario.id
    auth.usuario.suspendido_por → auth.usuario.id
    auth.usuario.control_base_id → tenant.control_base.id
-   auth.usuario.tipo_usuario_id → auth.tipo_usuario.id
-   auth.usuario_empresa.usuario_id → auth.usuario.id
    auth.usuario_empresa.empresa_id → tenant.empresa.id
+   auth.usuario_empresa.usuario_id → auth.usuario.id
+   auth.usuario_rol.control_base_id → tenant.control_base.id
    auth.usuario_rol.usuario_id → auth.usuario.id
    auth.usuario_rol.tipo_usuario_id → auth.tipo_usuario.id
-   comunicacion.conversacion.participante_2 → auth.usuario.id
    comunicacion.conversacion.participante_1 → auth.usuario.id
+   comunicacion.conversacion.participante_2 → auth.usuario.id
    comunicacion.email_enviado.usuario_id → auth.usuario.id
    comunicacion.mensaje.remitente_id → auth.usuario.id
    comunicacion.mensaje.viaje_id → trip.viaje_solicitado.id
    comunicacion.mensaje.conversacion_id → comunicacion.conversacion.id
+   corporate.cuenta_corriente.propietario_id → auth.usuario.id
+   corporate.cuenta_corriente.empresa_id → tenant.empresa.id
+   corporate.factura_corporativa.empresa_id → tenant.empresa.id
+   corporate.movimiento_cuenta.created_by → auth.usuario.id
+   corporate.movimiento_cuenta.cuenta_id → corporate.cuenta_corriente.id
+   corporate.movimiento_cuenta.viaje_id → trip.viaje_solicitado.id
+   corporate.pago_corporativo.movimiento_cc_id → corporate.movimiento_cuenta.id
+   corporate.pago_corporativo.confirmado_por → auth.usuario.id
+   corporate.pago_corporativo.factura_id → corporate.factura_corporativa.id
+   corporate.pago_corporativo.empresa_id → tenant.empresa.id
    fleet.categoria_gasto.control_base_id → tenant.control_base.id
-   fleet.chofer_vehiculo.usuario_id → auth.usuario.id
    fleet.chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.chofer_vehiculo.control_base_id → tenant.control_base.id
-   fleet.contrato_qr.created_by → auth.usuario.id
+   fleet.chofer_vehiculo.usuario_id → auth.usuario.id
    fleet.contrato_qr.contrato_id → fleet.contrato_vehiculo.id
+   fleet.contrato_qr.created_by → auth.usuario.id
+   fleet.contrato_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.contrato_vehiculo.chofer_id → auth.usuario.id
    fleet.contrato_vehiculo.control_base_id → tenant.control_base.id
    fleet.contrato_vehiculo.propietario_id → auth.usuario.id
-   fleet.contrato_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.documento_propietario.propietario_id → auth.usuario.id
    fleet.documento_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.documentos_chofer.usuario_id → auth.usuario.id
    fleet.foto_vehiculo.subida_por → auth.usuario.id
    fleet.foto_vehiculo.vehiculo_id → fleet.vehiculo.id
-   fleet.gasto_turno.categoria_id → fleet.categoria_gasto.id
    fleet.gasto_turno.turno_id → fleet.turno_chofer.id
+   fleet.gasto_turno.categoria_id → fleet.categoria_gasto.id
+   fleet.gasto_vehiculo.propietario_id → auth.usuario.id
    fleet.gasto_vehiculo.categoria_id → fleet.categoria_gasto.id
    fleet.gasto_vehiculo.vehiculo_id → fleet.vehiculo.id
-   fleet.gasto_vehiculo.propietario_id → auth.usuario.id
-   fleet.historial_chofer_vehiculo.chofer_id → auth.usuario.id
    fleet.historial_chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.historial_chofer_vehiculo.chofer_id → auth.usuario.id
+   fleet.ingreso_turno.viaje_id → trip.viaje_solicitado.id
+   fleet.ingreso_turno.turno_id → fleet.turno_chofer.id
+   fleet.ingreso_turno.transaccion_id → payment.transaccion.id
+   fleet.ingreso_turno.declarado_por → auth.usuario.id
+   fleet.liquidacion.contrato_id → fleet.contrato_vehiculo.id
    fleet.liquidacion.chofer_id → auth.usuario.id
-   fleet.liquidacion.aprobada_por → auth.usuario.id
+   fleet.liquidacion.propietario_id → auth.usuario.id
    fleet.liquidacion.rechazada_por → auth.usuario.id
    fleet.liquidacion.pagada_por → auth.usuario.id
+   fleet.liquidacion.aprobada_por → auth.usuario.id
    fleet.liquidacion.control_base_id → tenant.control_base.id
    fleet.liquidacion.turno_id → fleet.turno_chofer.id
-   fleet.liquidacion.contrato_id → fleet.contrato_vehiculo.id
    fleet.liquidacion.vehiculo_id → fleet.vehiculo.id
-   fleet.liquidacion.propietario_id → auth.usuario.id
-   fleet.liquidacion_ajuste.liquidacion_id → fleet.liquidacion.id
-   fleet.liquidacion_ajuste.control_base_id → tenant.control_base.id
    fleet.liquidacion_ajuste.usuario_id → auth.usuario.id
+   fleet.liquidacion_ajuste.control_base_id → tenant.control_base.id
+   fleet.liquidacion_ajuste.liquidacion_id → fleet.liquidacion.id
    fleet.liquidacion_detalle.liquidacion_id → fleet.liquidacion.id
+   fleet.liquidacion_estado_historial.cambiado_por → auth.usuario.id
    fleet.liquidacion_estado_historial.liquidacion_id → fleet.liquidacion.id
    fleet.liquidacion_estado_historial.control_base_id → tenant.control_base.id
-   fleet.liquidacion_estado_historial.cambiado_por → auth.usuario.id
    fleet.mantenimiento_vehiculo.propietario_id → auth.usuario.id
    fleet.mantenimiento_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.modelo.marca_id → fleet.marca.id
+   fleet.neumatico_historial_posicion.control_base_id → tenant.control_base.id
    fleet.neumatico_historial_posicion.vehiculo_id → fleet.vehiculo.id
    fleet.neumatico_historial_posicion.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
-   fleet.neumatico_historial_posicion.control_base_id → tenant.control_base.id
    fleet.neumatico_historial_posicion.operacion_id → fleet.neumatico_operacion.id
-   fleet.neumatico_imagen.operacion_id → fleet.neumatico_operacion.id
-   fleet.neumatico_imagen.control_base_id → tenant.control_base.id
-   fleet.neumatico_imagen.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
    fleet.neumatico_imagen.subido_por → auth.usuario.id
-   fleet.neumatico_medicion.control_base_id → tenant.control_base.id
+   fleet.neumatico_imagen.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
+   fleet.neumatico_imagen.control_base_id → tenant.control_base.id
+   fleet.neumatico_imagen.operacion_id → fleet.neumatico_operacion.id
    fleet.neumatico_medicion.historial_posicion_id → fleet.neumatico_historial_posicion.id
    fleet.neumatico_medicion.medido_por → auth.usuario.id
-   fleet.neumatico_operacion.control_base_id → tenant.control_base.id
+   fleet.neumatico_medicion.control_base_id → tenant.control_base.id
    fleet.neumatico_operacion.creado_por → auth.usuario.id
+   fleet.neumatico_operacion.control_base_id → tenant.control_base.id
    fleet.neumatico_operacion.vehiculo_id → fleet.vehiculo.id
    fleet.neumatico_operacion_detalle.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
    fleet.neumatico_operacion_detalle.operacion_id → fleet.neumatico_operacion.id
-   fleet.neumatico_sugerencia.vehiculo_id → fleet.vehiculo.id
-   fleet.neumatico_sugerencia.control_base_id → tenant.control_base.id
    fleet.neumatico_sugerencia.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
    fleet.neumatico_sugerencia.atendida_por → auth.usuario.id
-   fleet.neumatico_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.neumatico_sugerencia.vehiculo_id → fleet.vehiculo.id
+   fleet.neumatico_sugerencia.control_base_id → tenant.control_base.id
    fleet.neumatico_vehiculo.control_base_id → tenant.control_base.id
+   fleet.neumatico_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.notificacion_vencimiento.propietario_id → auth.usuario.id
-   fleet.propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.propietario_vehiculo.propietario_id → auth.usuario.id
-   fleet.relacion_propietario_vehiculo.propietario_id → auth.usuario.id
+   fleet.propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.relacion_propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.relacion_propietario_vehiculo.propietario_id → auth.usuario.id
    fleet.turno_chofer.chofer_id → auth.usuario.id
    fleet.turno_chofer.contrato_id → fleet.contrato_vehiculo.id
    fleet.turno_chofer.vehiculo_id → fleet.vehiculo.id
@@ -1224,18 +1485,21 @@
    notification.notificacion.usuario_id → auth.usuario.id
    payment.billetera.usuario_id → auth.usuario.id
    payment.configuracion_tarifa.control_base_id → tenant.control_base.id
+   payment.configuracion_tarifa_vehiculo.configuracion_tarifa_id → payment.configuracion_tarifa.id
+   payment.configuracion_tarifa_vehiculo.tipo_vehiculo_id → trip.tipo_vehiculo.id
    payment.factura_empresa.empresa_id → tenant.empresa.id
    payment.pago_empresa.empresa_id → tenant.empresa.id
-   payment.pago_empresa.confirmado_por → auth.usuario.id
    payment.pago_empresa.factura_id → payment.factura_empresa.id
+   payment.pago_empresa.confirmado_por → auth.usuario.id
+   payment.qr_cobro.viaje_id → trip.viaje_solicitado.id
    payment.transaccion.billetera_id → payment.billetera.id
-   payment.transaccion.viaje_id → trip.viaje_solicitado.id
    payment.transaccion.metodo_pago_id → payment.metodo_pago.id
+   payment.transaccion.viaje_id → trip.viaje_solicitado.id
    public.comercio.control_base_id → tenant.control_base.id
-   public.escaneo_qr.comercio_id → public.comercio.id
    public.escaneo_qr.autorizacion_id → auth.autorizacion_inicio.id
-   public.escaneo_qr.contrato_id → fleet.contrato_vehiculo.id
    public.escaneo_qr.viaje_id → trip.viaje_solicitado.id
+   public.escaneo_qr.comercio_id → public.comercio.id
+   public.escaneo_qr.contrato_id → fleet.contrato_vehiculo.id
    rentabilidad.analisis_medios_pago.vehiculo_id → fleet.vehiculo.id
    rentabilidad.rentabilidad_diaria_vehiculo.vehiculo_id → fleet.vehiculo.id
    rentabilidad.rentabilidad_mensual_vehiculo.vehiculo_id → fleet.vehiculo.id
@@ -1246,32 +1510,32 @@
    tenant.empresa.control_base_id → tenant.control_base.id
    tenant.factura.control_base_id → tenant.control_base.id
    tenant.factura.pagada_por → auth.usuario.id
-   trip.calificacion.calificado_id → auth.usuario.id
+   trip.broadcast_log.chofer_id → auth.usuario.id
+   trip.broadcast_log.viaje_id → trip.viaje_solicitado.id
+   trip.broadcast_log.vehiculo_id → fleet.vehiculo.id
    trip.calificacion.viaje_id → trip.viaje_solicitado.id
+   trip.calificacion.calificado_id → auth.usuario.id
    trip.calificacion.calificador_id → auth.usuario.id
    trip.foto_viaje.viaje_id → trip.viaje_solicitado.id
    trip.foto_viaje.usuario_id → auth.usuario.id
    trip.historial_estado_viaje.viaje_id → trip.viaje_solicitado.id
-   trip.objeto_olvidado.pasajero_id → auth.usuario.id
    trip.objeto_olvidado.viaje_id → trip.viaje_solicitado.id
+   trip.objeto_olvidado.pasajero_id → auth.usuario.id
    trip.objeto_olvidado.chofer_id → auth.usuario.id
    trip.panico.viaje_id → trip.viaje_solicitado.id
    trip.panico.usuario_id → auth.usuario.id
-   trip.reserva.empleado_id → auth.usuario.id
-   trip.reserva.turno_id → auth.turno_empleado.id
-   trip.reserva.turno_id → auth.turno_empleado.id
-   trip.reserva.empleado_id → auth.usuario.id
-   trip.reserva.empresa_id → tenant.empresa.id
-   trip.reserva.empresa_id → tenant.empresa.id
-   trip.reserva.creado_por → auth.usuario.id
-   trip.viaje_solicitado.chofer_id → auth.usuario.id
+   trip.viaje_solicitado.control_base_id → tenant.control_base.id
    trip.viaje_solicitado.chofer_vehiculo_id → fleet.chofer_vehiculo.id
    trip.viaje_solicitado.turno_id → fleet.turno_chofer.id
-   trip.viaje_solicitado.comercio_id → public.comercio.id
-   trip.viaje_solicitado.control_base_id → tenant.control_base.id
+   trip.viaje_solicitado.movimiento_cc_id → corporate.movimiento_cuenta.id
+   trip.viaje_solicitado.cuenta_corriente_id → corporate.cuenta_corriente.id
    trip.viaje_solicitado.empresa_id → tenant.empresa.id
-   trip.viaje_solicitado.vehiculo_id → fleet.vehiculo.id
+   trip.viaje_solicitado.turno_empleado_id → auth.turno_empleado.id
+   trip.viaje_solicitado.empleado_id → auth.usuario.id
+   trip.viaje_solicitado.chofer_id → auth.usuario.id
    trip.viaje_solicitado.pasajero_id → auth.usuario.id
+   trip.viaje_solicitado.vehiculo_id → fleet.vehiculo.id
+   trip.viaje_solicitado.comercio_id → public.comercio.id
 
 ================================================================================
 🏷️ ENUMS

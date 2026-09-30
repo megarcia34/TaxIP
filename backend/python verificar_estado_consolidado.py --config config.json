@@ -1,0 +1,882 @@
+#!/usr/bin/env python3
+"""
+verificar_estado_consolidado.py
+
+Script de auditoría para determinar si tu backend puede devolver
+el estado consolidado del usuario en una sola llamada.
+
+Uso:
+    python verificar_estado_consolidado.py --config config.json
+    python verificar_estado_consolidado.py  # usa valores por defecto
+
+Requisitos:
+    pip install psycopg2-binary requests sqlalchemy
+    (o mysql-connector-python si usas MySQL)
+"""
+
+import argparse
+import json
+import sys
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Dependencias opcionales — el script se adapta según lo que esté instalado
+# ---------------------------------------------------------------------------
+
+try:
+    import psycopg2
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
+
+try:
+    import mysql.connector
+    HAS_MYSQL = True
+except ImportError:
+    HAS_MYSQL = False
+
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+
+try:
+    from sqlalchemy import create_engine, inspect, text
+    HAS_SQLALCHEMY = True
+except ImportError:
+    HAS_SQLALCHEMY = False
+
+
+# ---------------------------------------------------------------------------
+# Estructuras de datos
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Verificacion:
+    nombre: str
+    estado: str          # "ok", "fallo", "advertencia", "info"
+    detalle: str
+    recomendacion: str = ""
+
+
+@dataclass
+class Reporte:
+    verificaciones: list = field(default_factory=list)
+    timestamp: str = field(
+        default_factory=lambda: datetime.now().isoformat()
+    )
+
+    def agregar(self, v: Verificacion):
+        self.verificaciones.append(v)
+
+    def resumen(self) -> dict:
+        total = len(self.verificaciones)
+        ok = sum(1 for v in self.verificaciones if v.estado == "ok")
+        fallos = sum(1 for v in self.verificaciones if v.estado == "fallo")
+        advertencias = sum(
+            1 for v in self.verificaciones if v.estado == "advertencia"
+        )
+        return {
+            "total": total,
+            "ok": ok,
+            "fallo": fallos,
+            "advertencia": advertencias,
+            "puede_consolidar": fallos == 0,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Configuración por defecto
+# ---------------------------------------------------------------------------
+
+DEFAULT_CONFIG = {
+    "database": {
+        "engine": "postgresql",
+        "host": "localhost",
+        "port": 5432,
+        "name": "mi_base_datos",
+        "user": "postgres",
+        "password": "postgres"
+    },
+    "api": {
+        "base_url": "http://localhost:8000",
+        "token": "",
+        "endpoints": {
+            "usuarios": "/api/usuarios/",
+            "expedientes": "/api/expedientes/",
+            "vehiculos": "/api/vehiculos/",
+            "contratos": "/api/contratos/",
+            "turnos": "/api/turnos/",
+            "estado_consolidado": "/api/estado-consolidado/"
+        }
+    },
+    "tablas": {
+        "usuarios": "usuarios",
+        "expedientes": "expedientes",
+        "vehiculos": "vehiculos_asignados",
+        "contratos": "contratos",
+        "turnos": "turnos"
+    },
+    "columnas_requeridas": {
+        "usuarios": ["id", "email"],
+        "expedientes": [
+            "id", "usuario_id", "estado"
+        ],
+        "vehiculos": ["id", "usuario_id", "activo"],
+        "contratos": ["id", "usuario_id", "estado"],
+        "turnos": ["id", "usuario_id", "estado"]
+    },
+    "verificar_api": True,
+    "verificar_base_datos": True,
+    "usuario_prueba_id": None
+}
+
+
+def cargar_config(ruta: Optional[str]) -> dict:
+    if ruta is None:
+        return DEFAULT_CONFIG
+    with open(ruta, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    # Merge con defaults
+    merged = {**DEFAULT_CONFIG}
+    for clave, valor in cfg.items():
+        if isinstance(valor, dict) and clave in merged:
+            merged[clave] = {**merged[clave], **valor}
+        else:
+            merged[clave] = valor
+    return merged
+
+
+# ---------------------------------------------------------------------------
+# Verificaciones de base de datos
+# ---------------------------------------------------------------------------
+
+class VerificadorBD:
+    """Se conecta a la BD y verifica estructura + datos."""
+
+    def __init__(self, config: dict, reporte: Reporte):
+        self.config = config
+        self.reporte = reporte
+        self.engine = None
+        self.connection = None
+
+    def conectar(self):
+        db = self.config["database"]
+        engine = db.get("engine", "postgresql")
+
+        if HAS_SQLALCHEMY:
+            if engine == "postgresql":
+                url = (
+                    f"postgresql://{db['user']}:{db['password']}"
+                    f"@{db['host']}:{db['port']}/{db['name']}"
+                )
+            elif engine == "mysql":
+                url = (
+                    f"mysql+mysqlconnector://{db['user']}:{db['password']}"
+                    f"@{db['host']}:{db['port']}/{db['name']}"
+                )
+            elif engine == "sqlite":
+                url = f"sqlite:///{db['name']}"
+            else:
+                self.reporte.agregar(Verificacion(
+                    nombre="Motor de BD",
+                    estado="fallo",
+                    detalle=f"Motor no soportado: {engine}",
+                    recomendacion=(
+                        "Usa postgresql, mysql o sqlite."
+                    )
+                ))
+                return False
+
+            try:
+                self.engine = create_engine(url, pool_pre_ping=True)
+                self.connection = self.engine.connect()
+                self.reporte.agregar(Verificacion(
+                    nombre="Conexión a base de datos",
+                    estado="ok",
+                    detalle=f"Conectado a {engine} en {db['host']}:{db['port']}"
+                ))
+                return True
+            except Exception as e:
+                self.reporte.agregar(Verificacion(
+                    nombre="Conexión a base de datos",
+                    estado="fallo",
+                    detalle=str(e),
+                    recomendacion=(
+                        "Verifica host, puerto, usuario y contraseña."
+                    )
+                ))
+                return False
+        else:
+            self.reporte.agregar(Verificacion(
+                nombre="Dependencia: SQLAlchemy",
+                estado="fallo",
+                detalle="sqlalchemy no está instalado.",
+                recomendacion="Ejecuta: pip install sqlalchemy"
+            ))
+            return False
+
+    def verificar_tablas_existen(self):
+        inspector = inspect(self.engine)
+        tablas_en_bd = set(inspector.get_table_names())
+        tablas_esperadas = self.config["tablas"]
+
+        for rol, nombre_tabla in tablas_esperadas.items():
+            if nombre_tabla in tablas_en_bd:
+                self.reporte.agregar(Verificacion(
+                    nombre=f"Tabla '{nombre_tabla}'",
+                    estado="ok",
+                    detalle=f"Existe (rol: {rol})"
+                ))
+            else:
+                self.reporte.agregar(Verificacion(
+                    nombre=f"Tabla '{nombre_tabla}'",
+                    estado="fallo",
+                    detalle=f"No encontrada en la BD.",
+                    recomendacion=(
+                        f"Crea la tabla '{nombre_tabla}' o ajusta "
+                        f"el nombre en la configuración."
+                    )
+                ))
+
+    def verificar_columnas(self):
+        inspector = inspect(self.engine)
+        columnas_cfg = self.config["columnas_requeridas"]
+
+        for rol, columnas_esperadas in columnas_cfg.items():
+            nombre_tabla = self.config["tablas"].get(rol)
+            if nombre_tabla is None:
+                continue
+
+            try:
+                columnas_bd = {
+                    col["name"]
+                    for col in inspector.get_columns(nombre_tabla)
+                }
+            except Exception:
+                # La tabla no existe, ya se reportó antes
+                continue
+
+            for col in columnas_esperadas:
+                if col in columnas_bd:
+                    self.reporte.agregar(Verificacion(
+                        nombre=f"Columna '{nombre_tabla}.{col}'",
+                        estado="ok",
+                        detalle="Existe"
+                    ))
+                else:
+                    self.reporte.agregar(Verificacion(
+                        nombre=f"Columna '{nombre_tabla}.{col}'",
+                        estado="fallo",
+                        detalle="No encontrada.",
+                        recomendacion=(
+                            f"ALTER TABLE {nombre_tabla} "
+                            f"ADD COLUMN {col} <tipo>;"
+                        )
+                    ))
+
+    def verificar_relaciones(self):
+        """Verifica que las foreign keys existan hacia usuarios."""
+        inspector = inspect(self.engine)
+        tablas = self.config["tablas"]
+
+        for rol in ["expedientes", "vehiculos", "contratos", "turnos"]:
+            nombre_tabla = tablas.get(rol)
+            if nombre_tabla is None:
+                continue
+
+            try:
+                fks = inspector.get_foreign_keys(nombre_tabla)
+            except Exception:
+                continue
+
+            fk_hacia_usuarios = any(
+                fk.get("referred_table") == tablas["usuarios"]
+                for fk in fks
+            )
+
+            if fk_hacia_usuarios:
+                self.reporte.agregar(Verificacion(
+                    nombre=f"FK {nombre_tabla} → {tablas['usuarios']}",
+                    estado="ok",
+                    detalle="Relación de clave foránea verificada"
+                ))
+            else:
+                self.reporte.agregar(Verificacion(
+                    nombre=f"FK {nombre_tabla} → {tablas['usuarios']}",
+                    estado="advertencia",
+                    detalle=(
+                        "No se encontró FK explícita. "
+                        "La relación puede existir por lógica de aplicación."
+                    ),
+                    recomendacion=(
+                        "Considera crear una FK para garantizar "
+                        "integridad referencial."
+                    )
+                ))
+
+    def verificar_datos_muestra(self):
+        """Hace queries de muestra para verificar que los JOINs funcionan."""
+        if self.connection is None:
+            return
+
+        tablas = self.config["tablas"]
+
+        # Query consolidada de prueba
+        query = text(f"""
+            SELECT
+                u.id,
+                u.email,
+                e.estado AS estado_expediente,
+                CASE WHEN v.id IS NOT NULL THEN true ELSE false END
+                    AS tiene_vehiculo,
+                CASE WHEN c.id IS NOT NULL AND c.estado = 'vigente'
+                    THEN true ELSE false END AS tiene_contrato,
+                CASE WHEN t.id IS NOT NULL AND t.estado = 'activo'
+                    THEN true ELSE false END AS tiene_turno
+            FROM {tablas['usuarios']} u
+            LEFT JOIN {tablas['expedientes']} e
+                ON e.usuario_id = u.id
+            LEFT JOIN {tablas['vehiculos']} v
+                ON v.usuario_id = u.id AND v.activo = true
+            LEFT JOIN {tablas['contratos']} c
+                ON c.usuario_id = u.id
+            LEFT JOIN {tablas['turnos']} t
+                ON t.usuario_id = u.id
+            LIMIT 1
+        """)
+
+        try:
+            resultado = self.connection.execute(query)
+            fila = resultado.fetchone()
+
+            if fila:
+                self.reporte.agregar(Verificacion(
+                    nombre="Query consolidada de prueba",
+                    estado="ok",
+                    detalle=(
+                        f"Ejecutada correctamente. "
+                        f"Muestra: id={fila[0]}, email={fila[1]}, "
+                        f"expediente={fila[2]}, vehiculo={fila[3]}, "
+                        f"contrato={fila[4]}, turno={fila[5]}"
+                    )
+                ))
+            else:
+                self.reporte.agregar(Verificacion(
+                    nombre="Query consolidada de prueba",
+                    estado="advertencia",
+                    detalle=(
+                        "La query se ejecutó pero no hay datos. "
+                        "Inserta al menos un usuario de prueba."
+                    )
+                ))
+
+        except Exception as e:
+            self.reporte.agregar(Verificacion(
+                nombre="Query consolidada de prueba",
+                estado="fallo",
+                detalle=f"Error al ejecutar: {e}",
+                recomendacion=(
+                    "Verifica nombres de columnas y tablas "
+                    "en la configuración."
+                )
+            ))
+
+    def verificar_logica_puede_operar(self):
+        """Verifica que se puede calcular puede_operar desde la BD."""
+        if self.connection is None:
+            return
+
+        tablas = self.config["tablas"]
+
+        query = text(f"""
+            SELECT
+                u.id,
+                u.email,
+                e.estado AS estado_exp,
+                CASE WHEN v.id IS NOT NULL THEN true ELSE false END
+                    AS vehiculo_ok,
+                CASE WHEN c.id IS NOT NULL AND c.estado = 'vigente'
+                    THEN true ELSE false END AS contrato_ok,
+                CASE
+                    WHEN e.estado = 'aprobado'
+                         AND v.id IS NOT NULL
+                         AND c.id IS NOT NULL
+                         AND c.estado = 'vigente'
+                    THEN true
+                    ELSE false
+                END AS puede_operar
+            FROM {tablas['usuarios']} u
+            LEFT JOIN {tablas['expedientes']} e
+                ON e.usuario_id = u.id
+            LEFT JOIN {tablas['vehiculos']} v
+                ON v.usuario_id = u.id AND v.activo = true
+            LEFT JOIN {tablas['contratos']} c
+                ON c.usuario_id = u.id
+            LIMIT 5
+        """)
+
+        try:
+            resultado = self.connection.execute(query)
+            filas = resultado.fetchall()
+
+            if filas:
+                self.reporte.agregar(Verificacion(
+                    nombre="Cálculo de 'puede_operar'",
+                    estado="ok",
+                    detalle=(
+                        f"Funciona para {len(filas)} usuario(s) de muestra. "
+                        f"Regla: expediente aprobado + vehículo asignado "
+                        f"+ contrato vigente."
+                    )
+                ))
+            else:
+                self.reporte.agregar(Verificacion(
+                    nombre="Cálculo de 'puede_operar'",
+                    estado="advertencia",
+                    detalle="Sin datos para validar la lógica.",
+                    recomendacion="Inserta datos de prueba."
+                ))
+
+        except Exception as e:
+            self.reporte.agregar(Verificacion(
+                nombre="Cálculo de 'puede_operar'",
+                estado="fallo",
+                detalle=str(e),
+                recomendacion=(
+                    "Revisa que las columnas 'estado' y 'activo' "
+                    "existan con los valores esperados."
+                )
+            ))
+
+    def cerrar(self):
+        if self.connection:
+            self.connection.close()
+        if self.engine:
+            self.engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Verificaciones de API
+# ---------------------------------------------------------------------------
+
+class VerificadorAPI:
+    """Hace requests HTTP contra los endpoints existentes."""
+
+    def __init__(self, config: dict, reporte: Reporte):
+        self.config = config
+        self.reporte = reporte
+        self.base_url = config["api"]["base_url"].rstrip("/")
+        self.token = config["api"].get("token", "")
+        self.headers = {}
+        if self.token:
+            self.headers["Authorization"] = f"Bearer {self.token}"
+
+    def verificar_endpoints_existentes(self):
+        if not HAS_REQUESTS:
+            self.reporte.agregar(Verificacion(
+                nombre="Dependencia: requests",
+                estado="fallo",
+                detalle="requests no está instalado.",
+                recomendacion="Ejecuta: pip install requests"
+            ))
+            return
+
+        endpoints = self.config["api"]["endpoints"]
+
+        for rol, ruta in endpoints.items():
+            if rol == "estado_consolidado":
+                continue  # Se verifica aparte
+
+            url = f"{self.base_url}{ruta}"
+            try:
+                resp = requests.get(
+                    url,
+                    headers=self.headers,
+                    timeout=10
+                )
+                if resp.status_code < 400:
+                    self.reporte.agregar(Verificacion(
+                        nombre=f"Endpoint {ruta}",
+                        estado="ok",
+                        detalle=f"Disponible (HTTP {resp.status_code})"
+                    ))
+                elif resp.status_code == 401:
+                    self.reporte.agregar(Verificacion(
+                        nombre=f"Endpoint {ruta}",
+                        estado="advertencia",
+                        detalle=(
+                            "HTTP 401 — requiere autenticación. "
+                            "Proporciona un token válido."
+                        ),
+                        recomendacion=(
+                            "Añade 'token' en la sección 'api' "
+                            "del config.json"
+                        )
+                    ))
+                else:
+                    self.reporte.agregar(Verificacion(
+                        nombre=f"Endpoint {ruta}",
+                        estado="advertencia",
+                        detalle=f"HTTP {resp.status_code}"
+                    ))
+            except requests.ConnectionError:
+                self.reporte.agregar(Verificacion(
+                    nombre=f"Endpoint {ruta}",
+                    estado="fallo",
+                    detalle="No se pudo conectar al servidor.",
+                    recomendacion=(
+                        f"Verifica que el backend esté corriendo "
+                        f"en {self.base_url}"
+                    )
+                ))
+                break  # Si no conecta, no tiene sentido seguir
+            except Exception as e:
+                self.reporte.agregar(Verificacion(
+                    nombre=f"Endpoint {ruta}",
+                    estado="fallo",
+                    detalle=str(e)
+                ))
+
+    def verificar_endpoint_consolidado(self):
+        if not HAS_REQUESTS:
+            return
+
+        ruta = self.config["api"]["endpoints"].get(
+            "estado_consolidado", "/api/estado-consolidado/"
+        )
+        url = f"{self.base_url}{ruta}"
+
+        try:
+            resp = requests.get(
+                url,
+                headers=self.headers,
+                timeout=10
+            )
+
+            if resp.status_code == 200:
+                data = resp.json()
+                campos_esperados = {
+                    "usuario", "estado_expediente", "puede_operar",
+                    "tiene_vehiculo_asignado", "tiene_contrato_activo",
+                    "tiene_turno_activo"
+                }
+                campos_encontrados = set(data.keys())
+                campos_faltantes = campos_esperados - campos_encontrados
+
+                if not campos_faltantes:
+                    self.reporte.agregar(Verificacion(
+                        nombre="Endpoint consolidado",
+                        estado="ok",
+                        detalle=(
+                            "Existe y devuelve todos los campos "
+                            "esperados."
+                        )
+                    ))
+                    # Verificar tipos
+                    self._verificar_tipos(data)
+                else:
+                    self.reporte.agregar(Verificacion(
+                        nombre="Endpoint consolidado",
+                        estado="advertencia",
+                        detalle=(
+                            f"Existe pero faltan campos: "
+                            f"{campos_faltantes}"
+                        ),
+                        recomendacion=(
+                            "Añade los campos faltantes al serializer."
+                        )
+                    ))
+
+            elif resp.status_code == 404:
+                self.reporte.agregar(Verificacion(
+                    nombre="Endpoint consolidado",
+                    estado="fallo",
+                    detalle=f"No existe ({ruta}).",
+                    recomendacion=(
+                        "Necesitas crearlo. "
+                        "Ver la implementación sugerida más abajo."
+                    )
+                ))
+            elif resp.status_code == 401:
+                self.reporte.agregar(Verificacion(
+                    nombre="Endpoint consolidado",
+                    estado="advertencia",
+                    detalle="HTTP 401 — requiere token."
+                ))
+            else:
+                self.reporte.agregar(Verificacion(
+                    nombre="Endpoint consolidado",
+                    estado="advertencia",
+                    detalle=f"HTTP {resp.status_code}: {resp.text[:200]}"
+                ))
+
+        except requests.ConnectionError:
+            pass  # Ya reportado antes
+        except Exception as e:
+            self.reporte.agregar(Verificacion(
+                nombre="Endpoint consolidado",
+                estado="fallo",
+                detalle=str(e)
+            ))
+
+    def _verificar_tipos(self, data: dict):
+        esperados = {
+            "usuario": dict,
+            "estado_expediente": str,
+            "puede_operar": bool,
+            "tiene_vehiculo_asignado": bool,
+            "tiene_contrato_activo": bool,
+            "tiene_turno_activo": bool,
+        }
+        for campo, tipo in esperados.items():
+            valor = data.get(campo)
+            if valor is not None and not isinstance(valor, tipo):
+                self.reporte.agregar(Verificacion(
+                    nombre=f"Tipo de '{campo}'",
+                    estado="advertencia",
+                    detalle=(
+                        f"Se esperaba {tipo.__name__}, "
+                        f"se recibió {type(valor).__name__}"
+                    )
+                ))
+
+
+# ---------------------------------------------------------------------------
+# Benchmark de rendimiento
+# ---------------------------------------------------------------------------
+
+class VerificadorRendimiento:
+    """Compara el costo de N llamadas separadas vs 1 consolidada."""
+
+    def __init__(self, config: dict, reporte: Reporte):
+        self.config = config
+        self.reporte = reporte
+
+    def estimar(self):
+        if not HAS_REQUESTS:
+            return
+
+        base = self.config["api"]["base_url"].rstrip("/")
+        headers = {}
+        token = self.config["api"].get("token", "")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        endpoints = self.config["api"]["endpoints"]
+        tiempos_separados = []
+
+        for rol, ruta in endpoints.items():
+            if rol == "estado_consolidado":
+                continue
+            url = f"{base}{ruta}"
+            try:
+                inicio = datetime.now()
+                resp = requests.get(
+                    url, headers=headers, timeout=10
+                )
+                fin = datetime.now()
+                if resp.status_code < 400:
+                    ms = (fin - inicio).total_seconds() * 1000
+                    tiempos_separados.append(ms)
+            except Exception:
+                pass
+
+        # Tiempo del endpoint consolidado
+        ruta_consolidado = endpoints.get("estado_consolidado")
+        if ruta_consolidado:
+            url = f"{base}{ruta_consolidado}"
+            try:
+                inicio = datetime.now()
+                resp = requests.get(
+                    url, headers=headers, timeout=10
+                )
+                fin = datetime.now()
+                if resp.status_code == 200:
+                    ms_consolidado = (fin - inicio).total_seconds() * 1000
+                    ms_separados_total = sum(tiempos_separados)
+                    llamadas = len(tiempos_separados)
+
+                    if llamadas > 0:
+                        mejora = (
+                            (1 - ms_consolidado / ms_separados_total) * 100
+                        )
+                        self.reporte.agregar(Verificacion(
+                            nombre="Rendimiento comparado",
+                            estado="ok",
+                            detalle=(
+                                f"Separadas: {llamadas} llamadas, "
+                                f"{ms_separados_total:.0f}ms total. "
+                                f"Consolidada: {ms_consolidado:.0f}ms. "
+                                f"Mejora: {mejora:.1f}%"
+                            )
+                        ))
+            except Exception:
+                pass
+
+
+# ---------------------------------------------------------------------------
+# Generación del reporte
+# ---------------------------------------------------------------------------
+
+def imprimir_reporte(reporte: Reporte):
+    ICONOS = {
+        "ok": "✔",
+        "fallo": "✘",
+        "advertencia": "⚠",
+        "info": "ℹ",
+    }
+
+    print()
+    print("=" * 70)
+    print("  REPORTE DE VERIFICACIÓN — ESTADO CONSOLIDADO")
+    print(f"  Generado: {reporte.timestamp}")
+    print("=" * 70)
+
+    for v in reporte.verificaciones:
+        icono = ICONOS.get(v.estado, "?")
+        color_estado = {
+            "ok": "\033[92m",
+            "fallo": "\033[91m",
+            "advertencia": "\033[93m",
+            "info": "\033[94m",
+        }
+        reset = "\033[0m"
+        color = color_estado.get(v.estado, "")
+
+        print(f"\n  {color}{icono} [{v.estado.upper()}]{reset} {v.nombre}")
+        print(f"    {v.detalle}")
+        if v.recomendacion:
+            print(f"    → {v.recomendacion}")
+
+    resumen = reporte.resumen()
+
+    print()
+    print("-" * 70)
+    print("  RESUMEN")
+    print("-" * 70)
+    print(f"  Verificaciones totales : {resumen['total']}")
+    print(f"  OK                     : \033[92m{resumen['ok']}\033[0m")
+    print(f"  Fallos                 : \033[91m{resumen['fallo']}\033[0m")
+    print(f"  Advertencias           : \033[93m{resumen['advertencia']}\033[0m")
+
+    print()
+    if resumen["puede_consolidar"]:
+        print(
+            "  \033[92m✔ TU BACKEND PUEDE DEVOLVER EL ESTADO "
+            "CONSOLIDADO.\033[0m"
+        )
+        print(
+            "    Solo necesitas crear el endpoint orquestador "
+            "si no existe."
+        )
+    else:
+        print(
+            "  \033[91m✘ HAY BLOQUEANTES. "
+            "Revisa los fallos arriba.\033[0m"
+        )
+    print("=" * 70)
+    print()
+
+
+def exportar_json(reporte: Reporte, ruta: str):
+    data = {
+        "timestamp": reporte.timestamp,
+        "resumen": reporte.resumen(),
+        "verificaciones": [
+            {
+                "nombre": v.nombre,
+                "estado": v.estado,
+                "detalle": v.detalle,
+                "recomendacion": v.recomendacion,
+            }
+            for v in reporte.verificaciones
+        ],
+    }
+    with open(ruta, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    print(f"  Reporte exportado a: {ruta}")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Verifica si el backend puede devolver "
+                    "el estado consolidado en una sola llamada."
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Ruta al archivo config.json"
+    )
+    parser.add_argument(
+        "--solo-bd",
+        action="store_true",
+        help="Solo verificar base de datos"
+    )
+    parser.add_argument(
+        "--solo-api",
+        action="store_true",
+        help="Solo verificar endpoints HTTP"
+    )
+    parser.add_argument(
+        "--exportar",
+        type=str,
+        default=None,
+        help="Exportar reporte a archivo JSON"
+    )
+    parser.add_argument(
+        "--sin-color",
+        action="store_true",
+        help="Desactivar colores en consola"
+    )
+
+    args = parser.parse_args()
+
+    config = cargar_config(args.config)
+    reporte = Reporte()
+
+    # ── Base de datos ──
+    if config.get("verificar_base_datos", True) and not args.solo_api:
+        print("\n  Verificando base de datos...")
+        verificador_bd = VerificadorBD(config, reporte)
+        if verificador_bd.conectar():
+            verificador_bd.verificar_tablas_existen()
+            verificador_bd.verificar_columnas()
+            verificador_bd.verificar_relaciones()
+            verificador_bd.verificar_datos_muestra()
+            verificador_bd.verificar_logica_puede_operar()
+            verificador_bd.cerrar()
+
+    # ── API HTTP ──
+    if config.get("verificar_api", True) and not args.solo_bd:
+        print("  Verificando endpoints HTTP...")
+        verificador_api = VerificadorAPI(config, reporte)
+        verificador_api.verificar_endpoints_existentes()
+        verificador_api.verificar_endpoint_consolidado()
+
+        # Benchmark
+        print("  Midiendo rendimiento...")
+        benchmark = VerificadorRendimiento(config, reporte)
+        benchmark.estimar()
+
+    # ── Reporte ──
+    imprimir_reporte(reporte)
+
+    if args.exportar:
+        exportar_json(reporte, args.exportar)
+
+    # Exit code: 0 si puede consolidar, 1 si hay fallos
+    resumen = reporte.resumen()
+    sys.exit(0 if resumen["puede_consolidar"] else 1)
+
+
+if __name__ == "__main__":
+    main()

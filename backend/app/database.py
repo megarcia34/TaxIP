@@ -23,9 +23,13 @@ DATABASE_URL = os.getenv(
 )
 
 # Create async engine
+# Create async engine
+# NOTA: echo desacoplado de DEBUG. El nivel de log de SQLAlchemy
+# se controla vía SQLALCHEMY_LOG_LEVEL (default: WARNING) en logging_config.py.
+# Si necesitás ver queries en desarrollo, seteá SQLALCHEMY_LOG_LEVEL=INFO en .env.
 engine: AsyncEngine = create_async_engine(
     DATABASE_URL,
-    echo=os.getenv("DEBUG", "false").lower() == "true",
+    echo=False,
     future=True,
     pool_size=10,
     max_overflow=20

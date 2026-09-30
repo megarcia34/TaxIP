@@ -1,0 +1,13 @@
+import requests
+
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyMGRmNTkyZC00N2MwLTRiN2YtODg4MS1iMjUwZDdlMWFjNzEiLCJ0aXBvIjoiY2hvZmVyIiwiY29udHJvbF9iYXNlX2lkIjoiOTVkZDQyNWQtNTg0MC00ZGVkLWE4MzgtMmNjZDBlYWQwZTBiIiwiZXhwIjoxNzg4MzQ2NzExLCJ0eXBlIjoiYWNjZXNzIn0.cTJUYw6sWfVmraghFDdvcS9EUg4TuRlzLJTkzcPSeD8"
+
+url = "http://localhost:8000/api/chofer/registro-progresivo/selfie"
+headers = {"Authorization": f"Bearer {token}"}
+data = {
+    "foto_url": "https://res.cloudinary.com/sfy4qupi/image/upload/v1788345538/choferes/20df592d-47c0-4b7f-8881-b250d7e1ac71/dni/file_pstxmm.jpg"
+}
+
+response = requests.post(url, headers=headers, json=data)
+print(f"Status: {response.status_code}")
+print(f"Response: {response.text}")

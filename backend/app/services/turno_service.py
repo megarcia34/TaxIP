@@ -2,6 +2,7 @@
 Servicio de gestión de turnos (Check-in / Check-out) CON HORARIOS FLEXIBLES
 """
 
+import logging
 import uuid
 from uuid import UUID
 from datetime import datetime, timedelta
@@ -17,8 +18,8 @@ from app.models.turno import TurnoChofer
 from app.models.gasto_turno import GastoTurno
 from app.models.auth import Usuario
 from app.models.trip import ViajeSolicitado
-from app.services.turno_authorization import TurnoAuthorizationService
 
+logger = logging.getLogger(__name__)
 
 # ============================================
 # FUNCIONES AUXILIARES PARA HORARIOS
@@ -132,7 +133,7 @@ class TurnoService:
             )
         )
         total_horas = horas_trabajadas.scalar() or 0
-        if total_horas >= 12:
+        if total_horas >= 24:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Límite de 12 horas de trabajo excedido en las últimas 24 horas"
@@ -245,7 +246,7 @@ class TurnoService:
         await db.commit()
         await db.refresh(turno)
 
-        # 9. Actualizar estado laboral del chofer
+                # 9. Actualizar estado laboral del chofer
         chofer_vehiculo = await db.execute(
             select(ChoferVehiculo)
             .where(
@@ -257,7 +258,8 @@ class TurnoService:
         )
         chofer_vehiculo = chofer_vehiculo.scalar_one_or_none()
         if chofer_vehiculo:
-            chofer_vehiculo.estado_laboral = 'ocupado'
+            chofer_vehiculo.estado_laboral = 'libre'
+            chofer_vehiculo.updated_at = datetime.now()
 
         await db.commit()
 
@@ -343,6 +345,9 @@ class TurnoService:
             "ingresos_registrados": 1 if recaudacion_ticketera > 0 else 0
         }
 
+      
+
+
     @staticmethod
     async def registrar_gasto(
         db: AsyncSession,
@@ -420,187 +425,3 @@ class TurnoService:
             "gasto_id": gasto.id,
             "mensaje": "Gasto registrado correctamente"
         }
-
-    @staticmethod
-    async def generar_qr(
-        propietario_id: UUID,
-        contrato_id: UUID,
-        db: AsyncSession,
-        dias_validez: int = 30
-    ) -> dict:
-        """
-        Genera un QR operativo para un contrato ACTIVO.
-        """
-        query = text("""
-            SELECT id, control_base_id FROM fleet.contrato_vehiculo
-            WHERE id = :contrato_id AND estado_contrato = 'ACTIVO' AND activo = true
-        """)
-        result = await db.execute(query, {"contrato_id": contrato_id})
-        row = result.first()
-        if not row:
-            raise HTTPException(404, "Contrato no encontrado o no ACTIVO")
-
-        control_base_id = row[1]
-
-        token = str(uuid.uuid4())
-        fecha_expiracion = datetime.now() + timedelta(days=dias_validez)
-
-        insert = text("""
-            INSERT INTO fleet.contrato_qr (
-                id, contrato_id, token, fecha_expiracion, activo, created_at, created_by, usos
-            ) VALUES (
-                gen_random_uuid(), :contrato_id, :token, :fecha_expiracion, true, NOW(), :propietario_id, 0
-            )
-            RETURNING id
-        """)
-        await db.execute(insert, {
-            "contrato_id": contrato_id,
-            "token": token,
-            "fecha_expiracion": fecha_expiracion,
-            "propietario_id": propietario_id
-        })
-        await db.commit()
-
-        return {
-            "token": token,
-            "fecha_expiracion": fecha_expiracion
-        }
-
-    @staticmethod
-    async def escanear_qr(
-        conductor_id: UUID,
-        token: str,
-        db: AsyncSession
-    ) -> dict:
-        """
-        Escanea un QR operativo, ejecuta C1 y genera autorización temporal.
-        """
-        query_qr = text("""
-            SELECT cq.id, cq.contrato_id, cq.fecha_expiracion, cq.activo,
-                   cv.control_base_id, cv.propietario_id
-            FROM fleet.contrato_qr cq
-            JOIN fleet.contrato_vehiculo cv ON cv.id = cq.contrato_id
-            WHERE cq.token = :token
-        """)
-        result = await db.execute(query_qr, {"token": token})
-        row = result.first()
-        if not row:
-            return {"autorizado": False, "mensaje": "QR inválido o no encontrado"}
-
-        qr_id, contrato_id, fecha_expiracion, activo, control_base_id, propietario_id = row
-
-        if fecha_expiracion and fecha_expiracion < datetime.now():
-            return {"autorizado": False, "mensaje": "QR expirado"}
-        if not activo:
-            return {"autorizado": False, "mensaje": "QR inactivo"}
-
-        query_tenant = text("SELECT control_base_id FROM auth.usuario WHERE id = :conductor_id")
-        result = await db.execute(query_tenant, {"conductor_id": conductor_id})
-        conductor_tenant = result.scalar()
-        if conductor_tenant != control_base_id:
-            return {"autorizado": False, "mensaje": "El QR pertenece a otro tenant"}
-
-        autorizacion = await TurnoAuthorizationService.autorizar_inicio_jornada(
-            usuario_id=conductor_id,
-            contrato_id=contrato_id,
-            db=db
-        )
-
-        if not autorizacion.autorizado:
-            await TurnoService._registrar_escaneo(
-                db=db,
-                qr_id=qr_id,
-                conductor_id=conductor_id,
-                contrato_id=contrato_id,
-                tipo="OPERATIVO",
-                resultado="RECHAZADO",
-                motivo=autorizacion.mensaje
-            )
-            return {"autorizado": False, "mensaje": autorizacion.mensaje}
-
-        auth_token = str(uuid.uuid4())
-        expires_at = datetime.now() + timedelta(minutes=5)
-
-        # ============================================================
-        # NOTA: auth.autorizacion_inicio.turno_contractual se mantiene
-        # como metadata. No se usa como selector rígido de turno.
-        # ============================================================
-        insert_autorizacion = text("""
-            INSERT INTO auth.autorizacion_inicio (
-                id, token, contrato_id, chofer_id, vehiculo_id, control_base_id,
-                tipo_contrato, turno_contractual, dia_contractual,
-                created_at, expires_at, qr_referencia, created_by
-            ) VALUES (
-                gen_random_uuid(), :auth_token, :contrato_id, :conductor_id, :vehiculo_id, :control_base_id,
-                :tipo_contrato, :turno_contractual, :dia_contractual,
-                NOW(), :expires_at, :qr_referencia, :created_by
-            )
-            RETURNING id
-        """)
-        result = await db.execute(insert_autorizacion, {
-            "auth_token": auth_token,
-            "contrato_id": contrato_id,
-            "conductor_id": conductor_id,
-            "vehiculo_id": autorizacion.vehiculo_id,
-            "control_base_id": control_base_id,
-            "tipo_contrato": autorizacion.tipo_contrato,
-            "turno_contractual": autorizacion.turno_contractual,
-            "dia_contractual": autorizacion.dia_contractual,
-            "expires_at": expires_at,
-            "qr_referencia": qr_id,
-            "created_by": propietario_id
-        })
-        autorizacion_id = result.scalar()
-
-        await TurnoService._registrar_escaneo(
-            db=db,
-            qr_id=qr_id,
-            conductor_id=conductor_id,
-            contrato_id=contrato_id,
-            tipo="OPERATIVO",
-            resultado="EXITO",
-            motivo=None,
-            autorizacion_id=autorizacion_id
-        )
-
-        await db.execute(
-            text("UPDATE fleet.contrato_qr SET usos = usos + 1 WHERE id = :qr_id"),
-            {"qr_id": qr_id}
-        )
-        await db.commit()
-
-        return {
-            "autorizado": True,
-            "mensaje": "Autorización concedida",
-            "auth_token": auth_token,
-            "expires_at": expires_at
-        }
-
-    @staticmethod
-    async def _registrar_escaneo(
-        db: AsyncSession,
-        qr_id: UUID,
-        conductor_id: UUID,
-        contrato_id: UUID,
-        tipo: str,
-        resultado: str,
-        motivo: Optional[str] = None,
-        autorizacion_id: Optional[UUID] = None
-    ) -> None:
-        """Registra un escaneo de QR en public.escaneo_qr."""
-        insert = text("""
-            INSERT INTO public.escaneo_qr (
-                id, comercio_id, viaje_id, contrato_id, tipo_qr, resultado, motivo, autorizacion_id,
-                user_agent, ip_address, created_at
-            ) VALUES (
-                gen_random_uuid(), NULL, NULL, :contrato_id, :tipo, :resultado, :motivo, :autorizacion_id,
-                NULL, NULL, NOW()
-            )
-        """)
-        await db.execute(insert, {
-            "contrato_id": contrato_id,
-            "tipo": tipo,
-            "resultado": resultado,
-            "motivo": motivo,
-            "autorizacion_id": autorizacion_id
-        })

@@ -1,5 +1,5 @@
 """
-Servicio de almacenamiento en Cloudinary para comprobantes de gastos
+Servicio de almacenamiento en Cloudinary para comprobantes de gastos y documentos de chofer
 """
 
 import cloudinary
@@ -50,6 +50,39 @@ class CloudinaryStorageService:
             content,
             folder=f"comprobantes/{tipo}/{propietario_id}",
             public_id=f"{gasto_id}_{timestamp}_{unique_id}",
+            resource_type="auto",
+            use_filename=True,
+            unique_filename=True,
+            format=file_extension
+        )
+        
+        return upload_result.get("secure_url")
+
+    async def upload_documento_chofer(
+        self,
+        file: UploadFile,
+        usuario_id: str,
+        tipo_documento: str
+    ) -> str:
+        """
+        Sube un documento de chofer a Cloudinary y retorna la URL segura.
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        
+        # Obtener extensión
+        file_extension = file.filename.split('.')[-1] if file.filename else 'jpg'
+        if file_extension.lower() not in ['jpg', 'jpeg', 'png', 'pdf']:
+            file_extension = 'jpg'
+        
+        # Leer el archivo
+        content = await file.read()
+        
+        # Subir a Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            content,
+            folder=f"choferes/{usuario_id}/{tipo_documento}",
+            public_id=f"{timestamp}_{unique_id}",
             resource_type="auto",
             use_filename=True,
             unique_filename=True,

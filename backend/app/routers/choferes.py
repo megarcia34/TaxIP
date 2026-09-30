@@ -25,13 +25,9 @@ from app.schemas.turno_schemas import (
     GastoRequest,
     TurnoActivoResponse,
     TurnoResponse,
-    EscaneoQrRequest,
-    EscaneoQrResponse,
-    IniciarJornadaRequest,
-    IniciarJornadaResponse
 )
 from app.services.turno_service import TurnoService
-from app.services.qr_service import QRService
+from app.services.turno_authorization import TurnoAuthorizationService
 
 router = APIRouter(prefix="/api/choferes", tags=["Choferes"])
 
@@ -597,103 +593,23 @@ async def vincular_chofer(
     """
     LEGACY: Vinculación de chofer con vehículo via QR.
     DEPRECADO: Este endpoint ya no crea contratos.
-    Para iniciar jornada, usar POST /escaneo-qr
+    Para iniciar jornada, usar POST /api/chofer/turno/validar-codigo y luego POST /api/chofer/turno/check-in.
     """
     return {
         "success": False,
-        "mensaje": "Este endpoint está deprecado. Use /escaneo-qr para iniciar jornada."
+        "mensaje": "Este endpoint está deprecado. Use el flujo oficial de turno: validar código de 6 dígitos y luego check-in."
     }
 
 
 # ============================================
-# C2 — ESCANEO QR OPERATIVO
+# C2/C3 LEGACY — FLUJO QR PARA INICIO DE TURNO
 # ============================================
-
-@router.post("/escaneo-qr", response_model=EscaneoQrResponse)
-async def escanear_qr_operativo(
-    request: EscaneoQrRequest,
-    current_user: tuple = Depends(get_current_driver_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Escanea un QR operativo.
-    Valida el token, ejecuta C1 y genera autorización temporal (auth_token).
-    """
-    conductor_id = current_user[0]
-    
-    resultado = await QRService.escanear_qr(
-        conductor_id=conductor_id,
-        token=request.token,
-        db=db
-    )
-    
-    return EscaneoQrResponse(
-        autorizado=resultado["autorizado"],
-        mensaje=resultado["mensaje"],
-        auth_token=resultado.get("auth_token"),
-        expires_at=resultado.get("expires_at")
-    )
-
-
-# ============================================
-# C1 — ENDPOINT DE PRUEBA (mantenido para regresión)
-# ============================================
-
-from app.schemas.turno_schemas import AutorizacionTurnoRequest, AutorizacionTurnoResult
-from app.services.turno_authorization import TurnoAuthorizationService
-
-@router.post("/test/autorizar-turno", response_model=AutorizacionTurnoResult)
-async def test_autorizar_turno(
-    request: AutorizacionTurnoRequest,
-    current_user: tuple = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    ENDPOINT TEMPORAL PARA PRUEBAS (BLOQUE C1).
-    Verifica si el usuario autenticado puede iniciar jornada bajo un contrato.
-    """
-    usuario_id = current_user[0]
-    resultado = await TurnoAuthorizationService.autorizar_inicio_jornada(
-        usuario_id=usuario_id,
-        contrato_id=request.contrato_id,
-        db=db,
-        fecha_referencia=request.fecha_referencia
-    )
-    return resultado
-
-
-# ============================================
-# C3 — INICIAR JORNADA CON AUTORIZACIÓN
-# ============================================
-
-@router.post("/turnos/iniciar", response_model=IniciarJornadaResponse)
-async def iniciar_jornada(
-    request: IniciarJornadaRequest,
-    current_user: tuple = Depends(get_current_driver_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Inicia una jornada operativa usando un auth_token de C2.
-    """
-    resultado = await QRService.consumir_autorizacion(
-        auth_token=request.auth_token,
-        km_inicial=request.km_inicial,
-        combustible_inicial=request.combustible_inicial,
-        db=db
-    )
-
-    if not resultado["success"]:
-        raise HTTPException(status_code=400, detail=resultado["mensaje"])
-
-    return IniciarJornadaResponse(
-        success=True,
-        turno_id=resultado["turno_id"],
-        mensaje=resultado["mensaje"],
-        contrato_id=resultado["contrato_id"],
-        vehiculo_id=resultado["vehiculo_id"],
-        patente=resultado["patente"]
-    )
-
+# DEPRECADO.
+# El inicio de turno oficial de la App Chofer utiliza: 
+# código de 6 dígitos -> /api/chofer/turno/validar-codigo
+# -> autorización temporal -> /api/chofer/turno/check-in
+# El QR se reserva para identificación/validación de vehículo,
+# compartir viaje y control, no para crear turnos.
 
 # ============================================
 # GESTIÓN DE TURNOS (Check-in / Check-out)

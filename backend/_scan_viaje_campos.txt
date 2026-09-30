@@ -1,0 +1,914 @@
+﻿
+Path                                                                         LineNumber Line                           
+----                                                                         ---------- ----                           
+D:\aTaxip\backend\app\core\.backup_20260916_095735\scheduler.py                      30             WHERE estado =     
+                                                                                        'programada'                   
+D:\aTaxip\backend\app\core\.backup_20260916_095735\scheduler.py                      66                         SET    
+                                                                                        estado = 'pendiente',          
+D:\aTaxip\backend\app\core\scheduler.py                                              36             WHERE estado =     
+                                                                                        'publicado'                    
+D:\aTaxip\backend\app\core\scheduler.py                                              68             WHERE estado =     
+                                                                                        'programada'                   
+D:\aTaxip\backend\app\core\scheduler.py                                             103                     SET estado 
+                                                                                        = 'pendiente',                 
+D:\aTaxip\backend\app\models\corporate.py                                           166     metodo_pago: Mapped[str] = 
+                                                                                        mapped_column(String(50),      
+                                                                                        nullable=False)                
+D:\aTaxip\backend\app\models\liquidacion.py                                          73     metodo_pago =              
+                                                                                        Column(String(50),             
+                                                                                        nullable=True)                 
+D:\aTaxip\backend\app\models\payment.py                                               3 Tablas: metodo_pago,           
+                                                                                        billetera, transaccion,        
+                                                                                        configuracion_tarifa           
+D:\aTaxip\backend\app\models\payment.py                                              16     __tablename__ =            
+                                                                                        "metodo_pago"                  
+D:\aTaxip\backend\app\models\payment.py                                              28                                
+                                                                                        back_populates="metodo_pago",  
+D:\aTaxip\backend\app\models\payment.py                                              88     metodo_pago_id:            
+                                                                                        Mapped[Optional[uuid.UUID]] =  
+                                                                                        mapped_column(                 
+D:\aTaxip\backend\app\models\payment.py                                              90         ForeignKey("payment.met
+                                                                                        odo_pago.id"),                 
+D:\aTaxip\backend\app\models\payment.py                                             107     metodo_pago:               
+                                                                                        Mapped[Optional["MetodoPago"]] 
+                                                                                        = relationship(back_populates="
+                                                                                        transacciones")                
+D:\aTaxip\backend\app\models\payment.py                                             252     metodo_pago: Mapped[str] = 
+                                                                                        mapped_column(String(50),      
+                                                                                        nullable=False)                
+D:\aTaxip\backend\app\models\trip.py                                                404     metodo_pago:               
+                                                                                        Mapped[Optional[str]] =        
+                                                                                        mapped_column(String(50),      
+                                                                                        nullable=True,                 
+                                                                                        server_default="vehiculo")     
+D:\aTaxip\backend\app\models\trip_service.py                                         73             estado="pendiente",
+D:\aTaxip\backend\app\models\trip_service.py                                        191         viaje.estado =         
+                                                                                        "aceptado"                     
+D:\aTaxip\backend\app\models\trip_service.py                                        214         viaje.estado =         
+                                                                                        "en_curso"                     
+D:\aTaxip\backend\app\models\trip_service.py                                        237         viaje.estado =         
+                                                                                        "finalizado"                   
+D:\aTaxip\backend\app\models\trip_service.py                                        263         viaje.estado =         
+                                                                                        "cancelado"                    
+D:\aTaxip\backend\app\models\trip_service.py                                        337             estado="reservado",
+D:\aTaxip\backend\app\models\trip_service.py                                        343             metodo_pago=data.ge
+                                                                                        t("metodo_pago", "vehiculo"),  
+D:\aTaxip\backend\app\models\trip_service.py                                        376             estado="pendiente",
+D:\aTaxip\backend\app\models\trip_service.py                                        391         reserva.estado =       
+                                                                                        "procesado"                    
+D:\aTaxip\backend\app\repositories\liquidacion_repository.py                         56             estado="CALCULADA",
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    118                 (SELECT        
+                                                                                        COUNT(*) FROM                  
+                                                                                        trip.viaje_solicitado WHERE    
+                                                                                        estado = 'pendiente') as       
+                                                                                        viajes_pendientes,             
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    119                 (SELECT        
+                                                                                        COUNT(*) FROM                  
+                                                                                        trip.viaje_solicitado WHERE    
+                                                                                        estado = 'en_curso') as        
+                                                                                        viajes_en_curso,               
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    120                 (SELECT        
+                                                                                        COUNT(*) FROM                  
+                                                                                        trip.viaje_solicitado WHERE    
+                                                                                        estado = 'finalizado' AND      
+                                                                                        created_at::date =             
+                                                                                        CURRENT_DATE) as viajes_hoy,   
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    121                 (SELECT        
+                                                                                        COALESCE(SUM(precio_final), 0) 
+                                                                                        FROM trip.viaje_solicitado     
+                                                                                        WHERE estado = 'finalizado'    
+                                                                                        AND created_at::date =         
+                                                                                        CURRENT_DATE) as               
+                                                                                        recaudacion_hoy                
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    137                     WHEN       
+                                                                                        vs.estado = 'finalizado' THEN  
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    188             (SELECT COUNT(*)   
+                                                                                        FROM trip.viaje_solicitado     
+                                                                                        WHERE control_base_id =        
+                                                                                        :control_base_id AND estado =  
+                                                                                        'pendiente') as                
+                                                                                        viajes_pendientes,             
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    189             (SELECT COUNT(*)   
+                                                                                        FROM trip.viaje_solicitado     
+                                                                                        WHERE control_base_id =        
+                                                                                        :control_base_id AND estado =  
+                                                                                        'en_curso') as viajes_en_curso,
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    190             (SELECT COUNT(*)   
+                                                                                        FROM trip.viaje_solicitado     
+                                                                                        WHERE control_base_id =        
+                                                                                        :control_base_id AND estado =  
+                                                                                        'finalizado' AND               
+                                                                                        created_at::date =             
+                                                                                        CURRENT_DATE) as viajes_hoy,   
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    191             (SELECT            
+                                                                                        COALESCE(SUM(precio_final), 0) 
+                                                                                        FROM trip.viaje_solicitado     
+                                                                                        WHERE control_base_id =        
+                                                                                        :control_base_id AND estado =  
+                                                                                        'finalizado' AND               
+                                                                                        created_at::date =             
+                                                                                        CURRENT_DATE) as               
+                                                                                        recaudacion_hoy,               
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    208                 WHEN vs.estado 
+                                                                                        = 'finalizado' THEN            
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    304                   AND estado = 
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    311                   AND estado = 
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    421             AND vs.estado =    
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    522           AND estado =         
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    575           AND vs.estado =      
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    674                  JOIN          
+                                                                                        payment.metodo_pago mp ON      
+                                                                                        mp.id = t.metodo_pago_id       
+D:\aTaxip\backend\app\routers\admin\dashboard.py                                    680             AND vs.estado =    
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\admin\empresas.py                                      75                 WHERE          
+                                                                                        f.empresa_id = e.id AND        
+                                                                                        f.estado = 'pendiente'         
+D:\aTaxip\backend\app\routers\admin\empresas.py                                      97         if estado == "activo": 
+D:\aTaxip\backend\app\routers\admin\empresas.py                                      99         elif estado ==         
+                                                                                        "inactivo":                    
+D:\aTaxip\backend\app\routers\admin\empresas.py                                     101         elif estado ==         
+                                                                                        "suspendido":                  
+D:\aTaxip\backend\app\routers\admin\empresas.py                                     194                 WHERE          
+                                                                                        f.empresa_id = e.id AND        
+                                                                                        f.estado = 'pendiente'         
+D:\aTaxip\backend\app\routers\admin\empresas.py                                     882             COUNT(CASE WHEN    
+                                                                                        f.estado = 'pendiente' THEN 1  
+                                                                                        END) as facturas_pendientes    
+D:\aTaxip\backend\app\routers\admin\empresas.py                                     885         LEFT JOIN              
+                                                                                        payment.factura_empresa f ON   
+                                                                                        f.empresa_id = e.id AND        
+                                                                                        f.estado = 'pendiente'         
+D:\aTaxip\backend\app\routers\admin\empresas.py                                     936             COUNT(CASE WHEN    
+                                                                                        estado = 'finalizado' THEN 1   
+                                                                                        END) as viajes_completados,    
+D:\aTaxip\backend\app\routers\admin\empresas.py                                     937             COUNT(CASE WHEN    
+                                                                                        estado = 'cancelado' THEN 1    
+                                                                                        END) as viajes_cancelados,     
+D:\aTaxip\backend\app\routers\admin\propietarios.py                                  65         if estado == "activo": 
+D:\aTaxip\backend\app\routers\admin\propietarios.py                                  67         elif estado ==         
+                                                                                        "inactivo":                    
+D:\aTaxip\backend\app\routers\propietario\neumaticos\neumatico_individual.py        192         WHERE nv.id =          
+                                                                                        :neumatico_id AND nv.estado =  
+                                                                                        'ACTIVO' AND                   
+                                                                                        hp.fecha_desmontaje IS NULL    
+D:\aTaxip\backend\app\routers\propietario\neumaticos\neumatico_individual.py        242         SET estado = 'BAJA',   
+                                                                                        updated_at = NOW()             
+D:\aTaxip\backend\app\routers\propietario\neumaticos\neumatico_individual.py        284     if data.estado ==          
+                                                                                        "DESECHADO" and estado_actual  
+                                                                                        != "BAJA":                     
+D:\aTaxip\backend\app\routers\propietario\neumaticos\neumatico_individual.py        290     if data.estado == "BAJA"   
+                                                                                        and estado_actual != "ACTIVO": 
+D:\aTaxip\backend\app\routers\propietario\neumaticos\neumatico_individual.py        300         SET estado =           
+                                                                                        '{data.estado}',               
+D:\aTaxip\backend\app\routers\propietario\neumaticos\neumatico_individual.py        334           AND                  
+                                                                                        hp.fecha_desmontaje IS NULL    
+                                                                                        AND nv.estado = 'ACTIVO'       
+D:\aTaxip\backend\app\routers\propietario\neumaticos\operaciones.py                  56                   AND          
+                                                                                        hp.fecha_desmontaje IS NULL    
+                                                                                        AND nv.estado = 'ACTIVO'       
+D:\aTaxip\backend\app\routers\propietario\neumaticos\operaciones.py                 207           AND                  
+                                                                                        hp.fecha_desmontaje IS NULL    
+                                                                                        AND nv.estado = 'ACTIVO'       
+D:\aTaxip\backend\app\routers\propietario\neumaticos\operaciones.py                 316         SET estado =           
+                                                                                        'ACCIONADA', fecha_atendida =  
+                                                                                        NOW(), atendida_por = :user_id 
+D:\aTaxip\backend\app\routers\propietario\neumaticos\operaciones.py                 318           AND tipo_sugerencia  
+                                                                                        = 'ROTACION' AND estado =      
+                                                                                        'PENDIENTE'                    
+D:\aTaxip\backend\app\routers\propietario\neumaticos\sugerencias.py                 133         SET estado =           
+                                                                                        'ACCIONADA', fecha_atendida =  
+                                                                                        NOW(),                         
+D:\aTaxip\backend\app\routers\propietario\neumaticos\sugerencias.py                 182         SET estado =           
+                                                                                        'DESESTIMADA',                 
+D:\aTaxip\backend\app\routers\propietario\neumaticos\vehiculo_neumaticos.py         166                AND estado =    
+                                                                                        'PENDIENTE'                    
+D:\aTaxip\backend\app\routers\propietario\neumaticos\vehiculo_neumaticos.py         171                AND estado =    
+                                                                                        'PENDIENTE'                    
+D:\aTaxip\backend\app\routers\propietario\neumaticos\vehiculo_neumaticos.py         179           AND nv.estado =      
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\propietario\contratos.py                              491         nuevo_estado =         
+                                                                                        "PROGRAMADO"                   
+D:\aTaxip\backend\app\routers\propietario\contratos.py                              494         nuevo_estado = "ACTIVO"
+D:\aTaxip\backend\app\routers\propietario\dashboard.py                               42             COUNT(DISTINCT     
+                                                                                        CASE WHEN t.estado = 'ACTIVO'  
+                                                                                        THEN t.vehiculo_id END) as     
+                                                                                        vehiculos_en_turno,            
+D:\aTaxip\backend\app\routers\propietario\dashboard.py                               47         LEFT JOIN              
+                                                                                        fleet.turno_chofer t ON        
+                                                                                        t.vehiculo_id = v.id AND       
+                                                                                        t.estado = 'ACTIVO'            
+D:\aTaxip\backend\app\routers\propietario\dashboard.py                               97         LEFT JOIN              
+                                                                                        fleet.turno_chofer t ON        
+                                                                                        t.vehiculo_id = v.id AND       
+                                                                                        t.estado = 'ACTIVO'            
+D:\aTaxip\backend\app\routers\propietario\dashboard.py                              324                 WHERE          
+                                                                                        vehiculo_id = v.id AND estado  
+                                                                                        = 'ACTIVO'                     
+D:\aTaxip\backend\app\routers\propietario\dashboard.py                              580           AND vs.estado =      
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\propietario\dashboard.py                              630                 WHERE          
+                                                                                        vehiculo_id = v.id AND estado  
+                                                                                        = 'ACTIVO'                     
+D:\aTaxip\backend\app\routers\propietario\dashboard.py                              715           AND t.estado =       
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\propietario\finanzas.py                                55             WHERE              
+                                                                                        v.vehiculo_id = :vehiculo_id   
+                                                                                        AND v.estado = 'finalizado'    
+D:\aTaxip\backend\app\routers\propietario\finanzas.py                               136         WHERE v.estado =       
+                                                                                        'finalizado' AND               
+                                                                                        v.created_at::date BETWEEN     
+                                                                                        :desde AND :hasta              
+D:\aTaxip\backend\app\routers\propietario\finanzas.py                               152         WHERE v.estado =       
+                                                                                        'finalizado' AND               
+                                                                                        v.created_at::date BETWEEN     
+                                                                                        :desde AND :hasta              
+D:\aTaxip\backend\app\routers\propietario\finanzas.py                               372           AND vs.estado =      
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\propietario\finanzas.py                               491               AND vs.estado =  
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\propietario\ingresos.py                                49             id, viaje_id,      
+                                                                                        metodo_pago_id, monto, estado, 
+                                                                                        tipo, descripcion, created_at, 
+                                                                                        billetera_id                   
+D:\aTaxip\backend\app\routers\propietario\ingresos.py                                87             id, viaje_id,      
+                                                                                        metodo_pago_id, monto, estado, 
+                                                                                        tipo, descripcion, created_at, 
+                                                                                        billetera_id                   
+D:\aTaxip\backend\app\routers\propietario\ingresos.py                               143             WHERE v.estado =   
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\propietario\mantenimientos.py                         473         if turno.estado ==     
+                                                                                        'ACTIVO':                      
+D:\aTaxip\backend\app\routers\propietario\turnos.py                                  95                 WHERE          
+                                                                                        it.turno_id = t.id AND         
+                                                                                        it.estado = 'aprobado'         
+D:\aTaxip\backend\app\routers\propietario\turnos.py                                 100                 WHERE          
+                                                                                        it.turno_id = t.id AND         
+                                                                                        it.estado = 'pendiente'        
+D:\aTaxip\backend\app\routers\propietario\turnos.py                                 193                 WHERE          
+                                                                                        it.turno_id = t.id AND         
+                                                                                        it.estado = 'aprobado'         
+D:\aTaxip\backend\app\routers\propietario\turnos.py                                 198                 WHERE          
+                                                                                        it.turno_id = t.id AND         
+                                                                                        it.estado = 'pendiente'        
+D:\aTaxip\backend\app\routers\propietario\turnos.py                                 333         SET estado =           
+                                                                                        'LIQUIDADO', updated_at = NOW()
+D:\aTaxip\backend\app\routers\propietario\turnos.py                                 417         WHERE chofer_id =      
+                                                                                        :chofer_id AND estado =        
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\propietario\turnos.py                                 427         WHERE vehiculo_id =    
+                                                                                        :vehiculo_id AND estado =      
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\propietario\utils.py                                   82           AND t.estado =       
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\propietario\utils.py                                  111         WHERE vehiculo_id =    
+                                                                                        :vehiculo_id AND estado =      
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\propietario\utils.py                                  127         WHERE vehiculo_id =    
+                                                                                        :vehiculo_id AND estado =      
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\propietario\validaciones.py                           657         WHERE t.chofer_id =    
+                                                                                        :chofer_id AND t.estado =      
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\propietario\validaciones.py                           694           AND estado = 'ACTIVO'
+D:\aTaxip\backend\app\routers\propietario\validaciones.py                           721           AND estado = 'ACTIVO'
+D:\aTaxip\backend\app\routers\propietario\vehiculos.py                              367             COUNT(CASE WHEN    
+                                                                                        estado = 'ACTIVO' THEN 1 END)  
+                                                                                        as activos                     
+D:\aTaxip\backend\app\routers\super_admin\dashboard.py                               59                 WHERE estado = 
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\super_admin\dashboard.py                               65                 WHERE estado = 
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\super_admin\dashboard.py                               91             AND vs.estado =    
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\super_admin\dashboard.py                              122                  JOIN          
+                                                                                        payment.metodo_pago mp ON      
+                                                                                        mp.id = t.metodo_pago_id       
+D:\aTaxip\backend\app\routers\super_admin\dashboard.py                              127             AND vs.estado =    
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\super_admin\dashboard.py                              169         WHERE estado =         
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              155                 WHEN vs.estado 
+                                                                                        = 'finalizado' THEN            
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              278             COUNT(CASE WHEN    
+                                                                                        estado = 'pendiente' THEN 1    
+                                                                                        END) as pendientes,            
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              279             COUNT(CASE WHEN    
+                                                                                        estado = 'aceptado' THEN 1     
+                                                                                        END) as aceptados,             
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              280             COUNT(CASE WHEN    
+                                                                                        estado = 'en_curso' THEN 1     
+                                                                                        END) as en_curso,              
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              281             COUNT(CASE WHEN    
+                                                                                        estado = 'finalizado' THEN 1   
+                                                                                        END) as finalizados,           
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              282             COUNT(CASE WHEN    
+                                                                                        estado = 'cancelado' THEN 1    
+                                                                                        END) as cancelados,            
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              284             COALESCE(SUM(CASE  
+                                                                                        WHEN estado = 'finalizado' AND 
+                                                                                        created_at::date =             
+                                                                                        CURRENT_DATE                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              448         estado="pendiente",    
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              473             WHERE id =         
+                                                                                        :viaje_id AND pasajero_id =    
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              479             WHERE id =         
+                                                                                        :viaje_id AND chofer_id =      
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              593                 WHEN vs.estado 
+                                                                                        = 'finalizado' THEN            
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              812         WHERE pasajero_id =    
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\routes.py              853         estado="reportado",    
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\schemas.py             168     metodo_pago: str =         
+                                                                                        "efectivo"                     
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083115\schemas.py             358     metodo_pago: str =         
+                                                                                        "efectivo"                     
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              155                 WHEN vs.estado 
+                                                                                        = 'finalizado' THEN            
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              278             COUNT(CASE WHEN    
+                                                                                        estado = 'pendiente' THEN 1    
+                                                                                        END) as pendientes,            
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              279             COUNT(CASE WHEN    
+                                                                                        estado = 'aceptado' THEN 1     
+                                                                                        END) as aceptados,             
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              280             COUNT(CASE WHEN    
+                                                                                        estado = 'en_curso' THEN 1     
+                                                                                        END) as en_curso,              
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              281             COUNT(CASE WHEN    
+                                                                                        estado = 'finalizado' THEN 1   
+                                                                                        END) as finalizados,           
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              282             COUNT(CASE WHEN    
+                                                                                        estado = 'cancelado' THEN 1    
+                                                                                        END) as cancelados,            
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              284             COALESCE(SUM(CASE  
+                                                                                        WHEN estado = 'finalizado' AND 
+                                                                                        created_at::date =             
+                                                                                        CURRENT_DATE                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              448         estado="pendiente",    
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              473             WHERE id =         
+                                                                                        :viaje_id AND pasajero_id =    
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              479             WHERE id =         
+                                                                                        :viaje_id AND chofer_id =      
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              593                 WHEN vs.estado 
+                                                                                        = 'finalizado' THEN            
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              812         WHERE pasajero_id =    
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\routes.py              853         estado="reportado",    
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\schemas.py             168     metodo_pago: str =         
+                                                                                        "efectivo"                     
+D:\aTaxip\backend\app\routers\viajes\.backup_20260916_083406\schemas.py             358     metodo_pago: str =         
+                                                                                        "efectivo"                     
+D:\aTaxip\backend\app\routers\viajes\queries.py                                      54             WHEN vs.estado =   
+                                                                                        'finalizado' THEN              
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     113         COUNT(CASE WHEN estado 
+                                                                                        = 'pendiente' THEN 1 END) as   
+                                                                                        pendientes,                    
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     114         COUNT(CASE WHEN estado 
+                                                                                        = 'aceptado' THEN 1 END) as    
+                                                                                        aceptados,                     
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     115         COUNT(CASE WHEN estado 
+                                                                                        = 'en_curso' THEN 1 END) as    
+                                                                                        en_curso,                      
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     116         COUNT(CASE WHEN estado 
+                                                                                        = 'finalizado' THEN 1 END) as  
+                                                                                        finalizados,                   
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     117         COUNT(CASE WHEN estado 
+                                                                                        = 'cancelado' THEN 1 END) as   
+                                                                                        cancelados,                    
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     119         COALESCE(SUM(CASE WHEN 
+                                                                                        estado = 'finalizado' AND      
+                                                                                        created_at::date =             
+                                                                                        CURRENT_DATE                   
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     159             WHEN vs.estado =   
+                                                                                        'finalizado' THEN              
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     251             WHEN vs.estado =   
+                                                                                        'finalizado' THEN              
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\queries.py                                     337             WHEN vs.estado =   
+                                                                                        'finalizado' THEN              
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      155                 WHEN vs.estado 
+                                                                                        = 'finalizado' THEN            
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      278             COUNT(CASE WHEN    
+                                                                                        estado = 'pendiente' THEN 1    
+                                                                                        END) as pendientes,            
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      279             COUNT(CASE WHEN    
+                                                                                        estado = 'aceptado' THEN 1     
+                                                                                        END) as aceptados,             
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      280             COUNT(CASE WHEN    
+                                                                                        estado = 'en_curso' THEN 1     
+                                                                                        END) as en_curso,              
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      281             COUNT(CASE WHEN    
+                                                                                        estado = 'finalizado' THEN 1   
+                                                                                        END) as finalizados,           
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      282             COUNT(CASE WHEN    
+                                                                                        estado = 'cancelado' THEN 1    
+                                                                                        END) as cancelados,            
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      284             COALESCE(SUM(CASE  
+                                                                                        WHEN estado = 'finalizado' AND 
+                                                                                        created_at::date =             
+                                                                                        CURRENT_DATE                   
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      406             estado,            
+                                                                                        origen_tipo,                   
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      407             metodo_pago,       
+                                                                                        notas, nombre_pasajero,        
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      414             :metodo_pago,      
+                                                                                        :notas, :nombre_pasajero,      
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      425         "metodo_pago":         
+                                                                                        request.metodo_pago,           
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      457         estado="publicado",    
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      542         estado="pendiente",    
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      567             WHERE id =         
+                                                                                        :viaje_id AND pasajero_id =    
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      573             WHERE id =         
+                                                                                        :viaje_id AND chofer_id =      
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      687                 WHEN vs.estado 
+                                                                                        = 'finalizado' THEN            
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\routes.py                                      961         WHERE pasajero_id =    
+                                                                                        :user_id AND estado =          
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\viajes\routes.py                                     1002         estado="reportado",    
+D:\aTaxip\backend\app\routers\viajes\schemas.py                                     168     metodo_pago: str =         
+                                                                                        "efectivo"                     
+D:\aTaxip\backend\app\routers\viajes\schemas.py                                     360     metodo_pago: str =         
+                                                                                        "efectivo"                     
+D:\aTaxip\backend\app\routers\viajes\services.py                                    306                 WHEN vs.estado 
+                                                                                        = 'finalizado' THEN            
+                                                                                        vs.precio_final                
+D:\aTaxip\backend\app\routers\viajes\services.py                                    400             estado =           
+                                                                                        'aceptado',                    
+D:\aTaxip\backend\app\routers\choferes.py                                           704         WHERE t.chofer_id =    
+                                                                                        :chofer_id AND t.estado =      
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\chofer_documentos.py                                  198     puede_manejar = estado ==  
+                                                                                        "aprobado"                     
+D:\aTaxip\backend\app\routers\chofer_registro.py                                    457     puede_operar = (estado ==  
+                                                                                        'aprobado') and tiene_vehiculo 
+                                                                                        and (lab == 'libre')           
+D:\aTaxip\backend\app\routers\chofer_registro_progresivo.py                         521     puede_operar = (estado ==  
+                                                                                        'aprobado') and tiene_vehiculo 
+                                                                                        and (lab == 'libre')           
+D:\aTaxip\backend\app\routers\chofer_splash.py                                      159         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      136         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      202         WHERE t.chofer_id =    
+                                                                                        :user_id AND t.estado =        
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      267         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      437         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      538         WHERE vehiculo_id =    
+                                                                                        :vehiculo_id AND estado =      
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      548         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      702         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      753             estado="PENDIENTE_C
+                                                                                        ONFIRMACION",                  
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      886                     AND        
+                                                                                        t.estado = 'ACTIVO'            
+D:\aTaxip\backend\app\routers\chofer_turnos.py                                      945           AND estado =         
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 207         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 270         WHERE t.chofer_id =    
+                                                                                        :user_id AND t.estado =        
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 327         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 497         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 589         WHERE vehiculo_id =    
+                                                                                        :vehiculo_id AND estado =      
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 599         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 742         WHERE chofer_id =      
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 791             estado="PENDIENTE_C
+                                                                                        ONFIRMACION",                  
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 924                     AND        
+                                                                                        t.estado = 'ACTIVO'            
+D:\aTaxip\backend\app\routers\chofer_turnos_back.py                                 983           AND estado =         
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\control_base.py                                       574             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'finalizado' THEN  
+                                                                                        1 END) as viajes_completados,  
+D:\aTaxip\backend\app\routers\control_base.py                                       575             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'cancelado' THEN 1 
+                                                                                        END) as viajes_cancelados,     
+D:\aTaxip\backend\app\routers\control_base.py                                       608             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'finalizado' THEN  
+                                                                                        1 END) as completados,         
+D:\aTaxip\backend\app\routers\control_base.py                                       609             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'cancelado' THEN 1 
+                                                                                        END) as cancelados,            
+D:\aTaxip\backend\app\routers\empleado_turnos.py                                    109         WHERE empleado_id =    
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\empleado_turnos.py                                    140         estado="ACTIVO",       
+D:\aTaxip\backend\app\routers\empleado_turnos.py                                    170         WHERE t.empleado_id =  
+                                                                                        :user_id AND t.estado =        
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\empleado_turnos.py                                    192         SET estado =           
+                                                                                        'CERRADO', fecha_fin = NOW(),  
+                                                                                        updated_at = NOW()             
+D:\aTaxip\backend\app\routers\empleado_turnos.py                                    210         estado="CERRADO",      
+D:\aTaxip\backend\app\routers\empleado_turnos.py                                    248         WHERE t.empleado_id =  
+                                                                                        :user_id AND t.estado =        
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\routers\empleado_turnos.py                                    362             COUNT(CASE WHEN    
+                                                                                        t.estado = 'ACTIVO' THEN 1     
+                                                                                        END) as turnos_activos         
+D:\aTaxip\backend\app\routers\empresa.py                                            362             COALESCE(SUM(CASE  
+                                                                                        WHEN f.estado = 'pendiente'    
+                                                                                        THEN f.total_final ELSE 0      
+                                                                                        END), 0) as deuda_pendiente    
+D:\aTaxip\backend\app\routers\empresa.py                                            520             COALESCE(SUM(CASE  
+                                                                                        WHEN f.estado = 'pendiente'    
+                                                                                        THEN f.total_final ELSE 0      
+                                                                                        END), 0) as deuda_pendiente    
+D:\aTaxip\backend\app\routers\empresa.py                                            933         estado="pendiente",    
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                   56             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'en_curso' THEN 1  
+                                                                                        END) as viajes_en_curso,       
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                   59             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'finalizado' THEN  
+                                                                                        1 END) as viajes_completados,  
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                   62             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'cancelado' THEN 1 
+                                                                                        END) as viajes_cancelados,     
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  391             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'finalizado' THEN  
+                                                                                        1 END) as viajes_completados,  
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  392             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'cancelado' THEN 1 
+                                                                                        END) as viajes_cancelados,     
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  449           AND vs.estado =      
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  658     filtro_estado = ""         
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  660         filtro_estado = "AND   
+                                                                                        f.estado = :estado"            
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  721             COUNT(CASE WHEN    
+                                                                                        f.estado = 'pendiente' THEN 1  
+                                                                                        END) as facturas_pendientes,   
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  722             COALESCE(SUM(CASE  
+                                                                                        WHEN f.estado = 'pagada' THEN  
+                                                                                        f.total_final END), 0) as      
+                                                                                        total_pagado                   
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  773     required_fields =          
+                                                                                        ["monto", "metodo_pago"]       
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  779     metodo_pago =              
+                                                                                        data["metodo_pago"]            
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  791     if metodo_pago not in      
+                                                                                        metodos_validos:               
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  820             id, empresa_id,    
+                                                                                        monto, metodo_pago,            
+                                                                                        referencia,                    
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  825             gen_random_uuid(), 
+                                                                                        :empresa_id, :monto,           
+                                                                                        :metodo_pago, :referencia,     
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  835         "metodo_pago":         
+                                                                                        metodo_pago,                   
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  850         "metodo_pago":         
+                                                                                        metodo_pago,                   
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  880     filtro_estado = ""         
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  882         filtro_estado = "AND   
+                                                                                        p.estado = :estado"            
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  889             p.metodo_pago,     
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  914             "metodo_pago":     
+                                                                                        row[2],                        
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  951             p.metodo_pago,     
+D:\aTaxip\backend\app\routers\empresa_dashboard.py                                  979         "metodo_pago": row[2], 
+D:\aTaxip\backend\app\routers\liquidacion.py                                        227     liquidacion.estado =       
+                                                                                        "APROBADA"                     
+D:\aTaxip\backend\app\routers\liquidacion.py                                        278     liquidacion.estado =       
+                                                                                        "RECHAZADA"                    
+D:\aTaxip\backend\app\routers\liquidacion.py                                        330     if request.metodo_pago not 
+                                                                                        in metodos_validos:            
+D:\aTaxip\backend\app\routers\liquidacion.py                                        337     liquidacion.estado =       
+                                                                                        "PAGADA"                       
+D:\aTaxip\backend\app\routers\liquidacion.py                                        340     liquidacion.metodo_pago =  
+                                                                                        request.metodo_pago            
+D:\aTaxip\backend\app\routers\liquidacion.py                                        348         motivo=f"Pago          
+                                                                                        registrado -                   
+                                                                                        {request.metodo_pago}",        
+D:\aTaxip\backend\app\routers\liquidacion.py                                        359         "metodo_pago":         
+                                                                                        request.metodo_pago,           
+D:\aTaxip\backend\app\routers\operativo.py                                          126         if estado ==           
+                                                                                        "completado":                  
+D:\aTaxip\backend\app\routers\operativo.py                                          129         elif estado ==         
+                                                                                        "cancelado":                   
+D:\aTaxip\backend\app\routers\operativo.py                                          169             COUNT(CASE WHEN    
+                                                                                        estado = 'completado' THEN 1   
+                                                                                        END) as completados,           
+D:\aTaxip\backend\app\routers\operativo.py                                          170             COUNT(CASE WHEN    
+                                                                                        estado = 'cancelado' THEN 1    
+                                                                                        END) as cancelados,            
+D:\aTaxip\backend\app\routers\operativo.py                                          241         AND r.estado =         
+                                                                                        'completado'                   
+D:\aTaxip\backend\app\routers\operativo.py                                          341         AND r.estado =         
+                                                                                        'completado'                   
+D:\aTaxip\backend\app\routers\optimizacion.py                                        77     # ✅ CORREGIDO: JOIN con    
+                                                                                        metodo_pago                    
+D:\aTaxip\backend\app\routers\optimizacion.py                                        86         LEFT JOIN              
+                                                                                        payment.metodo_pago mp ON      
+                                                                                        mp.id = t.metodo_pago_id       
+D:\aTaxip\backend\app\routers\optimizacion.py                                        89         WHERE vs.estado =      
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\optimizacion.py                                       302                   AND estado = 
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\routers\pagos.py                                               82         SELECT id FROM         
+                                                                                        payment.metodo_pago            
+D:\aTaxip\backend\app\routers\pagos.py                                               86     result = await             
+                                                                                        db.execute(metodo_query,       
+                                                                                        {"nombre":                     
+                                                                                        request.metodo_pago})          
+D:\aTaxip\backend\app\routers\pagos.py                                               92     metodo_pago_id =           
+                                                                                        metodo_row[0]                  
+D:\aTaxip\backend\app\routers\pagos.py                                              100             id, billetera_id,  
+                                                                                        viaje_id, metodo_pago_id,      
+                                                                                        tipo,                          
+D:\aTaxip\backend\app\routers\pagos.py                                              104             :transaccion_id,   
+                                                                                        b.id, NULL, :metodo_pago_id,   
+                                                                                        'TOP_UP',                      
+D:\aTaxip\backend\app\routers\pagos.py                                              113         "metodo_pago_id":      
+                                                                                        metodo_pago_id,                
+D:\aTaxip\backend\app\routers\pagos.py                                              149         WHERE id = :viaje_id   
+                                                                                        AND pasajero_id = :user_id AND 
+                                                                                        estado = 'finalizado'          
+D:\aTaxip\backend\app\routers\pagos.py                                              202     # Get metodo_pago_id for   
+                                                                                        'billetera'                    
+D:\aTaxip\backend\app\routers\pagos.py                                              203     metodo_query =             
+                                                                                        text("SELECT id FROM           
+                                                                                        payment.metodo_pago WHERE      
+                                                                                        nombre = 'billetera'")         
+D:\aTaxip\backend\app\routers\pagos.py                                              205     metodo_pago_id =           
+                                                                                        metodo_result.scalar()         
+D:\aTaxip\backend\app\routers\pagos.py                                              210             id, billetera_id,  
+                                                                                        viaje_id, metodo_pago_id, tipo,
+D:\aTaxip\backend\app\routers\pagos.py                                              214             gen_random_uuid(), 
+                                                                                        :wallet_id, :viaje_id,         
+                                                                                        :metodo_pago_id,               
+                                                                                        'TRIP_PAYMENT',                
+D:\aTaxip\backend\app\routers\pagos.py                                              223         "metodo_pago_id":      
+                                                                                        metodo_pago_id,                
+D:\aTaxip\backend\app\routers\pagos.py                                              231         SET estado = 'pagado', 
+                                                                                        updated_at = NOW()             
+D:\aTaxip\backend\app\routers\pagos.py                                              347             SET estado =       
+                                                                                        'COMPLETADO',                  
+D:\aTaxip\backend\app\routers\pagos.py                                              366             SET estado =       
+                                                                                        'FALLIDO',                     
+D:\aTaxip\backend\app\routers\reservas.py                                           230             metodo_pago,       
+                                                                                        centro_costo, created_at,      
+                                                                                        updated_at, creado_por,        
+D:\aTaxip\backend\app\routers\reservas.py                                           242             :metodo_pago,      
+                                                                                        :centro_costo, NOW(), NOW(),   
+                                                                                        :creado_por,                   
+D:\aTaxip\backend\app\routers\reservas.py                                           272         "metodo_pago":         
+                                                                                        data.metodo_pago.value,        
+D:\aTaxip\backend\app\routers\reservas.py                                           445         SET estado =           
+                                                                                        'cancelado', updated_at = NOW()
+D:\aTaxip\backend\app\routers\reservas.py                                           481             precio_final,      
+                                                                                        metodo_pago, centro_costo,     
+                                                                                        created_at, updated_at,        
+D:\aTaxip\backend\app\routers\reservas.py                                           522         "metodo_pago": row[22],
+D:\aTaxip\backend\app\routers\test_post.py                                           18     "metodo_pago": "vehiculo"  
+D:\aTaxip\backend\app\routers\turnos.py                                              36         WHERE empleado_id =    
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\turnos.py                                             110         WHERE empleado_id =    
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\turnos.py                                             125         SET estado =           
+                                                                                        'CERRADO', fecha_fin = NOW(),  
+                                                                                        updated_at = NOW()             
+D:\aTaxip\backend\app\routers\turnos.py                                             155         WHERE empleado_id =    
+                                                                                        :user_id AND estado = 'ACTIVO' 
+D:\aTaxip\backend\app\routers\usuarios.py                                           419             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'finalizado' THEN  
+                                                                                        1 END) as viajes_completados,  
+D:\aTaxip\backend\app\routers\usuarios.py                                           420             COUNT(CASE WHEN    
+                                                                                        vs.estado = 'cancelado' THEN 1 
+                                                                                        END) as viajes_cancelados,     
+D:\aTaxip\backend\app\schemas\corporate_schemas.py                                  132     metodo_pago: str           
+D:\aTaxip\backend\app\schemas\corporate_schemas.py                                  145     metodo_pago: str           
+D:\aTaxip\backend\app\schemas\liquidacion.py                                        259     metodo_pago: str =         
+                                                                                        Field(...,                     
+                                                                                        description="EFECTIVO,         
+                                                                                        TRANSFERENCIA, DEBITO,         
+                                                                                        CREDITO, QR")                  
+D:\aTaxip\backend\app\schemas\payment_schemas.py                                     20     metodo_pago: str =         
+                                                                                        Field(default="mercadopago",   
+                                                                                        description="mercadopago,      
+                                                                                        tarjeta_credito,               
+                                                                                        tarjeta_debito")               
+D:\aTaxip\backend\app\schemas\rentabilidad_schemas.py                                30     metodo_pago: str           
+D:\aTaxip\backend\app\schemas\reserva_schemas.py                                     62     metodo_pago:               
+                                                                                        MetodoPagoEnum =               
+                                                                                        MetodoPagoEnum.EFECTIVO        
+D:\aTaxip\backend\app\schemas\reserva_schemas.py                                     97     metodo_pago:               
+                                                                                        Optional[MetodoPagoEnum] = None
+D:\aTaxip\backend\app\schemas\viaje_schemas.py                                       19     metodo_pago: str =         
+                                                                                        Field(default="efectivo",      
+                                                                                        description="efectivo,         
+                                                                                        billetera, tarjeta_credito,    
+                                                                                        tarjeta_debito")               
+D:\aTaxip\backend\app\services\broadcast_service.py                                 237                 SET estado =   
+                                                                                        'expirado',                    
+D:\aTaxip\backend\app\services\broadcast_service.py                                 240                   AND estado = 
+                                                                                        'publicado'                    
+D:\aTaxip\backend\app\services\broadcast_service.py                                 262                 estado =       
+                                                                                        'pendiente',                   
+D:\aTaxip\backend\app\services\broadcast_service.py                                 265               AND estado =     
+                                                                                        'publicado'                    
+D:\aTaxip\backend\app\services\cuenta_corriente_service.py                          282             estado="pendiente",
+D:\aTaxip\backend\app\services\cuenta_corriente_service.py                          345         if factura.estado ==   
+                                                                                        "pagada":                      
+D:\aTaxip\backend\app\services\cuenta_corriente_service.py                          360                                
+                                                                                        metodo_pago=data.metodo_pago,  
+D:\aTaxip\backend\app\services\cuenta_corriente_service.py                          363                                
+                                                                                        estado="confirmado",           
+D:\aTaxip\backend\app\services\cuenta_corriente_service.py                          375         factura.estado =       
+                                                                                        "pagada"                       
+D:\aTaxip\backend\app\services\facturacion_service.py                                90             estado="pendiente",
+D:\aTaxip\backend\app\services\facturacion_service.py                               262         if factura.estado ==   
+                                                                                        "pagada":                      
+D:\aTaxip\backend\app\services\facturacion_service.py                               280                                
+                                                                                        metodo_pago=data.metodo_pago,  
+D:\aTaxip\backend\app\services\facturacion_service.py                               283                                
+                                                                                        estado="confirmado",           
+D:\aTaxip\backend\app\services\facturacion_service.py                               295         factura.estado =       
+                                                                                        "pagada"                       
+D:\aTaxip\backend\app\services\facturacion_service.py                               373                                
+                                                                                        FacturaCorporativa.estado ==   
+                                                                                        "pendiente"                    
+D:\aTaxip\backend\app\services\facturacion_service.py                               380             factura.estado =   
+                                                                                        "vencida"                      
+D:\aTaxip\backend\app\services\facturacion_service.py                               412         total_pagado =         
+                                                                                        sum(f.total for f in facturas  
+                                                                                        if f.estado == "pagada")       
+D:\aTaxip\backend\app\services\facturacion_service.py                               448                 AND v.estado = 
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\services\facturacion_service.py                               475                 AND estado =   
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\services\liquidacion_context.py                               282                                
+                                                                                        ViajeSolicitado.estado ==      
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\services\liquidacion_context.py                               313                                
+                                                                                        IngresoTurno.estado ==         
+                                                                                        "aprobado"                     
+D:\aTaxip\backend\app\services\optimizacion.py                                       31     # ✅ CORREGIDO: JOIN con    
+                                                                                        metodo_pago                    
+D:\aTaxip\backend\app\services\optimizacion.py                                       39         LEFT JOIN              
+                                                                                        payment.metodo_pago mp ON      
+                                                                                        mp.id = t.metodo_pago_id       
+D:\aTaxip\backend\app\services\optimizacion.py                                       41             AND vs.estado =    
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\services\optimizacion.py                                       90             AND vs.estado =    
+                                                                                        'finalizado'                   
+D:\aTaxip\backend\app\services\qr_service.py                                        271             WHERE chofer_id =  
+                                                                                        :chofer_id AND estado =        
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\services\qr_service.py                                        280             WHERE vehiculo_id  
+                                                                                        = :vehiculo_id AND estado =    
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\services\recaudacion_service.py                                86             estado="pendiente" 
+                                                                                        if data.tipo_ingreso in        
+                                                                                        ["taximetro", "manual"] else   
+                                                                                        "aprobado",                    
+D:\aTaxip\backend\app\services\recaudacion_service.py                               164         if ingreso.estado ==   
+                                                                                        "aprobado" and data.monto is   
+                                                                                        not None:                      
+D:\aTaxip\backend\app\services\recaudacion_service.py                               192         ingreso.estado =       
+                                                                                        "aprobado"                     
+D:\aTaxip\backend\app\services\recaudacion_service.py                               211         ingreso.estado =       
+                                                                                        "rechazado"                    
+D:\aTaxip\backend\app\services\recaudacion_service.py                               231         ingreso.estado =       
+                                                                                        "disputado"                    
+D:\aTaxip\backend\app\services\recaudacion_service.py                               273             if ingreso.estado  
+                                                                                        == "aprobado":                 
+D:\aTaxip\backend\app\services\recaudacion_service.py                               275             elif               
+                                                                                        ingreso.estado == "pendiente": 
+D:\aTaxip\backend\app\services\recaudacion_service.py                               277             elif               
+                                                                                        ingreso.estado == "rechazado": 
+D:\aTaxip\backend\app\services\recaudacion_service.py                               315                                
+                                                                                        IngresoTurno.estado ==         
+                                                                                        "aprobado"                     
+D:\aTaxip\backend\app\services\rentabilidad.py                                      183                  JOIN          
+                                                                                        payment.metodo_pago mp ON      
+                                                                                        mp.id = t.metodo_pago_id       
+D:\aTaxip\backend\app\services\rentabilidad.py                                      186             ) as metodo_pago   
+D:\aTaxip\backend\app\services\rentabilidad.py                                      205     metodo_pago = row[13] or   
+                                                                                        "efectivo"                     
+D:\aTaxip\backend\app\services\rentabilidad.py                                      219             "metodo_pago":     
+                                                                                        metodo_pago                    
+D:\aTaxip\backend\app\services\rentabilidad.py                                      232             "metodo_pago":     
+                                                                                        metodo_pago,                   
+D:\aTaxip\backend\app\services\rentabilidad.py                                      242     if metodo_pago == "qr":    
+D:\aTaxip\backend\app\services\rentabilidad.py                                      244     elif metodo_pago ==        
+                                                                                        "debito":                      
+D:\aTaxip\backend\app\services\rentabilidad.py                                      246     elif metodo_pago ==        
+                                                                                        "credito":                     
+D:\aTaxip\backend\app\services\rentabilidad.py                                      285         "metodo_pago":         
+                                                                                        metodo_pago,                   
+D:\aTaxip\backend\app\services\rentabilidad.py                                      324                  JOIN          
+                                                                                        payment.metodo_pago mp ON      
+                                                                                        mp.id = t.metodo_pago_id       
+D:\aTaxip\backend\app\services\rentabilidad.py                                      327             ) as metodo_pago   
+D:\aTaxip\backend\app\services\rentabilidad.py                                      376         metodo_pago = row[13]  
+                                                                                        or "efectivo"                  
+D:\aTaxip\backend\app\services\rentabilidad.py                                      393             "metodo_pago":     
+                                                                                        metodo_pago,                   
+D:\aTaxip\backend\app\services\trip_service.py                                       75             estado="pendiente",
+D:\aTaxip\backend\app\services\trip_service.py                                      193         viaje.estado =         
+                                                                                        "aceptado"                     
+D:\aTaxip\backend\app\services\trip_service.py                                      216         viaje.estado =         
+                                                                                        "en_curso"                     
+D:\aTaxip\backend\app\services\trip_service.py                                      239         viaje.estado =         
+                                                                                        "finalizado"                   
+D:\aTaxip\backend\app\services\trip_service.py                                      265         viaje.estado =         
+                                                                                        "cancelado"                    
+D:\aTaxip\backend\app\services\trip_service.py                                      339             estado="reservado",
+D:\aTaxip\backend\app\services\trip_service.py                                      345             metodo_pago=data.ge
+                                                                                        t("metodo_pago", "vehiculo"),  
+D:\aTaxip\backend\app\services\trip_service.py                                      378             estado="pendiente",
+D:\aTaxip\backend\app\services\trip_service.py                                      393         reserva.estado =       
+                                                                                        "procesado"                    
+D:\aTaxip\backend\app\services\trip_service.py                                      419                 SET estado =   
+                                                                                        'publicado',                   
+D:\aTaxip\backend\app\services\trip_service.py                                      453                 SET estado =   
+                                                                                        'aceptado',                    
+D:\aTaxip\backend\app\services\trip_service.py                                      460                   AND estado = 
+                                                                                        'publicado'                    
+D:\aTaxip\backend\app\services\turno_authorization.py                               199             WHERE chofer_id =  
+                                                                                        :chofer_id AND estado =        
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\services\turno_authorization.py                               211             WHERE vehiculo_id  
+                                                                                        = :vehiculo_id AND estado =    
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\services\turno_authorization_adaptado.py                      199             WHERE chofer_id =  
+                                                                                        :chofer_id AND estado =        
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\services\turno_authorization_adaptado.py                      211             WHERE vehiculo_id  
+                                                                                        = :vehiculo_id AND estado =    
+                                                                                        'ACTIVO'                       
+D:\aTaxip\backend\app\services\turno_service.py                                     111                                
+                                                                                        TurnoChofer.estado == 'ACTIVO' 
+D:\aTaxip\backend\app\services\turno_service.py                                     233             estado='ACTIVO',   
+D:\aTaxip\backend\app\services\turno_service.py                                     318         turno.estado =         
+                                                                                        'PENDIENTE_CONFIRMACION'       
+D:\aTaxip\backend\app\services\turno_service.py                                     332                                
+                                                                                        estado="pendiente",            
+D:\aTaxip\backend\app\services\turno_service_adaptado.py                            109                                
+                                                                                        TurnoChofer.estado == 'ACTIVO' 
+D:\aTaxip\backend\app\services\turno_service_adaptado.py                            231             estado='ACTIVO',   
+D:\aTaxip\backend\app\services\turno_service_adaptado.py                            316         turno.estado =         
+                                                                                        'PENDIENTE_CONFIRMACION'       
+D:\aTaxip\backend\app\services\turno_service_adaptado.py                            330                                
+                                                                                        estado="pendiente",            
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                                42         estado='ACTIVO'        
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                                76         estado='ACTIVO'        
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                                83         estado='finalizado',   
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               120         estado='ACTIVO'        
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               127         estado='finalizado',   
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               175         estado='ACTIVO'        
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               185         estado="aprobado"      
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               194         estado="aprobado"      
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               234         estado='ACTIVO'        
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               244         estado="pendiente"     
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               283         estado='ACTIVO'        
+D:\aTaxip\backend\app\test\test_liquidacion_engine.py                               306     assert ingresos[0].estado  
+                                                                                        == "pendiente"                 
+D:\aTaxip\backend\app\dependencies.py                                               239           AND estado = 'ACTIVO'
+
+

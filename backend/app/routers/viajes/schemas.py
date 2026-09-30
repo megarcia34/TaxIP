@@ -3,7 +3,7 @@ Viajes - Schemas Pydantic
 """
 from pydantic import BaseModel, Field
 from uuid import UUID
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Any
 from datetime import datetime
 
 
@@ -73,6 +73,39 @@ class DashboardViajesResponse(BaseModel):
 
 
 # ============================================
+# REVERSE GEOCODING (M3 - Etapa 10.5.b)
+# ============================================
+
+class ReverseGeocodeResponse(BaseModel):
+    """
+    Respuesta del reverse geocoding.
+    Devuelve una dirección legible a partir de (lat, lng).
+    """
+    direccion: str
+    lat: float
+    lng: float
+    fuente: str  # "google" | "cache" | "fallback"
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================
+# MAPA ESTÁTICO (M3 - Etapa 10.5.b)
+# ============================================
+
+class MapaEstaticoResponse(BaseModel):
+    """
+    Respuesta con la URL del mapa estático.
+    El frontend la usa directo en <Image source={{ uri: url }} />.
+    """
+    url: str
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================
 # ESTADO DEL VIAJE (MEJORADO)
 # ============================================
 
@@ -101,6 +134,10 @@ class ViajeEstadoResponse(BaseModel):
     empresa: Optional[str] = None
     patente: Optional[str] = None
     propietario: Optional[str] = None
+
+    # M3 - Etapa 10.5.b (G24): campos persistidos que faltaban exponer
+    metodo_pago: Optional[str] = None
+    origen_tipo: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -169,6 +206,8 @@ class SolicitarViajeRequest(BaseModel):
     tipo_vehiculo: Optional[str] = "standard"
     notas: Optional[str] = None
     pasajero_nombre: Optional[str] = None
+    # M3: broadcast a choferes cercanos (default True)
+    usar_broadcast: bool = True
 
     class Config:
         from_attributes = True
@@ -182,6 +221,30 @@ class SolicitarViajeResponse(BaseModel):
     mensaje: str
     tiempo_estimado_segundos: Optional[int] = None
     precio_estimado: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================
+# VIAJE DE CALLE (M3 - Etapa 10.1)
+# ============================================
+
+class SolicitarViajeCalleRequest(BaseModel):
+    """
+    Solicitar un viaje de calle (chofer registra pasajero anónimo).
+    El viaje se crea directo en estado 'en_curso' porque el pasajero
+    ya está a bordo. Destino obligatorio para calcular precio.
+    """
+    origen_lat: float
+    origen_lng: float
+    direccion_origen: str
+    destino_lat: float
+    destino_lng: float
+    direccion_destino: str
+    metodo_pago: str = "efectivo"
+    notas: Optional[str] = None
+    paradas_intermedias: Optional[List[Dict]] = None
 
     class Config:
         from_attributes = True
@@ -212,9 +275,17 @@ class CalcularCostoResponse(BaseModel):
     costo_km: float
     costo_minuto: float
 
+    # M3 - Etapa 10.5.b (G43): campos para modo multi-cálculo
+    modo_calculo: Optional[str] = None
+    precio_por_ficha: Optional[float] = None
+    distancia_por_ficha: Optional[float] = None
+    total_fichas: Optional[int] = None
+    desglose: Optional[Dict[str, Any]] = None
+    recargos_aplicados: Optional[List[str]] = None
+    moneda: Optional[str] = None
+
     class Config:
         from_attributes = True
-
 
 # ============================================
 # CANCELAR VIAJE
@@ -249,6 +320,26 @@ class CalificarViajeResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+# ============================================
+# FINALIZAR VIAJE (M3 - G44)
+# ============================================
+
+class FinalizarViajeResponse(BaseModel):
+    """
+    Respuesta al finalizar un viaje.
+    Incluye el precio final calculado y el desglose del motor unificado.
+    """
+    success: bool
+    message: str
+    viaje_id: UUID
+    precio_final: float
+    moneda: str
+    desglose: Optional[Dict[str, Any]] = None
+    precio_calculado_con: str  # "motor_unificado" | "fallback_estimado"
+
+    class Config:
+        from_attributes = True
 
 # ============================================
 # OBJETOS OLVIDADOS

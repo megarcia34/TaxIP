@@ -1,0 +1,895 @@
+ table_schema |          table_name           | ordinal_position |           column_name            |          data_type          | udt_name  | is_nullable |                 column_default                 
+--------------+-------------------------------+------------------+----------------------------------+-----------------------------+-----------+-------------+------------------------------------------------
+ audit        | alerta_desvio                 |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ audit        | alerta_desvio                 |                2 | viaje_id                         | uuid                        | uuid      | NO          | 
+ audit        | alerta_desvio                 |                3 | latitud                          | numeric                     | numeric   | NO          | 
+ audit        | alerta_desvio                 |                4 | longitud                         | numeric                     | numeric   | NO          | 
+ audit        | alerta_desvio                 |                5 | distancia_desvio_metros          | numeric                     | numeric   | NO          | 
+ audit        | alerta_desvio                 |                6 | ruta_esperada_json               | text                        | text      | YES         | 
+ audit        | alerta_desvio                 |                7 | notificado                       | boolean                     | bool      | YES         | false
+ audit        | alerta_desvio                 |                8 | resuelto                         | boolean                     | bool      | YES         | false
+ audit        | alerta_desvio                 |                9 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ audit        | alertas_vencimiento           |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ audit        | alertas_vencimiento           |                2 | entidad_id                       | uuid                        | uuid      | NO          | 
+ audit        | alertas_vencimiento           |                3 | entidad_tipo                     | character varying           | varchar   | NO          | 
+ audit        | alertas_vencimiento           |                4 | documento_id                     | uuid                        | uuid      | NO          | 
+ audit        | alertas_vencimiento           |                5 | mensaje                          | text                        | text      | NO          | 
+ audit        | alertas_vencimiento           |                6 | nivel                            | character varying           | varchar   | NO          | 
+ audit        | alertas_vencimiento           |                7 | fecha_vencimiento                | date                        | date      | NO          | 
+ audit        | alertas_vencimiento           |                8 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ audit        | log_acciones                  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ audit        | log_acciones                  |                2 | usuario_id                       | uuid                        | uuid      | YES         | 
+ audit        | log_acciones                  |                3 | email                            | character varying           | varchar   | NO          | 
+ audit        | log_acciones                  |                4 | accion                           | character varying           | varchar   | NO          | 
+ audit        | log_acciones                  |                5 | tabla_afectada                   | character varying           | varchar   | YES         | 
+ audit        | log_acciones                  |                6 | registro_id                      | uuid                        | uuid      | YES         | 
+ audit        | log_acciones                  |                7 | datos_anteriores                 | jsonb                       | jsonb     | YES         | 
+ audit        | log_acciones                  |                8 | datos_nuevos                     | jsonb                       | jsonb     | YES         | 
+ audit        | log_acciones                  |                9 | control_base_id                  | uuid                        | uuid      | YES         | 
+ audit        | log_acciones                  |               10 | ip_address                       | inet                        | inet      | YES         | 
+ audit        | log_acciones                  |               11 | user_agent                       | text                        | text      | YES         | 
+ audit        | log_acciones                  |               12 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ audit        | log_gps                       |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ audit        | log_gps                       |                2 | viaje_id                         | uuid                        | uuid      | YES         | 
+ audit        | log_gps                       |                3 | usuario_id                       | uuid                        | uuid      | NO          | 
+ audit        | log_gps                       |                4 | latitud                          | numeric                     | numeric   | NO          | 
+ audit        | log_gps                       |                5 | longitud                         | numeric                     | numeric   | NO          | 
+ audit        | log_gps                       |                6 | timestamp                        | timestamp without time zone | timestamp | YES         | now()
+ auth         | auditoria_email               |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | auditoria_email               |                2 | email                            | character varying           | varchar   | NO          | 
+ auth         | auditoria_email               |                3 | valid                            | boolean                     | bool      | YES         | false
+ auth         | auditoria_email               |                4 | reason                           | text                        | text      | YES         | 
+ auth         | auditoria_email               |                5 | domain                           | character varying           | varchar   | YES         | 
+ auth         | auditoria_email               |                6 | mx_records                       | text                        | text      | YES         | 
+ auth         | auditoria_email               |                7 | smtp_response                    | text                        | text      | YES         | 
+ auth         | auditoria_email               |                8 | ip_address                       | character varying           | varchar   | YES         | 
+ auth         | auditoria_email               |                9 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | auditoria_email               |               10 | user_agent                       | text                        | text      | YES         | 
+ auth         | autorizacion_inicio           |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | autorizacion_inicio           |                2 | token                            | character varying           | varchar   | NO          | 
+ auth         | autorizacion_inicio           |                3 | contrato_id                      | uuid                        | uuid      | NO          | 
+ auth         | autorizacion_inicio           |                4 | chofer_id                        | uuid                        | uuid      | NO          | 
+ auth         | autorizacion_inicio           |                5 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ auth         | autorizacion_inicio           |                6 | control_base_id                  | uuid                        | uuid      | NO          | 
+ auth         | autorizacion_inicio           |                7 | tipo_contrato                    | character varying           | varchar   | YES         | 
+ auth         | autorizacion_inicio           |                8 | turno_contractual                | character varying           | varchar   | YES         | 
+ auth         | autorizacion_inicio           |                9 | dia_contractual                  | character varying           | varchar   | YES         | 
+ auth         | autorizacion_inicio           |               10 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | autorizacion_inicio           |               11 | expires_at                       | timestamp without time zone | timestamp | YES         | 
+ auth         | autorizacion_inicio           |               12 | used_at                          | timestamp without time zone | timestamp | YES         | 
+ auth         | autorizacion_inicio           |               13 | qr_referencia                    | uuid                        | uuid      | YES         | 
+ auth         | autorizacion_inicio           |               14 | created_by                       | uuid                        | uuid      | YES         | 
+ auth         | direccion_frecuente           |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | direccion_frecuente           |                2 | usuario_id                       | uuid                        | uuid      | NO          | 
+ auth         | direccion_frecuente           |                3 | nombre                           | character varying           | varchar   | YES         | 
+ auth         | direccion_frecuente           |                4 | latitud                          | numeric                     | numeric   | YES         | 
+ auth         | direccion_frecuente           |                5 | longitud                         | numeric                     | numeric   | YES         | 
+ auth         | direccion_frecuente           |                6 | direccion_texto                  | text                        | text      | YES         | 
+ auth         | direccion_frecuente           |                7 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | perfil_general                |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | perfil_general                |                2 | usuario_id                       | uuid                        | uuid      | YES         | 
+ auth         | perfil_general                |                3 | nombre                           | character varying           | varchar   | YES         | 
+ auth         | perfil_general                |                4 | apellido                         | character varying           | varchar   | YES         | 
+ auth         | perfil_general                |                5 | telefono                         | character varying           | varchar   | YES         | 
+ auth         | perfil_general                |                6 | documento                        | character varying           | varchar   | YES         | 
+ auth         | perfil_general                |                7 | ciudad_id                        | uuid                        | uuid      | YES         | 
+ auth         | perfil_general                |                8 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | perfil_general                |                9 | direccion                        | text                        | text      | YES         | 
+ auth         | perfil_general                |               10 | foto_perfil_url                  | text                        | text      | YES         | 
+ auth         | perfil_general                |               11 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | perfil_general                |               12 | fecha_nacimiento                 | date                        | date      | YES         | 
+ auth         | perfil_general                |               13 | barrio                           | character varying           | varchar   | YES         | 
+ auth         | perfil_general                |               14 | codigo_postal                    | character varying           | varchar   | YES         | 
+ auth         | perfil_general                |               15 | tipo_conductor                   | character varying           | varchar   | YES         | 
+ auth         | perfil_general                |               16 | agencia                          | character varying           | varchar   | YES         | 
+ auth         | refresh_token                 |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | refresh_token                 |                2 | usuario_id                       | uuid                        | uuid      | NO          | 
+ auth         | refresh_token                 |                3 | token                            | character varying           | varchar   | NO          | 
+ auth         | refresh_token                 |                4 | expiracion                       | timestamp without time zone | timestamp | NO          | 
+ auth         | refresh_token                 |                5 | usado                            | boolean                     | bool      | YES         | false
+ auth         | refresh_token                 |                6 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | reset_token                   |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | reset_token                   |                2 | usuario_id                       | uuid                        | uuid      | NO          | 
+ auth         | reset_token                   |                3 | token                            | character varying           | varchar   | NO          | 
+ auth         | reset_token                   |                4 | expiracion                       | timestamp without time zone | timestamp | NO          | 
+ auth         | reset_token                   |                5 | usado                            | boolean                     | bool      | YES         | false
+ auth         | reset_token                   |                6 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | taxista_favorito              |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | taxista_favorito              |                2 | pasajero_id                      | uuid                        | uuid      | NO          | 
+ auth         | taxista_favorito              |                3 | chofer_id                        | uuid                        | uuid      | NO          | 
+ auth         | taxista_favorito              |                4 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | tipo_usuario                  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | tipo_usuario                  |                2 | nombre                           | character varying           | varchar   | NO          | 
+ auth         | turno_empleado                |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | turno_empleado                |                2 | empleado_id                      | uuid                        | uuid      | NO          | 
+ auth         | turno_empleado                |                3 | empresa_id                       | uuid                        | uuid      | NO          | 
+ auth         | turno_empleado                |                4 | fecha_inicio                     | timestamp without time zone | timestamp | NO          | now()
+ auth         | turno_empleado                |                5 | fecha_fin                        | timestamp without time zone | timestamp | YES         | 
+ auth         | turno_empleado                |                6 | estado                           | character varying           | varchar   | NO          | 'ACTIVO'::character varying
+ auth         | turno_empleado                |                7 | viajes_gestionados               | integer                     | int4      | YES         | 0
+ auth         | turno_empleado                |                8 | facturado_total                  | numeric                     | numeric   | YES         | 0.0
+ auth         | turno_empleado                |                9 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | turno_empleado                |               10 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | usuario                       |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | usuario                       |                2 | control_base_id                  | uuid                        | uuid      | YES         | 
+ auth         | usuario                       |                3 | tipo_usuario_id                  | uuid                        | uuid      | YES         | 
+ auth         | usuario                       |                4 | email                            | character varying           | varchar   | NO          | 
+ auth         | usuario                       |                5 | password_hash                    | text                        | text      | NO          | 
+ auth         | usuario                       |                6 | activo                           | boolean                     | bool      | YES         | true
+ auth         | usuario                       |                7 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | usuario                       |                8 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | usuario                       |                9 | fecha_suspension                 | timestamp without time zone | timestamp | YES         | 
+ auth         | usuario                       |               10 | motivo_suspension                | text                        | text      | YES         | 
+ auth         | usuario                       |               11 | suspendido_por                   | uuid                        | uuid      | YES         | 
+ auth         | usuario_empresa               |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | usuario_empresa               |                2 | empresa_id                       | uuid                        | uuid      | NO          | 
+ auth         | usuario_empresa               |                3 | usuario_id                       | uuid                        | uuid      | NO          | 
+ auth         | usuario_empresa               |                4 | rol                              | character varying           | varchar   | YES         | 'recepcionista'::character varying
+ auth         | usuario_empresa               |                5 | activo                           | boolean                     | bool      | YES         | true
+ auth         | usuario_empresa               |                6 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ auth         | usuario_rol                   |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ auth         | usuario_rol                   |                2 | usuario_id                       | uuid                        | uuid      | NO          | 
+ auth         | usuario_rol                   |                3 | tipo_usuario_id                  | uuid                        | uuid      | NO          | 
+ auth         | usuario_rol                   |                4 | activo                           | boolean                     | bool      | NO          | true
+ auth         | usuario_rol                   |                5 | fecha_inicio                     | date                        | date      | NO          | CURRENT_DATE
+ auth         | usuario_rol                   |                6 | fecha_fin                        | date                        | date      | YES         | 
+ auth         | usuario_rol                   |                7 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ auth         | usuario_rol                   |                8 | updated_at                       | timestamp without time zone | timestamp | NO          | now()
+ comunicacion | conversacion                  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ comunicacion | conversacion                  |                2 | participante_1                   | uuid                        | uuid      | NO          | 
+ comunicacion | conversacion                  |                3 | participante_2                   | uuid                        | uuid      | NO          | 
+ comunicacion | conversacion                  |                4 | ultimo_mensaje                   | text                        | text      | YES         | 
+ comunicacion | conversacion                  |                5 | ultimo_mensaje_en                | timestamp without time zone | timestamp | YES         | 
+ comunicacion | conversacion                  |                6 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ comunicacion | conversacion                  |                7 | updated_at                       | timestamp without time zone | timestamp | NO          | now()
+ comunicacion | email_enviado                 |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ comunicacion | email_enviado                 |                2 | usuario_id                       | uuid                        | uuid      | YES         | 
+ comunicacion | email_enviado                 |                3 | destinatario_email               | character varying           | varchar   | NO          | 
+ comunicacion | email_enviado                 |                4 | asunto                           | character varying           | varchar   | NO          | 
+ comunicacion | email_enviado                 |                5 | template_id                      | character varying           | varchar   | YES         | 
+ comunicacion | email_enviado                 |                6 | estado                           | character varying           | varchar   | NO          | 'pendiente'::character varying
+ comunicacion | email_enviado                 |                7 | error_mensaje                    | text                        | text      | YES         | 
+ comunicacion | email_enviado                 |                8 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ comunicacion | email_enviado                 |                9 | enviado_en                       | timestamp without time zone | timestamp | YES         | 
+ comunicacion | mensaje                       |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ comunicacion | mensaje                       |                2 | conversacion_id                  | uuid                        | uuid      | NO          | 
+ comunicacion | mensaje                       |                3 | remitente_id                     | uuid                        | uuid      | NO          | 
+ comunicacion | mensaje                       |                4 | viaje_id                         | uuid                        | uuid      | YES         | 
+ comunicacion | mensaje                       |                5 | contenido                        | text                        | text      | NO          | 
+ comunicacion | mensaje                       |                6 | leido                            | boolean                     | bool      | NO          | false
+ comunicacion | mensaje                       |                7 | leido_en                         | timestamp without time zone | timestamp | YES         | 
+ comunicacion | mensaje                       |                8 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ fleet        | categoria_gasto               |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | categoria_gasto               |                2 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | categoria_gasto               |                3 | nombre                           | character varying           | varchar   | NO          | 
+ fleet        | categoria_gasto               |                4 | descripcion                      | text                        | text      | YES         | 
+ fleet        | categoria_gasto               |                5 | subcategorias                    | jsonb                       | jsonb     | NO          | '[]'::jsonb
+ fleet        | categoria_gasto               |                6 | aplica_a                         | jsonb                       | jsonb     | NO          | '[]'::jsonb
+ fleet        | categoria_gasto               |                7 | tratamiento_economico            | character varying           | varchar   | NO          | 'configurable'::character varying
+ fleet        | categoria_gasto               |                8 | activo                           | boolean                     | bool      | NO          | true
+ fleet        | categoria_gasto               |                9 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ fleet        | categoria_gasto               |               10 | updated_at                       | timestamp without time zone | timestamp | NO          | now()
+ fleet        | chofer_vehiculo               |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | chofer_vehiculo               |                2 | usuario_id                       | uuid                        | uuid      | NO          | 
+ fleet        | chofer_vehiculo               |                3 | vehiculo_id                      | uuid                        | uuid      | YES         | 
+ fleet        | chofer_vehiculo               |                4 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | chofer_vehiculo               |                5 | latitud                          | numeric                     | numeric   | YES         | 
+ fleet        | chofer_vehiculo               |                6 | longitud                         | numeric                     | numeric   | YES         | 
+ fleet        | chofer_vehiculo               |                7 | ubicacion                        | text                        | text      | YES         | 
+ fleet        | chofer_vehiculo               |                8 | estado_laboral                   | character varying           | varchar   | YES         | 'libre'::character varying
+ fleet        | chofer_vehiculo               |                9 | estado_panico                    | boolean                     | bool      | YES         | false
+ fleet        | chofer_vehiculo               |               10 | calificacion_promedio            | numeric                     | numeric   | YES         | 5.0
+ fleet        | chofer_vehiculo               |               11 | total_calificaciones             | integer                     | int4      | YES         | 0
+ fleet        | chofer_vehiculo               |               12 | ultima_conexion                  | timestamp without time zone | timestamp | YES         | now()
+ fleet        | chofer_vehiculo               |               13 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | chofer_vehiculo               |               14 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | chofer_vehiculo               |               15 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | chofer_vehiculo               |               16 | estado_aprobacion                | character varying           | varchar   | YES         | 'pendiente'::character varying
+ fleet        | chofer_vehiculo               |               17 | total_viajes                     | integer                     | int4      | YES         | 0
+ fleet        | contrato_qr                   |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | contrato_qr                   |                2 | contrato_id                      | uuid                        | uuid      | NO          | 
+ fleet        | contrato_qr                   |                3 | token                            | character varying           | varchar   | NO          | 
+ fleet        | contrato_qr                   |                4 | fecha_expiracion                 | timestamp without time zone | timestamp | YES         | 
+ fleet        | contrato_qr                   |                5 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | contrato_qr                   |                6 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | contrato_qr                   |                7 | created_by                       | uuid                        | uuid      | YES         | 
+ fleet        | contrato_qr                   |                8 | usos                             | integer                     | int4      | YES         | 0
+ fleet        | contrato_vehiculo             |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | contrato_vehiculo             |                2 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | contrato_vehiculo             |                3 | propietario_id                   | uuid                        | uuid      | NO          | 
+ fleet        | contrato_vehiculo             |                4 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | contrato_vehiculo             |                5 | chofer_id                        | uuid                        | uuid      | NO          | 
+ fleet        | contrato_vehiculo             |                6 | tipo_contrato                    | character varying           | varchar   | NO          | 
+ fleet        | contrato_vehiculo             |                8 | porcentaje_chofer                | numeric                     | numeric   | YES         | 
+ fleet        | contrato_vehiculo             |                9 | monto_diario                     | numeric                     | numeric   | YES         | 
+ fleet        | contrato_vehiculo             |               10 | fecha_inicio                     | timestamp without time zone | timestamp | NO          | now()
+ fleet        | contrato_vehiculo             |               11 | fecha_fin                        | timestamp without time zone | timestamp | YES         | 
+ fleet        | contrato_vehiculo             |               12 | activo                           | boolean                     | bool      | NO          | true
+ fleet        | contrato_vehiculo             |               13 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | contrato_vehiculo             |               14 | estado_contrato                  | character varying           | varchar   | YES         | 'PENDIENTE_CONFIGURACION'::character varying
+ fleet        | contrato_vehiculo             |               15 | canon_diario                     | numeric                     | numeric   | YES         | 
+ fleet        | contrato_vehiculo             |               16 | km_incluidos_dia                 | numeric                     | numeric   | YES         | 
+ fleet        | contrato_vehiculo             |               17 | valor_km_excedente               | numeric                     | numeric   | YES         | 
+ fleet        | contrato_vehiculo             |               18 | modalidad_computo                | character varying           | varchar   | NO          | 'DIARIO'::character varying
+ fleet        | contrato_vehiculo             |               19 | dias_contractuales               | jsonb                       | jsonb     | YES         | 
+ fleet        | contrato_vehiculo             |               20 | tratamiento_dia_no_trabajado     | character varying           | varchar   | NO          | 'POR_DISPONIBILIDAD'::character varying
+ fleet        | contrato_vehiculo             |               21 | updated_at                       | timestamp without time zone | timestamp | NO          | 
+ fleet        | contrato_vehiculo             |               22 | dia_inicio_semana                | character varying           | varchar   | YES         | 
+ fleet        | contrato_vehiculo             |               23 | hora_inicio                      | time without time zone      | time      | NO          | 
+ fleet        | contrato_vehiculo             |               24 | hora_fin                         | time without time zone      | time      | NO          | 
+ fleet        | contrato_vehiculo             |               25 | duracion_minima_horas            | integer                     | int4      | NO          | 6
+ fleet        | contrato_vehiculo             |               26 | permite_extension                | boolean                     | bool      | NO          | false
+ fleet        | contrato_vehiculo             |               27 | hora_fin_extension               | time without time zone      | time      | YES         | 
+ fleet        | contrato_vehiculo             |               28 | compensacion_km                  | character varying           | varchar   | NO          | 'DIARIA'::character varying
+ fleet        | documento_propietario         |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | documento_propietario         |                2 | propietario_id                   | uuid                        | uuid      | NO          | 
+ fleet        | documento_propietario         |                3 | tipo_documento                   | character varying           | varchar   | NO          | 
+ fleet        | documento_propietario         |                4 | numero                           | character varying           | varchar   | NO          | 
+ fleet        | documento_propietario         |                5 | fecha_emision                    | date                        | date      | YES         | 
+ fleet        | documento_propietario         |                6 | fecha_vencimiento                | date                        | date      | YES         | 
+ fleet        | documento_propietario         |                7 | observaciones                    | text                        | text      | YES         | 
+ fleet        | documento_propietario         |                8 | url_archivo                      | text                        | text      | YES         | 
+ fleet        | documento_propietario         |                9 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | documento_propietario         |               10 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | documento_vehiculo            |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | documento_vehiculo            |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | documento_vehiculo            |                3 | tipo_documento                   | character varying           | varchar   | NO          | 
+ fleet        | documento_vehiculo            |                4 | numero                           | character varying           | varchar   | NO          | 
+ fleet        | documento_vehiculo            |                5 | fecha_emision                    | date                        | date      | YES         | 
+ fleet        | documento_vehiculo            |                6 | fecha_vencimiento                | date                        | date      | YES         | 
+ fleet        | documento_vehiculo            |                7 | observaciones                    | text                        | text      | YES         | 
+ fleet        | documento_vehiculo            |                8 | url_archivo                      | text                        | text      | YES         | 
+ fleet        | documento_vehiculo            |                9 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | documento_vehiculo            |               10 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | documento_vehiculo            |               11 | activo                           | boolean                     | bool      | NO          | true
+ fleet        | documento_vehiculo            |               12 | notificar_dias                   | integer                     | int4      | NO          | 30
+ fleet        | documento_vehiculo            |               13 | marca                            | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               14 | modelo                           | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               15 | tipo_vehiculo                    | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               16 | uso                              | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               17 | chasis                           | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               18 | motor                            | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               19 | dominio                          | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               20 | vtv_fecha_vencimiento            | date                        | date      | YES         | 
+ fleet        | documento_vehiculo            |               21 | seguro_compania                  | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               22 | seguro_poliza                    | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               23 | seguro_fecha_emision             | date                        | date      | YES         | 
+ fleet        | documento_vehiculo            |               24 | seguro_fecha_vencimiento         | date                        | date      | YES         | 
+ fleet        | documento_vehiculo            |               25 | seguro_cobertura                 | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               26 | seguro_suma_asegurada            | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               27 | seguro_tomador                   | character varying           | varchar   | YES         | 
+ fleet        | documento_vehiculo            |               28 | seguro_vehiculo                  | character varying           | varchar   | YES         | 
+ fleet        | documentos_chofer             |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | documentos_chofer             |                2 | usuario_id                       | uuid                        | uuid      | NO          | 
+ fleet        | documentos_chofer             |                3 | tipo_documento                   | character varying           | varchar   | NO          | 
+ fleet        | documentos_chofer             |                4 | url                              | text                        | text      | NO          | 
+ fleet        | documentos_chofer             |                5 | subido_en                        | timestamp without time zone | timestamp | YES         | now()
+ fleet        | documentos_chofer             |                6 | fecha_vencimiento                | date                        | date      | YES         | 
+ fleet        | documentos_chofer             |                7 | notificar_dias                   | integer                     | int4      | NO          | 30
+ fleet        | documentos_chofer             |                8 | activo                           | boolean                     | bool      | NO          | true
+ fleet        | foto_vehiculo                 |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | foto_vehiculo                 |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | foto_vehiculo                 |                3 | url                              | text                        | text      | NO          | 
+ fleet        | foto_vehiculo                 |                4 | public_id                        | text                        | text      | NO          | 
+ fleet        | foto_vehiculo                 |                5 | descripcion                      | text                        | text      | YES         | 
+ fleet        | foto_vehiculo                 |                6 | orden                            | integer                     | int4      | YES         | 0
+ fleet        | foto_vehiculo                 |                7 | es_principal                     | boolean                     | bool      | YES         | false
+ fleet        | foto_vehiculo                 |                8 | subida_por                       | uuid                        | uuid      | YES         | 
+ fleet        | foto_vehiculo                 |                9 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | gasto_turno                   |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | gasto_turno                   |                2 | turno_id                         | uuid                        | uuid      | NO          | 
+ fleet        | gasto_turno                   |                3 | tipo_gasto                       | character varying           | varchar   | NO          | 
+ fleet        | gasto_turno                   |                4 | monto                            | numeric                     | numeric   | NO          | 
+ fleet        | gasto_turno                   |                5 | km_registro                      | numeric                     | numeric   | YES         | 
+ fleet        | gasto_turno                   |                6 | url_comprobante                  | character varying           | varchar   | YES         | 
+ fleet        | gasto_turno                   |                7 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | gasto_turno                   |                8 | categoria_id                     | uuid                        | uuid      | YES         | 
+ fleet        | gasto_turno                   |                9 | subcategoria                     | character varying           | varchar   | YES         | 
+ fleet        | gasto_vehiculo                |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | gasto_vehiculo                |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | gasto_vehiculo                |                3 | propietario_id                   | uuid                        | uuid      | NO          | 
+ fleet        | gasto_vehiculo                |                4 | tipo_gasto                       | character varying           | varchar   | YES         | 
+ fleet        | gasto_vehiculo                |                5 | monto                            | numeric                     | numeric   | NO          | 
+ fleet        | gasto_vehiculo                |                6 | moneda                           | character varying           | varchar   | YES         | 'ARS'::character varying
+ fleet        | gasto_vehiculo                |                7 | descripcion                      | text                        | text      | YES         | 
+ fleet        | gasto_vehiculo                |                9 | comprobante_url                  | text                        | text      | YES         | 
+ fleet        | gasto_vehiculo                |               10 | fecha_gasto                      | date                        | date      | YES         | 
+ fleet        | gasto_vehiculo                |               11 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | gasto_vehiculo                |               12 | categoria_id                     | uuid                        | uuid      | YES         | 
+ fleet        | gasto_vehiculo                |               13 | subcategoria                     | character varying           | varchar   | YES         | 
+ fleet        | gasto_vehiculo                |               14 | km_registro                      | numeric                     | numeric   | YES         | 
+ fleet        | historial_chofer_vehiculo     |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | historial_chofer_vehiculo     |                2 | vehiculo_id                      | uuid                        | uuid      | YES         | 
+ fleet        | historial_chofer_vehiculo     |                3 | chofer_id                        | uuid                        | uuid      | YES         | 
+ fleet        | historial_chofer_vehiculo     |                4 | fecha_inicio                     | timestamp without time zone | timestamp | YES         | 
+ fleet        | historial_chofer_vehiculo     |                5 | fecha_fin                        | timestamp without time zone | timestamp | YES         | 
+ fleet        | historial_chofer_vehiculo     |                6 | estado                           | character varying           | varchar   | YES         | 
+ fleet        | liquidacion                   |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | liquidacion                   |                2 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion                   |                3 | turno_id                         | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion                   |                4 | contrato_id                      | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion                   |                5 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion                   |                6 | chofer_id                        | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion                   |                7 | propietario_id                   | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion                   |                8 | tipo_contrato                    | character varying           | varchar   | NO          | 
+ fleet        | liquidacion                   |                9 | periodo_desde                    | timestamp without time zone | timestamp | NO          | 
+ fleet        | liquidacion                   |               10 | periodo_hasta                    | timestamp without time zone | timestamp | NO          | 
+ fleet        | liquidacion                   |               11 | monto_bruto                      | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               12 | total_gastos                     | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               13 | comision_chofer                  | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               14 | canon                            | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               15 | total_chofer                     | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               16 | total_propietario                | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               17 | estado                           | character varying           | varchar   | NO          | 'BORRADOR'::character varying
+ fleet        | liquidacion                   |               18 | version                          | integer                     | int4      | NO          | 1
+ fleet        | liquidacion                   |               19 | calculada_en                     | timestamp without time zone | timestamp | NO          | now()
+ fleet        | liquidacion                   |               20 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ fleet        | liquidacion                   |               21 | updated_at                       | timestamp without time zone | timestamp | NO          | now()
+ fleet        | liquidacion                   |               22 | aprobada_por                     | uuid                        | uuid      | YES         | 
+ fleet        | liquidacion                   |               23 | aprobada_en                      | timestamp without time zone | timestamp | YES         | 
+ fleet        | liquidacion                   |               24 | rechazada_por                    | uuid                        | uuid      | YES         | 
+ fleet        | liquidacion                   |               25 | rechazada_en                     | timestamp without time zone | timestamp | YES         | 
+ fleet        | liquidacion                   |               26 | motivo_rechazo                   | text                        | text      | YES         | 
+ fleet        | liquidacion                   |               27 | pagada_por                       | uuid                        | uuid      | YES         | 
+ fleet        | liquidacion                   |               28 | pagada_en                        | timestamp without time zone | timestamp | YES         | 
+ fleet        | liquidacion                   |               29 | metodo_pago                      | character varying           | varchar   | YES         | 
+ fleet        | liquidacion                   |               30 | referencia_pago                  | character varying           | varchar   | YES         | 
+ fleet        | liquidacion                   |               31 | km_excedentes                    | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               32 | cargo_km_excedentes              | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               33 | saldo_chofer                     | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion                   |               34 | saldo_propietario                | numeric                     | numeric   | NO          | 0
+ fleet        | liquidacion_ajuste            |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | liquidacion_ajuste            |                2 | liquidacion_id                   | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion_ajuste            |                3 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion_ajuste            |                4 | tipo_ajuste                      | character varying           | varchar   | NO          | 
+ fleet        | liquidacion_ajuste            |                5 | monto                            | numeric                     | numeric   | NO          | 
+ fleet        | liquidacion_ajuste            |                6 | motivo                           | text                        | text      | YES         | 
+ fleet        | liquidacion_ajuste            |                7 | usuario_id                       | uuid                        | uuid      | YES         | 
+ fleet        | liquidacion_ajuste            |                8 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ fleet        | liquidacion_detalle           |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | liquidacion_detalle           |                2 | liquidacion_id                   | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion_detalle           |                3 | tipo_linea                       | character varying           | varchar   | NO          | 
+ fleet        | liquidacion_detalle           |                4 | concepto                         | character varying           | varchar   | YES         | 
+ fleet        | liquidacion_detalle           |                5 | fuente_tipo                      | character varying           | varchar   | YES         | 
+ fleet        | liquidacion_detalle           |                6 | fuente_id                        | uuid                        | uuid      | YES         | 
+ fleet        | liquidacion_detalle           |                7 | monto                            | numeric                     | numeric   | NO          | 
+ fleet        | liquidacion_detalle           |                8 | signo                            | character varying           | varchar   | NO          | 
+ fleet        | liquidacion_detalle           |                9 | meta_data                        | jsonb                       | jsonb     | YES         | 
+ fleet        | liquidacion_detalle           |               10 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ fleet        | liquidacion_estado_historial  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | liquidacion_estado_historial  |                2 | liquidacion_id                   | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion_estado_historial  |                3 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | liquidacion_estado_historial  |                4 | estado_anterior                  | character varying           | varchar   | YES         | 
+ fleet        | liquidacion_estado_historial  |                5 | estado_nuevo                     | character varying           | varchar   | NO          | 
+ fleet        | liquidacion_estado_historial  |                6 | cambiado_por                     | uuid                        | uuid      | YES         | 
+ fleet        | liquidacion_estado_historial  |                7 | motivo                           | text                        | text      | YES         | 
+ fleet        | liquidacion_estado_historial  |                8 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ fleet        | mantenimiento_vehiculo        |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | mantenimiento_vehiculo        |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | mantenimiento_vehiculo        |                3 | propietario_id                   | uuid                        | uuid      | NO          | 
+ fleet        | mantenimiento_vehiculo        |                4 | tipo_servicio                    | character varying           | varchar   | YES         | 
+ fleet        | mantenimiento_vehiculo        |                5 | taller_nombre                    | character varying           | varchar   | YES         | 
+ fleet        | mantenimiento_vehiculo        |                6 | taller_direccion                 | text                        | text      | YES         | 
+ fleet        | mantenimiento_vehiculo        |                7 | costo                            | numeric                     | numeric   | YES         | 
+ fleet        | mantenimiento_vehiculo        |                8 | kilometraje                      | integer                     | int4      | YES         | 
+ fleet        | mantenimiento_vehiculo        |                9 | observaciones                    | text                        | text      | YES         | 
+ fleet        | mantenimiento_vehiculo        |               10 | fecha_servicio                   | date                        | date      | YES         | 
+ fleet        | mantenimiento_vehiculo        |               11 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | marca                         |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | marca                         |                2 | nombre                           | character varying           | varchar   | NO          | 
+ fleet        | marca                         |                3 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | modelo                        |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | modelo                        |                2 | marca_id                         | uuid                        | uuid      | NO          | 
+ fleet        | modelo                        |                3 | nombre                           | character varying           | varchar   | NO          | 
+ fleet        | modelo                        |                4 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_historial_posicion  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | neumatico_historial_posicion  |                2 | neumatico_vehiculo_id            | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_historial_posicion  |                3 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_historial_posicion  |                4 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_historial_posicion  |                5 | eje_posicion                     | character varying           | varchar   | NO          | 
+ fleet        | neumatico_historial_posicion  |                6 | km_montaje                       | integer                     | int4      | NO          | 
+ fleet        | neumatico_historial_posicion  |                7 | km_desmontaje                    | integer                     | int4      | YES         | 
+ fleet        | neumatico_historial_posicion  |                8 | fecha_montaje                    | timestamp without time zone | timestamp | NO          | now()
+ fleet        | neumatico_historial_posicion  |                9 | fecha_desmontaje                 | timestamp without time zone | timestamp | YES         | 
+ fleet        | neumatico_historial_posicion  |               10 | operacion_id                     | uuid                        | uuid      | YES         | 
+ fleet        | neumatico_historial_posicion  |               11 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | neumatico_historial_posicion  |               12 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_imagen              |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | neumatico_imagen              |                2 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_imagen              |                3 | neumatico_vehiculo_id            | uuid                        | uuid      | YES         | 
+ fleet        | neumatico_imagen              |                4 | operacion_id                     | uuid                        | uuid      | YES         | 
+ fleet        | neumatico_imagen              |                5 | cloudinary_public_id             | character varying           | varchar   | NO          | 
+ fleet        | neumatico_imagen              |                6 | cloudinary_url                   | character varying           | varchar   | NO          | 
+ fleet        | neumatico_imagen              |                7 | cloudinary_secure_url            | character varying           | varchar   | YES         | 
+ fleet        | neumatico_imagen              |                8 | tipo_imagen                      | character varying           | varchar   | NO          | 
+ fleet        | neumatico_imagen              |                9 | descripcion                      | text                        | text      | YES         | 
+ fleet        | neumatico_imagen              |               10 | peso_bytes                       | integer                     | int4      | YES         | 
+ fleet        | neumatico_imagen              |               11 | dimensiones                      | character varying           | varchar   | YES         | 
+ fleet        | neumatico_imagen              |               12 | subido_por                       | uuid                        | uuid      | YES         | 
+ fleet        | neumatico_imagen              |               13 | fecha_subida                     | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_imagen              |               14 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | neumatico_imagen              |               15 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_medicion            |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | neumatico_medicion            |                2 | historial_posicion_id            | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_medicion            |                3 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_medicion            |                4 | profundidad_mm                   | numeric                     | numeric   | NO          | 
+ fleet        | neumatico_medicion            |                5 | fecha_medicion                   | timestamp without time zone | timestamp | NO          | now()
+ fleet        | neumatico_medicion            |                6 | medido_por                       | uuid                        | uuid      | YES         | 
+ fleet        | neumatico_medicion            |                7 | observaciones                    | text                        | text      | YES         | 
+ fleet        | neumatico_medicion            |                8 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | neumatico_medicion            |                9 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_operacion           |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | neumatico_operacion           |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_operacion           |                3 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_operacion           |                4 | tipo_operacion                   | character varying           | varchar   | NO          | 
+ fleet        | neumatico_operacion           |                5 | descripcion                      | text                        | text      | YES         | 
+ fleet        | neumatico_operacion           |                6 | km_vehiculo_actual               | integer                     | int4      | NO          | 
+ fleet        | neumatico_operacion           |                7 | fecha_operacion                  | timestamp without time zone | timestamp | NO          | now()
+ fleet        | neumatico_operacion           |                8 | costo                            | numeric                     | numeric   | YES         | 
+ fleet        | neumatico_operacion           |                9 | moneda                           | character varying           | varchar   | YES         | 'ARS'::character varying
+ fleet        | neumatico_operacion           |               10 | proveedor                        | character varying           | varchar   | YES         | 
+ fleet        | neumatico_operacion           |               11 | observaciones                    | text                        | text      | YES         | 
+ fleet        | neumatico_operacion           |               12 | creado_por                       | uuid                        | uuid      | YES         | 
+ fleet        | neumatico_operacion           |               13 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | neumatico_operacion           |               14 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_operacion           |               15 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_operacion_detalle   |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | neumatico_operacion_detalle   |                2 | operacion_id                     | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_operacion_detalle   |                3 | neumatico_vehiculo_id            | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_operacion_detalle   |                4 | posicion_antes                   | character varying           | varchar   | YES         | 
+ fleet        | neumatico_operacion_detalle   |                5 | posicion_despues                 | character varying           | varchar   | YES         | 
+ fleet        | neumatico_operacion_detalle   |                6 | km_neumatico_en_operacion        | integer                     | int4      | YES         | 
+ fleet        | neumatico_operacion_detalle   |                7 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | neumatico_operacion_detalle   |                8 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_sugerencia          |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | neumatico_sugerencia          |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_sugerencia          |                3 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_sugerencia          |                4 | tipo_sugerencia                  | character varying           | varchar   | NO          | 
+ fleet        | neumatico_sugerencia          |                5 | neumatico_vehiculo_id            | uuid                        | uuid      | YES         | 
+ fleet        | neumatico_sugerencia          |                6 | mensaje                          | text                        | text      | NO          | 
+ fleet        | neumatico_sugerencia          |                7 | prioridad                        | character varying           | varchar   | NO          | 
+ fleet        | neumatico_sugerencia          |                8 | km_actual                        | integer                     | int4      | YES         | 
+ fleet        | neumatico_sugerencia          |                9 | km_umbral                        | integer                     | int4      | YES         | 
+ fleet        | neumatico_sugerencia          |               10 | estado                           | character varying           | varchar   | YES         | 'PENDIENTE'::character varying
+ fleet        | neumatico_sugerencia          |               11 | fecha_generacion                 | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_sugerencia          |               12 | fecha_atendida                   | timestamp without time zone | timestamp | YES         | 
+ fleet        | neumatico_sugerencia          |               13 | atendida_por                     | uuid                        | uuid      | YES         | 
+ fleet        | neumatico_sugerencia          |               14 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_sugerencia          |               15 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_vehiculo            |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | neumatico_vehiculo            |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_vehiculo            |                3 | control_base_id                  | uuid                        | uuid      | NO          | 
+ fleet        | neumatico_vehiculo            |                4 | codigo_interno                   | character varying           | varchar   | NO          | 
+ fleet        | neumatico_vehiculo            |                5 | marca                            | character varying           | varchar   | NO          | 
+ fleet        | neumatico_vehiculo            |                6 | modelo_dibujo                    | character varying           | varchar   | YES         | 
+ fleet        | neumatico_vehiculo            |                7 | medida                           | character varying           | varchar   | YES         | 
+ fleet        | neumatico_vehiculo            |                8 | tipo_neumatico                   | character varying           | varchar   | NO          | 
+ fleet        | neumatico_vehiculo            |                9 | fecha_fabricacion                | date                        | date      | YES         | 
+ fleet        | neumatico_vehiculo            |               10 | estado                           | character varying           | varchar   | NO          | 'ACTIVO'::character varying
+ fleet        | neumatico_vehiculo            |               11 | km_totales_acumulados            | integer                     | int4      | YES         | 0
+ fleet        | neumatico_vehiculo            |               12 | fecha_alta                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_vehiculo            |               13 | fecha_baja                       | timestamp without time zone | timestamp | YES         | 
+ fleet        | neumatico_vehiculo            |               14 | observaciones                    | text                        | text      | YES         | 
+ fleet        | neumatico_vehiculo            |               15 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | neumatico_vehiculo            |               16 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | neumatico_vehiculo            |               17 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | notificacion_vencimiento      |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | notificacion_vencimiento      |                2 | documento_id                     | uuid                        | uuid      | NO          | 
+ fleet        | notificacion_vencimiento      |                3 | entidad_tipo                     | character varying           | varchar   | NO          | 
+ fleet        | notificacion_vencimiento      |                4 | propietario_id                   | uuid                        | uuid      | YES         | 
+ fleet        | notificacion_vencimiento      |                5 | tipo_documento                   | character varying           | varchar   | NO          | 
+ fleet        | notificacion_vencimiento      |                6 | numero                           | character varying           | varchar   | NO          | 
+ fleet        | notificacion_vencimiento      |                7 | nivel                            | character varying           | varchar   | NO          | 
+ fleet        | notificacion_vencimiento      |                8 | dias_restantes                   | integer                     | int4      | NO          | 
+ fleet        | notificacion_vencimiento      |                9 | fecha_vencimiento                | date                        | date      | NO          | 
+ fleet        | notificacion_vencimiento      |               10 | email_enviado                    | boolean                     | bool      | YES         | false
+ fleet        | notificacion_vencimiento      |               11 | email_enviado_en                 | timestamp without time zone | timestamp | YES         | 
+ fleet        | notificacion_vencimiento      |               12 | sms_enviado                      | boolean                     | bool      | YES         | false
+ fleet        | notificacion_vencimiento      |               13 | sms_enviado_en                   | timestamp without time zone | timestamp | YES         | 
+ fleet        | notificacion_vencimiento      |               14 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | propietario_vehiculo          |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | propietario_vehiculo          |                2 | propietario_id                   | uuid                        | uuid      | NO          | 
+ fleet        | propietario_vehiculo          |                3 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | propietario_vehiculo          |                4 | porcentaje_participacion         | numeric                     | numeric   | YES         | 100
+ fleet        | propietario_vehiculo          |                5 | fecha_inicio                     | date                        | date      | NO          | CURRENT_DATE
+ fleet        | propietario_vehiculo          |                6 | fecha_fin                        | date                        | date      | YES         | 
+ fleet        | propietario_vehiculo          |                7 | activo                           | boolean                     | bool      | NO          | true
+ fleet        | propietario_vehiculo          |                8 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | propietario_vehiculo          |                9 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | relacion_propietario_vehiculo |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | relacion_propietario_vehiculo |                2 | vehiculo_id                      | uuid                        | uuid      | YES         | 
+ fleet        | relacion_propietario_vehiculo |                3 | propietario_id                   | uuid                        | uuid      | YES         | 
+ fleet        | relacion_propietario_vehiculo |                4 | porcentaje_participacion         | numeric                     | numeric   | YES         | 100
+ fleet        | relacion_propietario_vehiculo |                5 | fecha_inicio                     | date                        | date      | YES         | 
+ fleet        | relacion_propietario_vehiculo |                6 | fecha_fin                        | date                        | date      | YES         | 
+ fleet        | relacion_propietario_vehiculo |                7 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | turno_chofer                  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | turno_chofer                  |                2 | contrato_id                      | uuid                        | uuid      | NO          | 
+ fleet        | turno_chofer                  |                3 | chofer_id                        | uuid                        | uuid      | NO          | 
+ fleet        | turno_chofer                  |                4 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ fleet        | turno_chofer                  |                5 | estado                           | character varying           | varchar   | NO          | 'ACTIVO'::character varying
+ fleet        | turno_chofer                  |                6 | km_inicial                       | numeric                     | numeric   | NO          | 
+ fleet        | turno_chofer                  |                7 | km_final                         | numeric                     | numeric   | YES         | 
+ fleet        | turno_chofer                  |                8 | combustible_inicial              | character varying           | varchar   | NO          | 
+ fleet        | turno_chofer                  |                9 | combustible_final                | character varying           | varchar   | YES         | 
+ fleet        | turno_chofer                  |               10 | recaudacion_app_efectivo         | numeric                     | numeric   | YES         | 0
+ fleet        | turno_chofer                  |               11 | recaudacion_app_debito           | numeric                     | numeric   | YES         | 0
+ fleet        | turno_chofer                  |               12 | recaudacion_ticketera_calle      | numeric                     | numeric   | YES         | 0
+ fleet        | turno_chofer                  |               13 | monto_bruto_calculado            | numeric                     | numeric   | YES         | 0
+ fleet        | turno_chofer                  |               14 | comision_chofer_calculada        | numeric                     | numeric   | YES         | 0
+ fleet        | turno_chofer                  |               15 | utilidad_propietario_calculada   | numeric                     | numeric   | YES         | 0
+ fleet        | turno_chofer                  |               16 | inicio_turno                     | timestamp without time zone | timestamp | NO          | now()
+ fleet        | turno_chofer                  |               17 | fin_turno                        | timestamp without time zone | timestamp | YES         | 
+ fleet        | turno_chofer                  |               18 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | turno_chofer                  |               19 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | turno_chofer                  |               20 | snapshot_dia_contractual         | character varying           | varchar   | YES         | 
+ fleet        | turno_chofer                  |               22 | snapshot_hora_inicio             | time without time zone      | time      | YES         | 
+ fleet        | turno_chofer                  |               23 | snapshot_hora_fin                | time without time zone      | time      | YES         | 
+ fleet        | turno_chofer                  |               24 | snapshot_duracion_minima_horas   | integer                     | int4      | YES         | 
+ fleet        | turno_chofer                  |               25 | snapshot_permite_extension       | boolean                     | bool      | YES         | 
+ fleet        | turno_chofer                  |               26 | snapshot_hora_fin_extension      | time without time zone      | time      | YES         | 
+ fleet        | vehiculo                      |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ fleet        | vehiculo                      |                2 | control_base_id                  | uuid                        | uuid      | YES         | 
+ fleet        | vehiculo                      |                3 | patente                          | character varying           | varchar   | NO          | 
+ fleet        | vehiculo                      |                4 | marca                            | character varying           | varchar   | YES         | 
+ fleet        | vehiculo                      |                5 | modelo                           | character varying           | varchar   | YES         | 
+ fleet        | vehiculo                      |                6 | anio                             | integer                     | int4      | YES         | 
+ fleet        | vehiculo                      |                7 | activo                           | boolean                     | bool      | YES         | true
+ fleet        | vehiculo                      |                8 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ fleet        | vehiculo                      |                9 | numero_licencia                  | character varying           | varchar   | YES         | 
+ fleet        | vehiculo                      |               10 | qr_uuid                          | uuid                        | uuid      | YES         | gen_random_uuid()
+ fleet        | vehiculo                      |               11 | qr_activo                        | boolean                     | bool      | YES         | true
+ fleet        | vehiculo                      |               12 | desgaste_neumaticos              | integer                     | int4      | YES         | 0
+ fleet        | vehiculo                      |               13 | desgaste_manual                  | integer                     | int4      | YES         | 0
+ fleet        | vehiculo                      |               14 | fecha_ultimo_cambio_neumaticos   | date                        | date      | YES         | 
+ fleet        | vehiculo                      |               15 | km_ultimo_cambio_neumaticos      | integer                     | int4      | YES         | 
+ fleet        | vehiculo                      |               16 | parches_neumaticos               | integer                     | int4      | YES         | 0
+ fleet        | vehiculo                      |               17 | capacidad                        | integer                     | int4      | YES         | 
+ fleet        | vehiculo                      |               18 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ geo          | ciudad                        |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ geo          | ciudad                        |                2 | provincia_id                     | uuid                        | uuid      | YES         | 
+ geo          | ciudad                        |                3 | nombre                           | character varying           | varchar   | NO          | 
+ geo          | ciudad                        |                4 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ geo          | ciudad                        |                5 | codigo_postal                    | character varying           | varchar   | YES         | 
+ geo          | pais                          |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ geo          | pais                          |                2 | nombre                           | character varying           | varchar   | NO          | 
+ geo          | pais                          |                3 | codigo_iso                       | character varying           | varchar   | YES         | 
+ geo          | pais                          |                4 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ geo          | provincia                     |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ geo          | provincia                     |                2 | pais_id                          | uuid                        | uuid      | YES         | 
+ geo          | provincia                     |                3 | nombre                           | character varying           | varchar   | NO          | 
+ geo          | provincia                     |                4 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ notification | notificacion                  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ notification | notificacion                  |                2 | usuario_id                       | uuid                        | uuid      | NO          | 
+ notification | notificacion                  |                3 | titulo                           | character varying           | varchar   | YES         | 
+ notification | notificacion                  |                4 | mensaje                          | text                        | text      | NO          | 
+ notification | notificacion                  |                5 | tipo                             | character varying           | varchar   | NO          | 
+ notification | notificacion                  |                6 | leida                            | boolean                     | bool      | YES         | false
+ notification | notificacion                  |                7 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | billetera                     |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ payment      | billetera                     |                2 | usuario_id                       | uuid                        | uuid      | NO          | 
+ payment      | billetera                     |                3 | saldo                            | numeric                     | numeric   | YES         | 0
+ payment      | billetera                     |                4 | moneda                           | character varying           | varchar   | YES         | 'ARS'::character varying
+ payment      | billetera                     |                5 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | billetera                     |                6 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | configuracion_tarifa          |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ payment      | configuracion_tarifa          |                2 | control_base_id                  | uuid                        | uuid      | NO          | 
+ payment      | configuracion_tarifa          |                3 | nombre                           | character varying           | varchar   | YES         | 
+ payment      | configuracion_tarifa          |                4 | tarifa_base                      | numeric                     | numeric   | YES         | 0
+ payment      | configuracion_tarifa          |                5 | precio_por_km                    | numeric                     | numeric   | YES         | 0
+ payment      | configuracion_tarifa          |                6 | precio_por_minuto                | numeric                     | numeric   | YES         | 0
+ payment      | configuracion_tarifa          |                7 | recargo_nocturno                 | numeric                     | numeric   | YES         | 1.0
+ payment      | configuracion_tarifa          |                8 | recargo_feriado                  | numeric                     | numeric   | YES         | 1.0
+ payment      | configuracion_tarifa          |                9 | activo                           | boolean                     | bool      | YES         | true
+ payment      | configuracion_tarifa          |               10 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | configuracion_tarifa          |               11 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | configuracion_tarifa          |               12 | modo_calculo                     | character varying           | varchar   | YES         | 'por_km'::character varying
+ payment      | configuracion_tarifa          |               13 | distancia_por_ficha              | numeric                     | numeric   | YES         | 100
+ payment      | configuracion_tarifa          |               14 | precio_por_ficha                 | numeric                     | numeric   | YES         | 0
+ payment      | configuracion_tarifa          |               15 | precio_por_minuto_espera         | numeric                     | numeric   | YES         | 0
+ payment      | configuracion_tarifa          |               16 | recargo_domingo                  | numeric                     | numeric   | YES         | 1.0
+ payment      | configuracion_tarifa          |               17 | hora_inicio_nocturno             | time without time zone      | time      | YES         | '22:00:00'::time without time zone
+ payment      | configuracion_tarifa          |               18 | hora_fin_nocturno                | time without time zone      | time      | YES         | '06:00:00'::time without time zone
+ payment      | configuracion_tarifa          |               19 | moneda                           | character varying           | varchar   | YES         | 'ARS'::character varying
+ payment      | configuracion_tarifa          |               20 | descripcion                      | text                        | text      | YES         | 
+ payment      | factura_empresa               |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ payment      | factura_empresa               |                2 | empresa_id                       | uuid                        | uuid      | NO          | 
+ payment      | factura_empresa               |                3 | periodo                          | date                        | date      | NO          | 
+ payment      | factura_empresa               |                4 | total                            | numeric                     | numeric   | YES         | 
+ payment      | factura_empresa               |                5 | descuento                        | numeric                     | numeric   | YES         | 0
+ payment      | factura_empresa               |                6 | total_final                      | numeric                     | numeric   | YES         | 
+ payment      | factura_empresa               |                7 | estado                           | character varying           | varchar   | YES         | 'pendiente'::character varying
+ payment      | factura_empresa               |                8 | pdf_url                          | text                        | text      | YES         | 
+ payment      | factura_empresa               |                9 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | factura_empresa               |               10 | pagada_at                        | timestamp without time zone | timestamp | YES         | 
+ payment      | metodo_pago                   |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ payment      | metodo_pago                   |                2 | nombre                           | character varying           | varchar   | NO          | 
+ payment      | pago_empresa                  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ payment      | pago_empresa                  |                2 | empresa_id                       | uuid                        | uuid      | NO          | 
+ payment      | pago_empresa                  |                3 | monto                            | numeric                     | numeric   | NO          | 
+ payment      | pago_empresa                  |                4 | metodo_pago                      | character varying           | varchar   | NO          | 
+ payment      | pago_empresa                  |                5 | referencia                       | character varying           | varchar   | YES         | 
+ payment      | pago_empresa                  |                6 | estado                           | character varying           | varchar   | YES         | 'pendiente'::character varying
+ payment      | pago_empresa                  |                7 | comprobante_url                  | text                        | text      | YES         | 
+ payment      | pago_empresa                  |                8 | factura_id                       | uuid                        | uuid      | YES         | 
+ payment      | pago_empresa                  |                9 | observaciones                    | text                        | text      | YES         | 
+ payment      | pago_empresa                  |               10 | fecha_pago                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | pago_empresa                  |               11 | confirmado_en                    | timestamp without time zone | timestamp | YES         | 
+ payment      | pago_empresa                  |               12 | confirmado_por                   | uuid                        | uuid      | YES         | 
+ payment      | pago_empresa                  |               13 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | pago_empresa                  |               14 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | transaccion                   |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ payment      | transaccion                   |                2 | viaje_id                         | uuid                        | uuid      | YES         | 
+ payment      | transaccion                   |                3 | metodo_pago_id                   | uuid                        | uuid      | YES         | 
+ payment      | transaccion                   |                4 | monto                            | numeric                     | numeric   | YES         | 
+ payment      | transaccion                   |                5 | estado                           | character varying           | varchar   | YES         | 
+ payment      | transaccion                   |                6 | external_reference               | character varying           | varchar   | YES         | 
+ payment      | transaccion                   |                7 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ payment      | transaccion                   |                8 | tipo                             | character varying           | varchar   | YES         | 
+ payment      | transaccion                   |                9 | saldo_despues                    | numeric                     | numeric   | YES         | 
+ payment      | transaccion                   |               10 | descripcion                      | text                        | text      | YES         | 
+ payment      | transaccion                   |               11 | billetera_id                     | uuid                        | uuid      | YES         | 
+ public       | alembic_version               |                1 | version_num                      | character varying           | varchar   | NO          | 
+ public       | comercio                      |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ public       | comercio                      |                2 | nombre                           | character varying           | varchar   | NO          | 
+ public       | comercio                      |                3 | rubro                            | character varying           | varchar   | YES         | 
+ public       | comercio                      |                4 | direccion                        | text                        | text      | NO          | 
+ public       | comercio                      |                5 | latitud                          | numeric                     | numeric   | NO          | 
+ public       | comercio                      |                6 | longitud                         | numeric                     | numeric   | NO          | 
+ public       | comercio                      |                7 | codigo_qr                        | character varying           | varchar   | NO          | 
+ public       | comercio                      |                8 | email_contacto                   | character varying           | varchar   | YES         | 
+ public       | comercio                      |                9 | telefono                         | character varying           | varchar   | YES         | 
+ public       | comercio                      |               10 | activo                           | boolean                     | bool      | YES         | true
+ public       | comercio                      |               11 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ public       | comercio                      |               12 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ public       | comercio                      |               13 | control_base_id                  | uuid                        | uuid      | NO          | 
+ public       | escaneo_qr                    |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ public       | escaneo_qr                    |                2 | comercio_id                      | uuid                        | uuid      | YES         | 
+ public       | escaneo_qr                    |                3 | viaje_id                         | uuid                        | uuid      | YES         | 
+ public       | escaneo_qr                    |                4 | user_agent                       | text                        | text      | YES         | 
+ public       | escaneo_qr                    |                5 | ip_address                       | text                        | text      | YES         | 
+ public       | escaneo_qr                    |                6 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ public       | escaneo_qr                    |                7 | contrato_id                      | uuid                        | uuid      | YES         | 
+ public       | escaneo_qr                    |                8 | tipo_qr                          | character varying           | varchar   | YES         | 'OPERATIVO'::character varying
+ public       | escaneo_qr                    |                9 | resultado                        | character varying           | varchar   | YES         | 
+ public       | escaneo_qr                    |               10 | motivo                           | text                        | text      | YES         | 
+ public       | escaneo_qr                    |               11 | autorizacion_id                  | uuid                        | uuid      | YES         | 
+ rentabilidad | analisis_medios_pago          |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ rentabilidad | analisis_medios_pago          |                2 | vehiculo_id                      | uuid                        | uuid      | YES         | 
+ rentabilidad | analisis_medios_pago          |                3 | anio                             | integer                     | int4      | NO          | 
+ rentabilidad | analisis_medios_pago          |                4 | mes                              | integer                     | int4      | NO          | 
+ rentabilidad | analisis_medios_pago          |                5 | medio_pago                       | character varying           | varchar   | NO          | 
+ rentabilidad | analisis_medios_pago          |                6 | total_viajes                     | integer                     | int4      | YES         | 0
+ rentabilidad | analisis_medios_pago          |                7 | total_ingresos                   | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | analisis_medios_pago          |                8 | comision_aplicada                | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | analisis_medios_pago          |                9 | costo_comisiones                 | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | analisis_medios_pago          |               10 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ rentabilidad | rentabilidad_diaria_vehiculo  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ rentabilidad | rentabilidad_diaria_vehiculo  |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ rentabilidad | rentabilidad_diaria_vehiculo  |                3 | fecha                            | date                        | date      | NO          | 
+ rentabilidad | rentabilidad_diaria_vehiculo  |                4 | total_viajes                     | integer                     | int4      | YES         | 0
+ rentabilidad | rentabilidad_diaria_vehiculo  |                5 | ingresos_brutos                  | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_diaria_vehiculo  |                6 | comisiones_bancarias             | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_diaria_vehiculo  |                7 | costos_variables                 | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_diaria_vehiculo  |                8 | costos_fijos                     | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_diaria_vehiculo  |                9 | canon_taxip                      | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_diaria_vehiculo  |               10 | porcentaje_taxip                 | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_diaria_vehiculo  |               11 | utilidad_neta                    | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_diaria_vehiculo  |               12 | margen                           | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_diaria_vehiculo  |               13 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ rentabilidad | rentabilidad_diaria_vehiculo  |               14 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ rentabilidad | rentabilidad_mensual_vehiculo |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ rentabilidad | rentabilidad_mensual_vehiculo |                2 | vehiculo_id                      | uuid                        | uuid      | NO          | 
+ rentabilidad | rentabilidad_mensual_vehiculo |                3 | anio                             | integer                     | int4      | NO          | 
+ rentabilidad | rentabilidad_mensual_vehiculo |                4 | mes                              | integer                     | int4      | NO          | 
+ rentabilidad | rentabilidad_mensual_vehiculo |                5 | total_viajes                     | integer                     | int4      | YES         | 0
+ rentabilidad | rentabilidad_mensual_vehiculo |                6 | ingresos_brutos                  | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_mensual_vehiculo |                7 | comisiones_bancarias             | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_mensual_vehiculo |                8 | costos_variables                 | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_mensual_vehiculo |                9 | costos_fijos                     | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_mensual_vehiculo |               10 | canon_taxip                      | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_mensual_vehiculo |               11 | porcentaje_taxip                 | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_mensual_vehiculo |               12 | utilidad_neta                    | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_mensual_vehiculo |               13 | margen                           | numeric                     | numeric   | YES         | '0'::numeric
+ rentabilidad | rentabilidad_mensual_vehiculo |               14 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ rentabilidad | rentabilidad_mensual_vehiculo |               15 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ tenant       | configuracion_tenant          |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ tenant       | configuracion_tenant          |                2 | control_base_id                  | uuid                        | uuid      | YES         | 
+ tenant       | configuracion_tenant          |                3 | moneda_default                   | character varying           | varchar   | YES         | 'ARS'::character varying
+ tenant       | configuracion_tenant          |                4 | timezone                         | character varying           | varchar   | YES         | 'America/Argentina/Tucuman'::character varying
+ tenant       | configuracion_tenant          |                5 | idioma                           | character varying           | varchar   | YES         | 'es'::character varying
+ tenant       | configuracion_tenant          |                6 | habilitar_fidelizacion           | boolean                     | bool      | YES         | false
+ tenant       | configuracion_tenant          |                7 | habilitar_pagos_online           | boolean                     | bool      | YES         | true
+ tenant       | configuracion_tenant          |                8 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ tenant       | configuracion_tenant          |                9 | canon_mensual_por_vehiculo       | numeric                     | numeric   | YES         | '10000'::numeric
+ tenant       | configuracion_tenant          |               10 | porcentaje_taxip_por_viaje       | numeric                     | numeric   | YES         | 1.5
+ tenant       | configuracion_tenant          |               11 | iva                              | numeric                     | numeric   | YES         | 21.0
+ tenant       | configuracion_tenant          |               12 | iibb                             | numeric                     | numeric   | YES         | 5.0
+ tenant       | configuracion_tenant          |               13 | idc                              | numeric                     | numeric   | YES         | 0.3
+ tenant       | configuracion_tenant          |               14 | mix_efectivo                     | numeric                     | numeric   | YES         | 40.0
+ tenant       | configuracion_tenant          |               15 | mix_transferencia                | numeric                     | numeric   | YES         | 20.0
+ tenant       | configuracion_tenant          |               16 | mix_qr                           | numeric                     | numeric   | YES         | 25.0
+ tenant       | configuracion_tenant          |               17 | mix_debito                       | numeric                     | numeric   | YES         | 15.0
+ tenant       | configuracion_tenant          |               18 | mix_credito                      | numeric                     | numeric   | YES         | 0.0
+ tenant       | configuracion_tenant          |               19 | comision_qr                      | numeric                     | numeric   | YES         | 0.80
+ tenant       | configuracion_tenant          |               20 | comision_debito                  | numeric                     | numeric   | YES         | 1.00
+ tenant       | configuracion_tenant          |               21 | comision_credito                 | numeric                     | numeric   | YES         | 3.50
+ tenant       | configuracion_tenant          |               22 | costo_combustible_por_km         | numeric                     | numeric   | YES         | 80.0
+ tenant       | configuracion_tenant          |               23 | costo_mantenimiento_por_dia      | numeric                     | numeric   | YES         | 500.0
+ tenant       | configuracion_tenant          |               24 | costo_seguro_por_dia             | numeric                     | numeric   | YES         | 300.0
+ tenant       | configuracion_tenant          |               25 | costo_impuesto_por_dia           | numeric                     | numeric   | YES         | 200.0
+ tenant       | configuracion_tenant          |               26 | depreciacion_vehiculo_por_dia    | numeric                     | numeric   | YES         | 400.0
+ tenant       | configuracion_tenant          |               27 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ tenant       | configuracion_tenant          |               28 | vida_util_neumaticos_km          | integer                     | int4      | YES         | 50000
+ tenant       | configuracion_tenant          |               29 | umbral_rotacion_neumaticos_km    | integer                     | int4      | YES         | 10000
+ tenant       | configuracion_tenant          |               30 | umbral_cambio_neumaticos_km      | integer                     | int4      | YES         | 45000
+ tenant       | configuracion_tenant          |               31 | profundidad_minima_neumaticos_mm | numeric                     | numeric   | YES         | 2.0
+ tenant       | configuracion_tenant          |               32 | factor_desgaste_delantero        | numeric                     | numeric   | YES         | 1.5
+ tenant       | control_base                  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ tenant       | control_base                  |                2 | nombre                           | character varying           | varchar   | NO          | 
+ tenant       | control_base                  |                3 | email                            | character varying           | varchar   | YES         | 
+ tenant       | control_base                  |                4 | telefono                         | character varying           | varchar   | YES         | 
+ tenant       | control_base                  |                5 | activo                           | boolean                     | bool      | YES         | true
+ tenant       | control_base                  |                6 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ tenant       | control_base                  |                7 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ tenant       | control_base                  |                8 | latitud                          | numeric                     | numeric   | YES         | 
+ tenant       | control_base                  |                9 | longitud                         | numeric                     | numeric   | YES         | 
+ tenant       | control_base                  |               10 | fecha_suspension                 | timestamp without time zone | timestamp | YES         | 
+ tenant       | control_base                  |               11 | motivo_suspension                | text                        | text      | YES         | 
+ tenant       | control_base                  |               12 | suspendido_por                   | uuid                        | uuid      | YES         | 
+ tenant       | control_base                  |               13 | ciudad_id                        | uuid                        | uuid      | YES         | 
+ tenant       | control_base                  |               14 | direccion                        | character varying           | varchar   | YES         | 
+ tenant       | empresa                       |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ tenant       | empresa                       |                2 | nombre                           | character varying           | varchar   | NO          | 
+ tenant       | empresa                       |                3 | tipo                             | character varying           | varchar   | YES         | 'hotel'::character varying
+ tenant       | empresa                       |                4 | email_facturacion                | character varying           | varchar   | YES         | 
+ tenant       | empresa                       |                5 | telefono                         | character varying           | varchar   | YES         | 
+ tenant       | empresa                       |                6 | direccion                        | text                        | text      | YES         | 
+ tenant       | empresa                       |                7 | latitud                          | numeric                     | numeric   | YES         | 
+ tenant       | empresa                       |                8 | longitud                         | numeric                     | numeric   | YES         | 
+ tenant       | empresa                       |                9 | tarifa_preferencial              | numeric                     | numeric   | YES         | 0
+ tenant       | empresa                       |               10 | condiciones_pago                 | character varying           | varchar   | YES         | 'mensual'::character varying
+ tenant       | empresa                       |               11 | activo                           | boolean                     | bool      | YES         | true
+ tenant       | empresa                       |               12 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ tenant       | empresa                       |               13 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ tenant       | empresa                       |               14 | control_base_id                  | uuid                        | uuid      | NO          | 
+ tenant       | empresa                       |               15 | limite_credito                   | numeric                     | numeric   | YES         | 0.0
+ tenant       | empresa                       |               16 | contacto_nombre                  | character varying           | varchar   | YES         | 
+ tenant       | empresa                       |               17 | contacto_telefono                | character varying           | varchar   | YES         | 
+ tenant       | empresa                       |               18 | contacto_email                   | character varying           | varchar   | YES         | 
+ tenant       | empresa                       |               19 | fecha_suspension                 | timestamp without time zone | timestamp | YES         | 
+ tenant       | empresa                       |               20 | motivo_suspension                | text                        | text      | YES         | 
+ tenant       | empresa                       |               21 | suspendido_por                   | uuid                        | uuid      | YES         | 
+ tenant       | factura                       |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ tenant       | factura                       |                2 | control_base_id                  | uuid                        | uuid      | NO          | 
+ tenant       | factura                       |                3 | periodo                          | date                        | date      | NO          | 
+ tenant       | factura                       |                4 | vehiculos_activos                | integer                     | int4      | NO          | 0
+ tenant       | factura                       |                5 | canon_total                      | numeric                     | numeric   | NO          | 0
+ tenant       | factura                       |                6 | porcentaje_plataforma            | numeric                     | numeric   | NO          | 15
+ tenant       | factura                       |                7 | total_a_pagar                    | numeric                     | numeric   | NO          | 0
+ tenant       | factura                       |                8 | estado                           | character varying           | varchar   | NO          | 'pendiente'::character varying
+ tenant       | factura                       |                9 | fecha_emision                    | timestamp without time zone | timestamp | NO          | now()
+ tenant       | factura                       |               10 | fecha_vencimiento                | timestamp without time zone | timestamp | YES         | 
+ tenant       | factura                       |               11 | pagada_at                        | timestamp without time zone | timestamp | YES         | 
+ tenant       | factura                       |               12 | pagada_por                       | uuid                        | uuid      | YES         | 
+ tenant       | factura                       |               13 | numero_factura                   | character varying           | varchar   | YES         | 
+ tenant       | factura                       |               14 | observaciones                    | text                        | text      | YES         | 
+ tenant       | factura                       |               15 | created_at                       | timestamp without time zone | timestamp | NO          | now()
+ tenant       | factura                       |               16 | updated_at                       | timestamp without time zone | timestamp | NO          | now()
+ trip         | calificacion                  |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ trip         | calificacion                  |                2 | viaje_id                         | uuid                        | uuid      | NO          | 
+ trip         | calificacion                  |                3 | calificador_id                   | uuid                        | uuid      | NO          | 
+ trip         | calificacion                  |                4 | calificado_id                    | uuid                        | uuid      | NO          | 
+ trip         | calificacion                  |                5 | puntaje                          | integer                     | int4      | NO          | 
+ trip         | calificacion                  |                6 | comentario                       | text                        | text      | YES         | 
+ trip         | calificacion                  |                7 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | foto_viaje                    |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ trip         | foto_viaje                    |                2 | viaje_id                         | uuid                        | uuid      | NO          | 
+ trip         | foto_viaje                    |                3 | usuario_id                       | uuid                        | uuid      | NO          | 
+ trip         | foto_viaje                    |                4 | url                              | text                        | text      | NO          | 
+ trip         | foto_viaje                    |                5 | thumbnail_url                    | text                        | text      | YES         | 
+ trip         | foto_viaje                    |                6 | metadata_json                    | text                        | text      | YES         | 
+ trip         | foto_viaje                    |                7 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | historial_estado_viaje        |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ trip         | historial_estado_viaje        |                2 | viaje_id                         | uuid                        | uuid      | YES         | 
+ trip         | historial_estado_viaje        |                3 | estado                           | character varying           | varchar   | YES         | 
+ trip         | historial_estado_viaje        |                4 | observacion                      | text                        | text      | YES         | 
+ trip         | historial_estado_viaje        |                5 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | historial_estado_viaje        |                6 | latitud                          | numeric                     | numeric   | YES         | 
+ trip         | historial_estado_viaje        |                7 | longitud                         | numeric                     | numeric   | YES         | 
+ trip         | objeto_olvidado               |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ trip         | objeto_olvidado               |                2 | viaje_id                         | uuid                        | uuid      | NO          | 
+ trip         | objeto_olvidado               |                3 | pasajero_id                      | uuid                        | uuid      | NO          | 
+ trip         | objeto_olvidado               |                4 | chofer_id                        | uuid                        | uuid      | NO          | 
+ trip         | objeto_olvidado               |                5 | descripcion                      | text                        | text      | NO          | 
+ trip         | objeto_olvidado               |                6 | estado                           | character varying           | varchar   | YES         | 'reportado'::character varying
+ trip         | objeto_olvidado               |                7 | foto_url                         | text                        | text      | YES         | 
+ trip         | objeto_olvidado               |                8 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | panico                        |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ trip         | panico                        |                2 | viaje_id                         | uuid                        | uuid      | YES         | 
+ trip         | panico                        |                3 | ubicacion                        | text                        | text      | YES         | 
+ trip         | panico                        |                4 | activo                           | boolean                     | bool      | YES         | true
+ trip         | panico                        |                5 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | panico                        |                6 | usuario_id                       | uuid                        | uuid      | YES         | 
+ trip         | panico                        |                7 | resuelto_en                      | timestamp without time zone | timestamp | YES         | 
+ trip         | reserva                       |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ trip         | reserva                       |                2 | empresa_id                       | uuid                        | uuid      | NO          | 
+ trip         | reserva                       |                3 | empleado_id                      | uuid                        | uuid      | NO          | 
+ trip         | reserva                       |                4 | turno_id                         | uuid                        | uuid      | YES         | 
+ trip         | reserva                       |                5 | pasajero_nombre                  | character varying           | varchar   | YES         | 
+ trip         | reserva                       |                6 | pasajero_telefono                | character varying           | varchar   | YES         | 
+ trip         | reserva                       |                7 | direccion_origen                 | text                        | text      | NO          | 
+ trip         | reserva                       |                8 | latitud_origen                   | numeric                     | numeric   | YES         | 
+ trip         | reserva                       |                9 | longitud_origen                  | numeric                     | numeric   | YES         | 
+ trip         | reserva                       |               10 | direccion_destino                | text                        | text      | NO          | 
+ trip         | reserva                       |               11 | latitud_destino                  | numeric                     | numeric   | YES         | 
+ trip         | reserva                       |               12 | longitud_destino                 | numeric                     | numeric   | YES         | 
+ trip         | reserva                       |               13 | paradas_intermedias              | jsonb                       | jsonb     | YES         | '[]'::jsonb
+ trip         | reserva                       |               14 | tipo_vehiculo                    | character varying           | varchar   | YES         | 'standard'::character varying
+ trip         | reserva                       |               15 | nota_conductor                   | text                        | text      | YES         | 
+ trip         | reserva                       |               16 | estado                           | character varying           | varchar   | YES         | 'reservado'::character varying
+ trip         | reserva                       |               17 | es_programado                    | boolean                     | bool      | YES         | false
+ trip         | reserva                       |               18 | fecha_programada                 | timestamp without time zone | timestamp | YES         | 
+ trip         | reserva                       |               19 | distancia_estimada_km            | numeric                     | numeric   | YES         | 
+ trip         | reserva                       |               20 | tiempo_estimado_minutos          | integer                     | int4      | YES         | 
+ trip         | reserva                       |               21 | precio_estimado                  | numeric                     | numeric   | YES         | 
+ trip         | reserva                       |               22 | precio_final                     | numeric                     | numeric   | YES         | 
+ trip         | reserva                       |               23 | metodo_pago                      | character varying           | varchar   | YES         | 'vehiculo'::character varying
+ trip         | reserva                       |               24 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | reserva                       |               25 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | reserva                       |               26 | creado_por                       | uuid                        | uuid      | YES         | 
+ trip         | reserva                       |               27 | cantidad_pasajeros               | integer                     | int4      | YES         | 1
+ trip         | reserva                       |               28 | cantidad_equipaje                | integer                     | int4      | YES         | 0
+ trip         | reserva                       |               29 | centro_costo                     | character varying           | varchar   | YES         | 
+ trip         | tipo_vehiculo                 |                1 | id                               | character varying           | varchar   | NO          | 
+ trip         | tipo_vehiculo                 |                2 | nombre                           | character varying           | varchar   | NO          | 
+ trip         | tipo_vehiculo                 |                3 | descripcion                      | text                        | text      | YES         | 
+ trip         | tipo_vehiculo                 |                4 | tarifa_base                      | numeric                     | numeric   | NO          | 0
+ trip         | tipo_vehiculo                 |                5 | tarifa_por_km                    | numeric                     | numeric   | NO          | 0
+ trip         | tipo_vehiculo                 |                6 | tarifa_por_minuto                | numeric                     | numeric   | NO          | 0
+ trip         | tipo_vehiculo                 |                7 | capacidad_pasajeros              | integer                     | int4      | YES         | 4
+ trip         | tipo_vehiculo                 |                8 | capacidad_equipaje               | integer                     | int4      | YES         | 2
+ trip         | tipo_vehiculo                 |                9 | activo                           | boolean                     | bool      | YES         | true
+ trip         | tipo_vehiculo                 |               10 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | tipo_vehiculo                 |               11 | precio_por_ficha                 | numeric                     | numeric   | YES         | 0
+ trip         | tipo_vehiculo                 |               12 | distancia_por_ficha              | numeric                     | numeric   | YES         | 100
+ trip         | tipo_vehiculo                 |               13 | precio_por_minuto_espera         | numeric                     | numeric   | YES         | 0
+ trip         | viaje_solicitado              |                1 | id                               | uuid                        | uuid      | NO          | gen_random_uuid()
+ trip         | viaje_solicitado              |                2 | control_base_id                  | uuid                        | uuid      | YES         | 
+ trip         | viaje_solicitado              |                3 | pasajero_id                      | uuid                        | uuid      | YES         | 
+ trip         | viaje_solicitado              |                4 | chofer_id                        | uuid                        | uuid      | YES         | 
+ trip         | viaje_solicitado              |                5 | vehiculo_id                      | uuid                        | uuid      | YES         | 
+ trip         | viaje_solicitado              |                6 | origen                           | text                        | text      | YES         | 
+ trip         | viaje_solicitado              |                7 | destino                          | text                        | text      | YES         | 
+ trip         | viaje_solicitado              |                8 | estado                           | character varying           | varchar   | YES         | 'pendiente'::character varying
+ trip         | viaje_solicitado              |                9 | precio_estimado                  | numeric                     | numeric   | YES         | 
+ trip         | viaje_solicitado              |               10 | created_at                       | timestamp without time zone | timestamp | YES         | now()
+ trip         | viaje_solicitado              |               11 | finalizado_at                    | timestamp without time zone | timestamp | YES         | 
+ trip         | viaje_solicitado              |               12 | fecha_programada                 | timestamp without time zone | timestamp | YES         | 
+ trip         | viaje_solicitado              |               13 | reserva_procesada                | boolean                     | bool      | YES         | false
+ trip         | viaje_solicitado              |               14 | procesado_en                     | timestamp without time zone | timestamp | YES         | 
+ trip         | viaje_solicitado              |               15 | direccion_origen                 | text                        | text      | YES         | 
+ trip         | viaje_solicitado              |               16 | direccion_destino                | text                        | text      | YES         | 
+ trip         | viaje_solicitado              |               17 | tiempo_estimado_segundos         | integer                     | int4      | YES         | 
+ trip         | viaje_solicitado              |               18 | distancia_metros                 | integer                     | int4      | YES         | 
+ trip         | viaje_solicitado              |               19 | url_seguimiento                  | character varying           | varchar   | YES         | 
+ trip         | viaje_solicitado              |               20 | codigo_compartido                | character varying           | varchar   | YES         | 
+ trip         | viaje_solicitado              |               21 | aceptado_en                      | timestamp without time zone | timestamp | YES         | 
+ trip         | viaje_solicitado              |               22 | iniciado_en                      | timestamp without time zone | timestamp | YES         | 
+ trip         | viaje_solicitado              |               23 | finalizado_en                    | timestamp without time zone | timestamp | YES         | 
+ trip         | viaje_solicitado              |               24 | cancelado_en                     | timestamp without time zone | timestamp | YES         | 
+ trip         | viaje_solicitado              |               25 | cancelado_por                    | character varying           | varchar   | YES         | 
+ trip         | viaje_solicitado              |               26 | motivo_cancelacion               | text                        | text      | YES         | 
+ trip         | viaje_solicitado              |               27 | precio_final                     | numeric                     | numeric   | YES         | 
+ trip         | viaje_solicitado              |               28 | moneda                           | character varying           | varchar   | YES         | 'ARS'::character varying
+ trip         | viaje_solicitado              |               29 | comercio_id                      | uuid                        | uuid      | YES         | 
+ trip         | viaje_solicitado              |               30 | empresa_id                       | uuid                        | uuid      | YES         | 
+ trip         | viaje_solicitado              |               31 | nombre_pasajero                  | character varying           | varchar   | YES         | 
+ trip         | viaje_solicitado              |               32 | notas                            | text                        | text      | YES         | 
+ trip         | viaje_solicitado              |               33 | facturado                        | boolean                     | bool      | YES         | false
+ trip         | viaje_solicitado              |               34 | turno_id                         | uuid                        | uuid      | YES         | 
+ trip         | viaje_solicitado              |               35 | solicitado_en                    | timestamp without time zone | timestamp | YES         | now()
+ trip         | viaje_solicitado              |               36 | chofer_vehiculo_id               | uuid                        | uuid      | YES         | 
+ trip         | viaje_solicitado              |               37 | updated_at                       | timestamp without time zone | timestamp | YES         | now()
+(891 filas)
+

@@ -75,6 +75,24 @@ async def listar_modelos_por_marca(
     ]
 
 
+@router.get("/prestadoras")
+async def listar_prestadoras(
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    query = text("""
+        SELECT id, nombre, codigo_pais, activo
+        FROM auth.prestadora_telefonica
+        WHERE activo = true
+        ORDER BY nombre ASC
+    """)
+    result = await db.execute(query)
+    rows = result.all()
+    return [
+        {"id": str(row[0]), "nombre": row[1], "codigo_pais": row[2]}
+        for row in rows
+    ]
+
 @router.get("/modelos")
 async def listar_todos_modelos(
     current_user: tuple = Depends(get_current_user),

@@ -98,6 +98,55 @@ class DirectionsService:
         except Exception as e:
             logger.error(f"❌ Error en Directions API: {str(e)}")
             return self._simular_ruta(origen, destino)
+
+    async def calcular_ruta_por_coords(
+        self,
+        origen_lat: float,
+        origen_lng: float,
+        destino_lat: float,
+        destino_lng: float,
+        modo: str = "driving",
+    ) -> Dict[str, Any]:
+        """
+        Calcula la ruta entre dos coordenadas (no direcciones).
+
+        Es un wrapper sobre calcular_ruta() que:
+        1. Formatea las coordenadas como "lat,lng" (formato que acepta
+           Directions API).
+        2. Delega en calcular_ruta().
+        3. Extrae `overview_polyline` a un campo de primer nivel del
+           dict de respuesta, para que los consumidores (Static Maps)
+           no tengan que escarbar en ruta_completa.
+
+        Devuelve el mismo dict que calcular_ruta, más:
+            - overview_polyline: str | None
+              (encoded polyline de la ruta completa, lista para
+              pasar a Static Maps como `path=enc:...`)
+        """
+        origen = f"{origen_lat},{origen_lng}"
+        destino = f"{destino_lat},{destino_lng}"
+
+        resultado = await self.calcular_ruta(
+            origen=origen,
+            destino=destino,
+            paradas=None,
+            modo=modo,
+        )
+
+        # Extraer overview_polyline si está disponible.
+        # La estructura es: data["routes"][0]["overview_polyline"]["points"]
+        overview_polyline = None
+        ruta_completa = resultado.get("ruta_completa")
+        if ruta_completa:
+            routes = ruta_completa.get("routes") or []
+            if routes:
+                overview_polyline = (
+                    routes[0].get("overview_polyline") or {}
+                ).get("points")
+
+        resultado["overview_polyline"] = overview_polyline
+
+        return resultado
     
     async def obtener_coordenadas(
         self,

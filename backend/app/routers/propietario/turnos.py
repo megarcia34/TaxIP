@@ -6,10 +6,10 @@ Propietario - Gestión de turnos de sus vehículos
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from uuid import UUID
+from uuid import UUID, uuid4
 from typing import Optional
-from datetime import datetime
-
+from datetime import datetime, timedelta
+import random
 from app.database import get_db
 from app.dependencies import get_propietario_context
 from pydantic import BaseModel
@@ -349,3 +349,131 @@ async def confirmar_liquidacion(
         "success": True,
         "mensaje": "Liquidación confirmada correctamente"
     }
+
+# ==========================================
+# GENERAR CÓDIGO OPERATIVO (REEMPLAZA QR)
+# ==========================================
+
+class GenerarCodigoRequest(BaseModel):
+    dias_validez: int = 30
+
+
+class GenerarCodigoResponse(BaseModel):
+    success: bool
+    codigo: str
+    contrato_id: UUID
+    vehiculo_id: UUID
+    patente: str
+    expira_en: datetime
+    mensaje: str
+
+
+@router.post("/contratos/{contrato_id}/generar-codigo", response_model=GenerarCodigoResponse)
+async def generar_codigo_operativo(
+    contrato_id: UUID,
+    request: GenerarCodigoRequest,
+    ctx: dict = Depends(get_propietario_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Genera un código de 6 dígitos para que el chofer inicie turno.
+    Reemplaza al QR operativo.
+    """
+    propietario_id = UUID(ctx["propietario_id"])
+
+    # 1. Verificar contrato
+    query_contrato = text("""
+        SELECT 
+            cv.id,
+            cv.estado_contrato,
+            cv.activo,
+            cv.vehiculo_id,
+            cv.chofer_id,
+            v.patente
+        FROM fleet.contrato_vehiculo cv
+        JOIN fleet.vehiculo v ON v.id = cv.vehiculo_id
+        WHERE cv.id = :contrato_id 
+          AND cv.propietario_id = :propietario_id
+    """)
+    result = await db.execute(query_contrato, {
+        "contrato_id": contrato_id,
+        "propietario_id": propietario_id
+    })
+    row = result.first()
+
+    if not row:
+        raise HTTPException(404, "Contrato no encontrado")
+
+    if row[1] != "ACTIVO" or not row[2]:
+        raise HTTPException(400, "El contrato no está ACTIVO")
+
+    vehiculo_id = row[3]
+    chofer_id = row[4]
+    patente = row[5]
+
+    # 2. Verificar que el chofer no tenga turno activo
+    query_turno = text("""
+        SELECT id FROM fleet.turno_chofer
+        WHERE chofer_id = :chofer_id AND estado = 'ACTIVO'
+        LIMIT 1
+    """)
+    result = await db.execute(query_turno, {"chofer_id": chofer_id})
+    if result.first():
+        raise HTTPException(400, "El chofer ya tiene un turno activo")
+
+    # 3. Verificar que el vehículo no tenga turno activo
+    query_turno = text("""
+        SELECT id FROM fleet.turno_chofer
+        WHERE vehiculo_id = :vehiculo_id AND estado = 'ACTIVO'
+        LIMIT 1
+    """)
+    result = await db.execute(query_turno, {"vehiculo_id": vehiculo_id})
+    if result.first():
+        raise HTTPException(400, "El vehículo ya tiene un turno activo")
+
+    # 4. Generar código de 6 dígitos
+    codigo = f"{random.randint(100000, 999999)}"
+    expira_en = datetime.now() + timedelta(days=request.dias_validez)
+
+    # 5. Guardar código en auth.codigo_verificacion
+    query_codigo = text("""
+        INSERT INTO auth.codigo_verificacion (
+            id, usuario_id, codigo, tipo, usado, intentos, creado_en, expira_en
+        ) VALUES (
+            gen_random_uuid(), :chofer_id, :codigo, 'INICIO_TURNO', false, 0, NOW(), :expira_en
+        )
+        RETURNING id
+    """)
+    result = await db.execute(query_codigo, {
+        "chofer_id": chofer_id,
+        "codigo": codigo,
+        "expira_en": expira_en
+    })
+    codigo_id = result.scalar()
+
+    # 6. Guardar metadatos del código
+    query_metadata = text("""
+        INSERT INTO auth.codigo_metadatos (
+            id, codigo_id, contrato_id, vehiculo_id, propietario_id, created_at
+        ) VALUES (
+            gen_random_uuid(), :codigo_id, :contrato_id, :vehiculo_id, :propietario_id, NOW()
+        )
+    """)
+    await db.execute(query_metadata, {
+        "codigo_id": codigo_id,
+        "contrato_id": contrato_id,
+        "vehiculo_id": vehiculo_id,
+        "propietario_id": propietario_id
+    })
+
+    await db.commit()
+
+    return GenerarCodigoResponse(
+        success=True,
+        codigo=codigo,
+        contrato_id=contrato_id,
+        vehiculo_id=vehiculo_id,
+        patente=patente,
+        expira_en=expira_en,
+        mensaje="Código generado correctamente. Compártelo con tu chofer."
+    )

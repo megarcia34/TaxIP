@@ -1,53 +1,39 @@
 """
-Servicio de estimación de precios - Multi-tenant con múltiples modos de cálculo
-Soporta: ficha_argentina, por_km, por_minuto, mixto
-"""
+Servicio de estimación de precios - MOTOR UNIFICADO TAXIP 2.1
+Una sola fórmula, variables configurables por tenant, mismo resultado siempre.
 
+Fórmula Maestra:
+1. FD = ceil(distancia_m / metros_por_ficha)
+2. Según modo_cobro_tiempo:
+   - 'detenido': FT estimado por velocidad promedio vs velocidad_referencia
+   - 'total': FT = ceil((tiempo_viaje + tiempo_espera) * 60 / seg_por_ficha)
+3. FICHAS_TOTALES = FD + FT
+4. PRECIO_BASE = bajada + (FICHAS_TOTALES × precio_ficha)
+5. PRECIO_VEHICULO = PRECIO_BASE × factor_vehiculo (desde tabla intermedia)
+6. PRECIO_RECARGOS = PRECIO_VEHICULO × Π(recargos)
+7. PRECIO_FINAL = redondeo(PRECIO_RECARGOS)
+"""
 import logging
 import math
 from decimal import Decimal
 from datetime import datetime, time
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 from uuid import UUID
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-
-from app.models.payment import ConfiguracionTarifa
+from app.models.payment import ConfiguracionTarifa, ConfiguracionTarifaVehiculo
 from app.models.trip import TipoVehiculo
 from app.schemas.reserva_schemas import (
     EstimacionPrecioRequest,
     EstimacionPrecioResponse,
-    ParadaIntermedia
 )
 
 logger = logging.getLogger(__name__)
 
 
 # ============================================================
-# CONSTANTES Y ENUMS
-# ============================================================
-
-class ModoCalculo:
-    """Modos de cálculo de tarifa"""
-    FICHA_ARGENTINA = "ficha_argentina"
-    POR_KM = "por_km"
-    POR_MINUTO = "por_minuto"
-    MIXTO = "mixto"
-
-    @classmethod
-    def list(cls) -> List[str]:
-        return [cls.FICHA_ARGENTINA, cls.POR_KM, cls.POR_MINUTO, cls.MIXTO]
-
-    @classmethod
-    def is_valid(cls, modo: str) -> bool:
-        return modo in cls.list()
-
-
-# ============================================================
 # EXCEPCIONES
 # ============================================================
-
 class TarifaNotFoundError(Exception):
     """No se encontró configuración de tarifa para el tenant"""
     pass
@@ -58,15 +44,9 @@ class TipoVehiculoNotFoundError(Exception):
     pass
 
 
-class ModoCalculoInvalidoError(Exception):
-    """El modo de cálculo no es válido"""
-    pass
-
-
 # ============================================================
 # UTILIDADES
 # ============================================================
-
 def to_float(val) -> float:
     """Convierte Decimal, str, None a float de forma segura"""
     if val is None:
@@ -82,282 +62,286 @@ def to_float(val) -> float:
 
 
 # ============================================================
-# CALCULADOR DE TARIFA
+# MOTOR UNIFICADO DE CÁLCULO TAXIP 2.1
 # ============================================================
-
-class CalculadorTarifa:
+class CalculadorTarifaUnificado:
     """
-    Calculador de tarifa que soporta múltiples modos de cálculo
-    """
+    Motor unificado de cálculo de tarifas.
     
+    Ya NO usa modo_calculo (deprecado).
+    Ya NO usa campos tarifarios de tipo_vehiculo (deprecados).
+    Todas las variables vienen de payment.configuracion_tarifa.
+    El factor por tipo de vehículo viene de payment.configuracion_tarifa_vehiculo.
+    """
+
     def __init__(
         self,
         config: ConfiguracionTarifa,
         tipo_vehiculo: TipoVehiculo,
+        factor_tipo_vehiculo: float,
         distancia_km: float,
         tiempo_minutos: int,
         tiempo_espera_minutos: int = 0,
-        fecha_hora: Optional[datetime] = None
+        fecha_hora: Optional[datetime] = None,
+        es_feriado: bool = False,
     ):
         self.config = config
         self.tipo_vehiculo = tipo_vehiculo
+        self.factor_tipo_vehiculo = factor_tipo_vehiculo
         self.distancia_km = distancia_km
         self.distancia_metros = distancia_km * 1000
         self.tiempo_minutos = tiempo_minutos
         self.tiempo_espera_minutos = tiempo_espera_minutos
         self.fecha_hora = fecha_hora or datetime.now()
-        
-        # Resultados del cálculo
+        self.es_feriado = es_feriado
+
+        # Resultados
         self.subtotal = 0.0
         self.desglose: Dict[str, Any] = {}
         self.recargos_aplicados: List[str] = []
-        
-        # Determinar modo de cálculo (fallback a por_km)
-        self.modo = config.modo_calculo or ModoCalculo.POR_KM
-        
-        if not ModoCalculo.is_valid(self.modo):
-            logger.warning(f"Modo de cálculo inválido: {self.modo}, usando por_km")
-            self.modo = ModoCalculo.POR_KM
 
     def calcular(self) -> Dict[str, Any]:
-        """
-        Ejecuta el cálculo completo
-        
-        Returns:
-            Dict con precio, desglose y recargos aplicados
-        """
-        # 1. Calcular precio base según modo
-        self._calcular_base()
-        
-        # 2. Aplicar recargos
-        self._aplicar_recargos()
-        
-        # 3. Generar respuesta
+        """Ejecuta la fórmula unificada completa"""
+
+        # ================================================================
+        # 1. LEER CONFIGURACIÓN DEL TENANT
+        # ================================================================
+        bajada = to_float(self.config.tarifa_base)
+        precio_ficha = to_float(self.config.precio_por_ficha)
+        metros_por_ficha = to_float(
+            self.config.metros_por_ficha
+            if self.config.metros_por_ficha is not None
+            else self.config.distancia_por_ficha
+            or 100
+        )
+        seg_por_ficha = to_float(
+            self.config.seg_por_ficha_espera
+            if self.config.seg_por_ficha_espera is not None
+            else 60
+        )
+        velocidad_referencia = to_float(self.config.velocidad_referencia_kmh or 30)
+        modo_cobro_tiempo = self.config.modo_cobro_tiempo or "detenido"
+        redondeo = int(self.config.redondeo_comercial if self.config.redondeo_comercial is not None else 100)
+
+        # ================================================================
+        # 2. FASE 1 — FICHAS POR DISTANCIA (FD)
+        # ================================================================
+        if metros_por_ficha > 0:
+            fichas_distancia = math.ceil(self.distancia_metros / metros_por_ficha)
+        else:
+            fichas_distancia = 0
+            logger.warning("metros_por_ficha es 0, fichas por distancia desactivadas")
+
+        # ================================================================
+        # 3. FASE 2 — FICHAS POR TIEMPO (FT)
+        # ================================================================
+        if modo_cobro_tiempo == "total":
+            # Modo 'total': todo el tiempo cuenta (emula por_minuto original)
+            tiempo_total_seg = (self.tiempo_minutos + self.tiempo_espera_minutos) * 60
+            if seg_por_ficha > 0:
+                fichas_tiempo = math.ceil(tiempo_total_seg / seg_por_ficha)
+            else:
+                fichas_tiempo = 0
+            tiempo_detenido_min = self.tiempo_minutos + self.tiempo_espera_minutos
+            velocidad_promedio = None
+        else:
+            # Modo 'detenido' (default): taxímetro real
+            if self.tiempo_minutos > 0:
+                velocidad_promedio = self.distancia_km / (self.tiempo_minutos / 60)
+            else:
+                velocidad_promedio = 0
+
+            if velocidad_promedio >= velocidad_referencia:
+                # Viaje fluido, solo cuenta distancia
+                fichas_tiempo = 0
+                tiempo_detenido_min = 0
+            else:
+                # Hay tráfico, calcular tiempo detenido
+                tiempo_fluido_min = (self.distancia_km / velocidad_referencia) * 60
+                tiempo_detenido_min = self.tiempo_minutos - tiempo_fluido_min
+
+                if tiempo_detenido_min > 0.5:  # Más de 30 segundos
+                    fichas_tiempo = math.ceil(
+                        (tiempo_detenido_min - 0.5) * 60 / seg_por_ficha
+                    )
+                else:
+                    fichas_tiempo = 0
+
+        # ================================================================
+        # 4. FASE 3 — PRECIO BASE
+        # ================================================================
+        fichas_totales = fichas_distancia + fichas_tiempo
+        monto_fichas = fichas_totales * precio_ficha
+        self.subtotal = bajada + monto_fichas
+        precio_base = self.subtotal
+
+        # ================================================================
+        # 5. FASE 4 — FACTOR POR TIPO DE VEHÍCULO
+        # ================================================================
+        factor_veh = self.factor_tipo_vehiculo
+        precio_antes_vehiculo = self.subtotal
+        self.subtotal *= factor_veh
+        precio_despues_vehiculo = self.subtotal
+
+        # ================================================================
+        # 6. FASE 5 — RECARGOS (nocturno × domingo × feriado)
+        # ================================================================
+        factor_recargos = 1.0
+        recargos_detalle = []
+
+        if self._es_nocturno():
+            f = to_float(self.config.recargo_nocturno)
+            if f > 1.0:
+                precio_antes = self.subtotal
+                factor_recargos *= f
+                self.subtotal *= f
+                recargos_detalle.append({
+                    "tipo": "nocturno",
+                    "factor": f,
+                    "precio_antes": round(precio_antes, 2),
+                    "precio_despues": round(self.subtotal, 2),
+                    "aporte": round(self.subtotal - precio_antes, 2),
+                })
+                self.recargos_aplicados.append(f"nocturno_{f}x")
+
+        if self._es_domingo():
+            f = to_float(self.config.recargo_domingo)
+            if f > 1.0:
+                precio_antes = self.subtotal
+                factor_recargos *= f
+                self.subtotal *= f
+                recargos_detalle.append({
+                    "tipo": "domingo",
+                    "factor": f,
+                    "precio_antes": round(precio_antes, 2),
+                    "precio_despues": round(self.subtotal, 2),
+                    "aporte": round(self.subtotal - precio_antes, 2),
+                })
+                self.recargos_aplicados.append(f"domingo_{f}x")
+
+        if self.es_feriado:
+            f = to_float(self.config.recargo_feriado)
+            if f > 1.0:
+                precio_antes = self.subtotal
+                factor_recargos *= f
+                self.subtotal *= f
+                recargos_detalle.append({
+                    "tipo": "feriado",
+                    "factor": f,
+                    "precio_antes": round(precio_antes, 2),
+                    "precio_despues": round(self.subtotal, 2),
+                    "aporte": round(self.subtotal - precio_antes, 2),
+                })
+                self.recargos_aplicados.append(f"feriado_{f}x")
+
+        precio_con_recargos = self.subtotal
+
+        # ================================================================
+        # 7. FASE 6 — REDONDEO COMERCIAL
+        # ================================================================
+        precio_antes_redondeo = self.subtotal
+        ajuste_redondeo = 0.0
+        if redondeo > 0:
+            resto = self.subtotal % redondeo
+            if resto == 0:
+                pass  # Ya es múltiplo
+            elif resto <= redondeo / 2:
+                # Baja al múltiplo anterior
+                self.subtotal = self.subtotal - resto
+                ajuste_redondeo = -resto
+            else:
+                # Sube al siguiente múltiplo
+                ajuste = redondeo - resto
+                self.subtotal = self.subtotal + ajuste
+                ajuste_redondeo = ajuste
+
+        precio_final = self.subtotal
+
+        # ================================================================
+        # 8. GENERAR DESGLOSE TRAZABLE
+        # ================================================================
+        self.desglose = {
+            "tarifa_base": round(bajada, 2),
+            "fichas": {
+                "distancia": {
+                    "cantidad": fichas_distancia,
+                    "metros": round(self.distancia_metros, 2),
+                    "metros_por_ficha": metros_por_ficha,
+                    "precio_por_ficha": precio_ficha,
+                    "subtotal": round(fichas_distancia * precio_ficha, 2),
+                },
+                "tiempo": {
+                    "cantidad": fichas_tiempo,
+                    "modo_cobro": modo_cobro_tiempo,
+                    "velocidad_promedio_kmh": round(velocidad_promedio, 2) if velocidad_promedio is not None else None,
+                    "velocidad_referencia_kmh": velocidad_referencia,
+                    "tiempo_detenido_min": round(tiempo_detenido_min, 2),
+                    "seg_por_ficha": seg_por_ficha,
+                    "precio_por_ficha": precio_ficha,
+                    "subtotal": round(fichas_tiempo * precio_ficha, 2),
+                },
+                "total": fichas_totales,
+                "subtotal_fichas": round(monto_fichas, 2),
+            },
+            "precio_base": round(precio_base, 2),
+            "factor_vehiculo": {
+                "tipo": self.tipo_vehiculo.id,
+                "factor": factor_veh,
+                "precio_antes": round(precio_antes_vehiculo, 2),
+                "precio_despues": round(precio_despues_vehiculo, 2),
+            },
+            "recargos": recargos_detalle,
+            "precio_con_recargos": round(precio_con_recargos, 2),
+            "redondeo": {
+                "multiplo": redondeo,
+                "ajuste": round(ajuste_redondeo, 2),
+            },
+            "precio_sin_redondeo": round(precio_antes_redondeo, 2),
+            "distancia_km": round(self.distancia_km, 2),
+            "tiempo_minutos": self.tiempo_minutos,
+            "tiempo_espera_minutos": self.tiempo_espera_minutos,
+            "moneda": self.config.moneda or "ARS",
+        }
+
+        logger.info(
+            f"Fórmula unificada: bajada={bajada}, FD={fichas_distancia}, "
+            f"FT={fichas_tiempo}, total={fichas_totales}, "
+            f"factor_veh={factor_veh}, recargos={factor_recargos}, "
+            f"final={precio_final}"
+        )
+
         return {
-            "precio": round(self.subtotal, 2),
+            "precio": round(precio_final, 2),
             "desglose": self.desglose,
             "recargos_aplicados": self.recargos_aplicados,
-            "modo_calculado": self.modo
+            "modo_calculo": "unificado",
         }
-
-    def _calcular_base(self):
-        """Calcula el precio base según el modo configurado"""
-        
-        if self.modo == ModoCalculo.FICHA_ARGENTINA:
-            self._calcular_ficha_argentina()
-        elif self.modo == ModoCalculo.POR_KM:
-            self._calcular_por_km()
-        elif self.modo == ModoCalculo.POR_MINUTO:
-            self._calcular_por_minuto()
-        elif self.modo == ModoCalculo.MIXTO:
-            self._calcular_mixto()
-        else:
-            # Fallback a por_km
-            self._calcular_por_km()
-
-    def _calcular_ficha_argentina(self):
-        """
-        Modo Ficha Argentina:
-        Precio = Bajada + (distancia_metros / distancia_por_ficha) * precio_por_ficha + espera * precio_espera
-        """
-        # Convertir todos los valores a float
-        distancia_por_ficha = to_float(
-            self.tipo_vehiculo.distancia_por_ficha or 
-            self.config.distancia_por_ficha or 
-            100
-        )
-        precio_por_ficha = to_float(
-            self.tipo_vehiculo.precio_por_ficha or 
-            self.config.precio_por_ficha or 
-            0
-        )
-        precio_espera = to_float(
-            self.tipo_vehiculo.precio_por_minuto_espera or 
-            self.config.precio_por_minuto_espera or 
-            0
-        )
-        tarifa_base = to_float(self.tipo_vehiculo.tarifa_base or self.config.tarifa_base or 0)
-
-        # Calcular número de fichas (redondear hacia arriba)
-        if distancia_por_ficha > 0:
-            total_fichas = math.ceil(self.distancia_metros / distancia_por_ficha)
-        else:
-            total_fichas = 0
-            logger.warning("distancia_por_ficha es 0, no se pueden calcular fichas")
-
-        # Calcular subtotal
-        monto_fichas = total_fichas * precio_por_ficha
-        monto_espera = self.tiempo_espera_minutos * precio_espera
-        self.subtotal = tarifa_base + monto_fichas + monto_espera
-
-        # Desglose
-        self.desglose = {
-            "bajada": round(tarifa_base, 2),
-            "fichas": round(monto_fichas, 2),
-            "total_fichas": total_fichas,
-            "distancia_metros": self.distancia_metros,
-            "distancia_por_ficha": distancia_por_ficha,
-            "precio_por_ficha": precio_por_ficha,
-            "espera": round(monto_espera, 2),
-            "tiempo_espera_minutos": self.tiempo_espera_minutos,
-            "precio_por_minuto_espera": precio_espera,
-            "subtotal": round(self.subtotal, 2)
-        }
-
-        logger.info(f"Ficha Argentina: bajada={tarifa_base}, fichas={total_fichas}, "
-                   f"espera={self.tiempo_espera_minutos}min, subtotal={self.subtotal}")
-
-    def _calcular_por_km(self):
-        """
-        Modo Por KM:
-        Precio = Bajada + (km * precio_por_km) + (minutos * precio_por_minuto)
-        """
-        tarifa_base = to_float(self.tipo_vehiculo.tarifa_base or self.config.tarifa_base or 0)
-        precio_por_km = to_float(self.tipo_vehiculo.tarifa_por_km or self.config.precio_por_km or 0)
-        precio_por_minuto = to_float(self.tipo_vehiculo.tarifa_por_minuto or self.config.precio_por_minuto or 0)
-
-        monto_km = self.distancia_km * precio_por_km
-        monto_minutos = self.tiempo_minutos * precio_por_minuto
-        self.subtotal = tarifa_base + monto_km + monto_minutos
-
-        self.desglose = {
-            "bajada": round(tarifa_base, 2),
-            "km": round(monto_km, 2),
-            "distancia_km": round(self.distancia_km, 2),
-            "precio_por_km": precio_por_km,
-            "minutos": round(monto_minutos, 2),
-            "tiempo_minutos": self.tiempo_minutos,
-            "precio_por_minuto": precio_por_minuto,
-            "subtotal": round(self.subtotal, 2)
-        }
-
-        logger.info(f"Por KM: bajada={tarifa_base}, km={self.distancia_km}, "
-                   f"min={self.tiempo_minutos}, subtotal={self.subtotal}")
-
-    def _calcular_por_minuto(self):
-        """
-        Modo Por Minuto:
-        Precio = minutos * precio_por_minuto (sin distancia)
-        """
-        precio_por_minuto = to_float(self.tipo_vehiculo.tarifa_por_minuto or self.config.precio_por_minuto or 0)
-        
-        # Incluir tiempo de espera en el cálculo
-        tiempo_total = self.tiempo_minutos + self.tiempo_espera_minutos
-        self.subtotal = tiempo_total * precio_por_minuto
-
-        self.desglose = {
-            "tiempo_total_minutos": tiempo_total,
-            "tiempo_viaje_minutos": self.tiempo_minutos,
-            "tiempo_espera_minutos": self.tiempo_espera_minutos,
-            "precio_por_minuto": precio_por_minuto,
-            "subtotal": round(self.subtotal, 2)
-        }
-
-        logger.info(f"Por Minuto: tiempo={tiempo_total}min, precio/min={precio_por_minuto}, "
-                   f"subtotal={self.subtotal}")
-
-    def _calcular_mixto(self):
-        """
-        Modo Mixto:
-        Precio = Bajada + (km * precio_por_km) + (espera * precio_espera)
-        """
-        tarifa_base = to_float(self.tipo_vehiculo.tarifa_base or self.config.tarifa_base or 0)
-        precio_por_km = to_float(self.tipo_vehiculo.tarifa_por_km or self.config.precio_por_km or 0)
-        precio_espera = to_float(
-            self.tipo_vehiculo.precio_por_minuto_espera or 
-            self.config.precio_por_minuto_espera or 
-            0
-        )
-
-        monto_km = self.distancia_km * precio_por_km
-        monto_espera = self.tiempo_espera_minutos * precio_espera
-        self.subtotal = tarifa_base + monto_km + monto_espera
-
-        self.desglose = {
-            "bajada": round(tarifa_base, 2),
-            "km": round(monto_km, 2),
-            "distancia_km": round(self.distancia_km, 2),
-            "precio_por_km": precio_por_km,
-            "espera": round(monto_espera, 2),
-            "tiempo_espera_minutos": self.tiempo_espera_minutos,
-            "precio_por_minuto_espera": precio_espera,
-            "subtotal": round(self.subtotal, 2)
-        }
-
-        logger.info(f"Mixto: bajada={tarifa_base}, km={self.distancia_km}, "
-                   f"espera={self.tiempo_espera_minutos}min, subtotal={self.subtotal}")
-
-    def _aplicar_recargos(self):
-        """
-        Aplica recargos según:
-        - Horario nocturno (configurable)
-        - Domingo
-        - Feriado (se determina externamente)
-        """
-        recargo_total = 1.0
-        recargos = []
-
-        # 1. Recargo nocturno
-        if self._es_nocturno():
-            factor = to_float(self.config.recargo_nocturno or 1.0)
-            recargo_total *= factor
-            recargos.append(f"nocturno_{factor}x")
-            logger.info(f"Recargo nocturno aplicado: {factor}x")
-
-        # 2. Recargo domingo
-        if self._es_domingo():
-            factor = to_float(self.config.recargo_domingo or 1.0)
-            recargo_total *= factor
-            recargos.append(f"domingo_{factor}x")
-            logger.info(f"Recargo domingo aplicado: {factor}x")
-
-        # 3. Recargo feriado (si se pasa como parámetro o se calcula)
-        # Por ahora lo dejamos como configurable, se aplica desde el servicio principal
-        # ya que la verificación de feriados requiere API externa
-
-        # Aplicar recargo
-        if recargo_total > 1.0:
-            self.subtotal *= recargo_total
-            self.recargos_aplicados = recargos
-            self.desglose["recargo_total"] = round(recargo_total, 2)
-            self.desglose["subtotal_con_recargos"] = round(self.subtotal, 2)
-            logger.info(f"Recargos aplicados: {recargos}, total={recargo_total}x")
-        else:
-            self.recargos_aplicados = []
-            self.desglose["recargo_total"] = 1.0
-            self.desglose["subtotal_con_recargos"] = round(self.subtotal, 2)
 
     def _es_nocturno(self) -> bool:
         """Verifica si la hora está dentro del rango nocturno"""
         hora_actual = self.fecha_hora.time()
-        
-        # Obtener horas del config (pueden ser time objects o strings)
+
         hora_inicio_raw = self.config.hora_inicio_nocturno or "22:00"
         hora_fin_raw = self.config.hora_fin_nocturno or "06:00"
-        
-        # Convertir a time si es string, usar directamente si ya es time
+
         if isinstance(hora_inicio_raw, str):
             try:
                 inicio = time.fromisoformat(hora_inicio_raw)
             except ValueError:
-                logger.warning(f"Formato de hora inválido: inicio={hora_inicio_raw}")
                 return False
         elif isinstance(hora_inicio_raw, time):
             inicio = hora_inicio_raw
         else:
-            logger.warning(f"Tipo de hora no soportado: inicio={type(hora_inicio_raw)}")
             return False
-            
+
         if isinstance(hora_fin_raw, str):
             try:
                 fin = time.fromisoformat(hora_fin_raw)
             except ValueError:
-                logger.warning(f"Formato de hora inválido: fin={hora_fin_raw}")
                 return False
         elif isinstance(hora_fin_raw, time):
             fin = hora_fin_raw
         else:
-            logger.warning(f"Tipo de hora no soportado: fin={type(hora_fin_raw)}")
             return False
 
         # Caso especial: si inicio > fin (ej: 22:00 a 06:00)
@@ -374,7 +358,6 @@ class CalculadorTarifa:
 # ============================================================
 # SERVICIO PRINCIPAL
 # ============================================================
-
 async def calcular_precio_estimado(
     request: EstimacionPrecioRequest,
     control_base_id: UUID,
@@ -382,73 +365,88 @@ async def calcular_precio_estimado(
     distancia_km: float,
     tiempo_minutos: int,
     fecha_hora: Optional[datetime] = None,
-    es_feriado: bool = False
+    es_feriado: bool = False,
 ) -> EstimacionPrecioResponse:
     """
-    Calcula el precio estimado de un viaje
-    """
-    logger.info(f"Calculando precio para tenant {control_base_id}, "
-               f"vehículo {request.tipo_vehiculo.value}")
+    Calcula el precio estimado usando la FÓRMULA UNIFICADA TAXIP 2.1.
     
+    El motor recibe:
+    - control_base_id (resuelto por el caller)
+    - distancia_km y tiempo_minutos (calculados por el caller, ej: Google Maps)
+    - es_feriado (determinado externamente por el caller)
+    
+    El motor NO:
+    - Resuelve el tenant (lo recibe como parámetro)
+    - Llama a Google Maps (recibe distancia/tiempo)
+    - Consulta APIs de feriados (recibe el flag)
+    """
+    logger.info(
+        f"Calculando precio para tenant {control_base_id}, "
+        f"vehículo {request.tipo_vehiculo.value}"
+    )
+
     # 1. Obtener configuración de tarifa del tenant
     stmt = select(ConfiguracionTarifa).where(
         and_(
             ConfiguracionTarifa.control_base_id == control_base_id,
-            ConfiguracionTarifa.activo == True
+            ConfiguracionTarifa.activo == True,
         )
     )
     result = await db.execute(stmt)
     config = result.scalar_one_or_none()
-    
-    if not config:
-        logger.error(f"No se encontró configuración de tarifa para tenant {control_base_id}")
-        raise TarifaNotFoundError(
-            f"No hay configuración de tarifa activa para este tenant. "
-            f"Contacte al administrador."
-        )
 
-    logger.info(f"Configuración encontrada: {config.nombre}, "
-               f"modo={config.modo_calculo}")
+    if not config:
+        raise TarifaNotFoundError(
+            f"No hay configuración de tarifa activa para este tenant."
+        )
 
     # 2. Obtener tipo de vehículo
     stmt = select(TipoVehiculo).where(
         and_(
             TipoVehiculo.id == request.tipo_vehiculo.value,
-            TipoVehiculo.activo == True
+            TipoVehiculo.activo == True,
         )
     )
     result = await db.execute(stmt)
     tipo_vehiculo = result.scalar_one_or_none()
-    
+
     if not tipo_vehiculo:
-        logger.error(f"Tipo de vehículo no encontrado: {request.tipo_vehiculo.value}")
         raise TipoVehiculoNotFoundError(
             f"El tipo de vehículo '{request.tipo_vehiculo.value}' no existe o está inactivo"
         )
 
-    logger.info(f"Tipo vehículo encontrado: {tipo_vehiculo.id}")
+    # 3. Obtener factor del tipo de vehículo desde tabla intermedia
+    stmt = select(ConfiguracionTarifaVehiculo).where(
+        and_(
+            ConfiguracionTarifaVehiculo.configuracion_tarifa_id == config.id,
+            ConfiguracionTarifaVehiculo.tipo_vehiculo_id == tipo_vehiculo.id,
+            ConfiguracionTarifaVehiculo.activo == True,
+        )
+    )
+    result = await db.execute(stmt)
+    config_vehiculo = result.scalar_one_or_none()
 
-    # 3. Calcular precio
-    calculador = CalculadorTarifa(
+    if config_vehiculo:
+        factor_tipo_vehiculo = to_float(config_vehiculo.factor_precio)
+    else:
+        factor_tipo_vehiculo = 1.0
+        logger.warning(
+            f"No se encontró factor para vehículo '{tipo_vehiculo.id}' "
+            f"en config '{config.nombre}'. Usando factor default 1.0"
+        )
+
+    # 4. Calcular precio con fórmula unificada
+    calculador = CalculadorTarifaUnificado(
         config=config,
         tipo_vehiculo=tipo_vehiculo,
+        factor_tipo_vehiculo=factor_tipo_vehiculo,
         distancia_km=distancia_km,
         tiempo_minutos=tiempo_minutos,
         tiempo_espera_minutos=request.tiempo_espera_minutos or 0,
-        fecha_hora=fecha_hora
+        fecha_hora=fecha_hora,
+        es_feriado=es_feriado,
     )
-    
     resultado = calculador.calcular()
-
-    # 4. Aplicar recargo feriado si corresponde
-    if es_feriado and config.recargo_feriado:
-        factor = to_float(config.recargo_feriado)
-        precio_final = resultado["precio"] * factor
-        resultado["desglose"]["recargo_feriado"] = round(factor, 2)
-        resultado["desglose"]["subtotal_con_feriado"] = round(precio_final, 2)
-        resultado["precio"] = round(precio_final, 2)
-        resultado["recargos_aplicados"].append(f"feriado_{factor}x")
-        logger.info(f"Recargo feriado aplicado: {factor}x")
 
     # 5. Construir respuesta
     response = EstimacionPrecioResponse(
@@ -460,9 +458,9 @@ async def calcular_precio_estimado(
         longitud_origen=None,
         latitud_destino=None,
         longitud_destino=None,
-        modo_calculo=config.modo_calculo,
+        modo_calculo="unificado",
         moneda=config.moneda or "ARS",
-        recargos_aplicados=resultado.get("recargos_aplicados", [])
+        recargos_aplicados=resultado.get("recargos_aplicados", []),
     )
 
     logger.info(f"Precio estimado calculado: {response.precio_estimado} {response.moneda}")
@@ -472,11 +470,8 @@ async def calcular_precio_estimado(
 # ============================================================
 # FUNCIONES AUXILIARES
 # ============================================================
-
 def calcular_fichas(distancia_metros: float, distancia_por_ficha: float) -> int:
-    """
-    Calcula el número de fichas para una distancia dada
-    """
+    """Calcula el número de fichas para una distancia dada"""
     if distancia_por_ficha <= 0:
         return 0
     return math.ceil(distancia_metros / distancia_por_ficha)

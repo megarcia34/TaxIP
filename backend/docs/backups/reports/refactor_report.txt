@@ -1,0 +1,98 @@
+================================================================================
+REPORTE DE REFACTORIZACIÓN
+================================================================================
+
+FKs totales encontradas: 92
+FKs duplicadas eliminadas: 3
+FKs únicas creadas: 89
+
+LISTA DE FKs:
+  1. audit.log_gps.usuario_id -> auth.usuario.id
+  2. audit.log_gps.viaje_id -> trip.viaje_solicitado.id
+  3. audit.alerta_desvio.viaje_id -> trip.viaje_solicitado.id
+  4. auth.usuario.control_base_id -> tenant.control_base.id
+  5. auth.usuario.suspendido_por -> auth.usuario.id
+  6. auth.usuario.tipo_usuario_id -> auth.tipo_usuario.id
+  7. auth.perfil_general.ciudad_id -> geo.ciudad.id
+  8. auth.perfil_general.usuario_id -> auth.usuario.id
+  9. auth.reset_token.usuario_id -> auth.usuario.id
+ 10. auth.refresh_token.usuario_id -> auth.usuario.id
+ 11. auth.direccion_frecuente.usuario_id -> auth.usuario.id
+ 12. auth.taxista_favorito.chofer_id -> auth.usuario.id
+ 13. auth.taxista_favorito.pasajero_id -> auth.usuario.id
+ 14. auth.usuario_empresa.empresa_id -> tenant.empresa.id
+ 15. auth.usuario_empresa.usuario_id -> auth.usuario.id
+ 16. auth.turno_empleado.empleado_id -> auth.usuario.id
+ 17. auth.turno_empleado.empresa_id -> tenant.empresa.id
+ 18. comunicacion.conversacion.participante_1 -> auth.usuario.id
+ 19. comunicacion.conversacion.participante_2 -> auth.usuario.id
+ 20. comunicacion.mensaje.conversacion_id -> comunicacion.conversacion.id
+ 21. comunicacion.mensaje.remitente_id -> auth.usuario.id
+ 22. comunicacion.mensaje.viaje_id -> trip.viaje_solicitado.id
+ 23. comunicacion.email_enviado.usuario_id -> auth.usuario.id
+ 24. fleet.relacion_propietario_vehiculo.propietario_id -> auth.usuario.id
+ 25. fleet.relacion_propietario_vehiculo.vehiculo_id -> fleet.vehiculo.id
+ 26. fleet.historial_chofer_vehiculo.chofer_id -> auth.usuario.id
+ 27. fleet.historial_chofer_vehiculo.vehiculo_id -> fleet.vehiculo.id
+ 28. fleet.vehiculo.control_base_id -> tenant.control_base.id
+ 29. fleet.gasto_vehiculo.propietario_id -> auth.usuario.id
+ 30. fleet.gasto_vehiculo.vehiculo_id -> fleet.vehiculo.id
+ 31. fleet.mantenimiento_vehiculo.propietario_id -> auth.usuario.id
+ 32. fleet.mantenimiento_vehiculo.vehiculo_id -> fleet.vehiculo.id
+ 33. fleet.chofer_vehiculo.control_base_id -> tenant.control_base.id
+ 34. fleet.chofer_vehiculo.usuario_id -> auth.usuario.id
+ 35. fleet.chofer_vehiculo.vehiculo_id -> fleet.vehiculo.id
+ 36. fleet.modelo.marca_id -> fleet.marca.id
+ 37. fleet.propietario_vehiculo.propietario_id -> auth.usuario.id
+ 38. fleet.propietario_vehiculo.vehiculo_id -> fleet.vehiculo.id
+ 39. fleet.documento_vehiculo.vehiculo_id -> fleet.vehiculo.id
+ 40. fleet.documentos_chofer.usuario_id -> auth.usuario.id
+ 41. fleet.contrato_vehiculo.chofer_id -> auth.usuario.id
+ 42. fleet.contrato_vehiculo.control_base_id -> tenant.control_base.id
+ 43. fleet.contrato_vehiculo.propietario_id -> auth.usuario.id
+ 44. fleet.contrato_vehiculo.vehiculo_id -> fleet.vehiculo.id
+ 45. fleet.turno_chofer.chofer_id -> auth.usuario.id
+ 46. fleet.turno_chofer.contrato_id -> fleet.contrato_vehiculo.id
+ 47. fleet.turno_chofer.vehiculo_id -> fleet.vehiculo.id
+ 48. fleet.gasto_turno.turno_id -> fleet.turno_chofer.id
+ 49. geo.provincia.pais_id -> geo.pais.id
+ 50. geo.ciudad.provincia_id -> geo.provincia.id
+ 51. notification.notificacion.usuario_id -> auth.usuario.id
+ 52. payment.transaccion.billetera_id -> payment.billetera.id
+ 53. payment.transaccion.metodo_pago_id -> payment.metodo_pago.id
+ 54. payment.transaccion.viaje_id -> trip.viaje_solicitado.id
+ 55. payment.configuracion_tarifa.control_base_id -> tenant.control_base.id
+ 56. payment.billetera.usuario_id -> auth.usuario.id
+ 57. payment.factura_empresa.empresa_id -> tenant.empresa.id
+ 58. payment.pago_empresa.confirmado_por -> auth.usuario.id
+ 59. payment.pago_empresa.empresa_id -> tenant.empresa.id
+ 60. payment.pago_empresa.factura_id -> payment.factura_empresa.id
+ 61. public.comercio.control_base_id -> tenant.control_base.id
+ 62. public.escaneo_qr.comercio_id -> public.comercio.id
+ 63. public.escaneo_qr.viaje_id -> trip.viaje_solicitado.id
+ 64. tenant.configuracion_tenant.control_base_id -> tenant.control_base.id
+ 65. tenant.control_base.suspendido_por -> auth.usuario.id
+ 66. tenant.empresa.control_base_id -> tenant.control_base.id
+ 67. tenant.empresa.suspendido_por -> auth.usuario.id
+ 68. tenant.factura.control_base_id -> tenant.control_base.id
+ 69. tenant.factura.pagada_por -> auth.usuario.id
+ 70. trip.historial_estado_viaje.viaje_id -> trip.viaje_solicitado.id
+ 71. trip.panico.viaje_id -> trip.viaje_solicitado.id
+ 72. trip.objeto_olvidado.chofer_id -> auth.usuario.id
+ 73. trip.objeto_olvidado.pasajero_id -> auth.usuario.id
+ 74. trip.objeto_olvidado.viaje_id -> trip.viaje_solicitado.id
+ 75. trip.calificacion.calificado_id -> auth.usuario.id
+ 76. trip.calificacion.calificador_id -> auth.usuario.id
+ 77. trip.calificacion.viaje_id -> trip.viaje_solicitado.id
+ 78. trip.foto_viaje.usuario_id -> auth.usuario.id
+ 79. trip.foto_viaje.viaje_id -> trip.viaje_solicitado.id
+ 80. trip.viaje_solicitado.chofer_id -> auth.usuario.id
+ 81. trip.viaje_solicitado.comercio_id -> public.comercio.id
+ 82. trip.viaje_solicitado.control_base_id -> tenant.control_base.id
+ 83. trip.viaje_solicitado.empresa_id -> tenant.empresa.id
+ 84. trip.viaje_solicitado.pasajero_id -> auth.usuario.id
+ 85. trip.viaje_solicitado.vehiculo_id -> fleet.vehiculo.id
+ 86. trip.reserva.empleado_id -> auth.usuario.id
+ 87. trip.reserva.empresa_id -> tenant.empresa.id
+ 88. trip.reserva.turno_id -> auth.turno_empleado.id
+ 89. trip.reserva.creado_por -> auth.usuario.id

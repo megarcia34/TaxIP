@@ -1,5 +1,5 @@
 """
-Viajes - Servicios / Lógica de negocio
+Viajes - Servicios / Logica de negocio
 """
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 # ============================================
-# CÁLCULOS DE DISTANCIA Y TIEMPO
+# CALCULOS DE DISTANCIA Y TIEMPO
 # ============================================
 
 def calcular_distancia(
@@ -18,21 +18,21 @@ def calcular_distancia(
     lat2: float, lon2: float
 ) -> int:
     """
-    Calcular distancia en metros entre dos puntos usando la fórmula de Haversine
+    Calcular distancia en metros entre dos puntos usando la formula de Haversine
     """
     R = 6371000  # Radio de la Tierra en metros
-    
+
     lat1_r = radians(lat1)
     lon1_r = radians(lon1)
     lat2_r = radians(lat2)
     lon2_r = radians(lon2)
-    
+
     dlat = lat2_r - lat1_r
     dlon = lon2_r - lon1_r
-    
+
     a = sin(dlat/2)**2 + cos(lat1_r) * cos(lat2_r) * sin(dlon/2)**2
     c = 2 * atan2(sqrt(a), sqrt(1-a))
-    
+
     return int(R * c)
 
 
@@ -57,14 +57,14 @@ def calcular_precio(
     """
     km = distancia_metros / 1000
     horas = tiempo_segundos / 3600
-    
+
     precio = (tarifa_base + (km * precio_km) + (horas * 60 * precio_minuto)) * recargo_nocturno
     return round(precio, 2)
 
 
 def es_horario_nocturno(fecha: datetime) -> bool:
     """
-    Verificar si una fecha/hora está en horario nocturno (22:00 - 06:00)
+    Verificar si una fecha/hora esta en horario nocturno (22:00 - 06:00)
     """
     hora = fecha.hour
     return hora >= 22 or hora < 6
@@ -78,7 +78,7 @@ def obtener_tarifas_default() -> tuple:
 
 
 # ============================================
-# LIMPIAR TEXTOS (para corregir codificación)
+# LIMPIAR TEXTOS (para corregir codificacion)
 # ============================================
 
 def limpiar_texto(texto: str) -> str:
@@ -87,8 +87,8 @@ def limpiar_texto(texto: str) -> str:
     """
     if not texto:
         return texto
-    
-    # Reemplazos comunes de codificación incorrecta
+
+    # Reemplazos comunes de codificacion incorrecta
     reemplazos = {
         'Ã±': 'ñ',
         'Ã‘': 'Ñ',
@@ -109,10 +109,10 @@ def limpiar_texto(texto: str) -> str:
         'â€˜': "'",
         'â€™': "'",
     }
-    
+
     for mal, bien in reemplazos.items():
         texto = texto.replace(mal, bien)
-    
+
     return texto
 
 
@@ -122,12 +122,26 @@ def limpiar_texto(texto: str) -> str:
 
 async def formatear_respuesta_viaje(row) -> Dict[str, Any]:
     """
-    Convierte una fila de la base de datos en un diccionario para la API
-    VERSIÓN LEGACY - Para compatibilidad con consultas antiguas
+    Convierte una fila de GET_VIAJE_BY_ID en un dict para ViajeEstadoResponse.
+
+    IMPORTANTE: los indices deben coincidir con el SELECT de GET_VIAJE_BY_ID:
+    query (app/routers/viajes/queries.py).
+
+    Orden de columnas:
+    0=id, 1=estado, 2=direccion_origen, 3=direccion_destino,
+    4=precio_estimado, 5=precio_final, 6=created_at,
+    7=aceptado_en, 8=iniciado_en, 9=finalizado_en,
+    10=distancia_metros, 11=tiempo_estimado_segundos,
+    12=pasajero_nombre, 13=chofer_nombre,
+    14=fecha, 15=hora, 16=precio_mostrado,
+    17=empresa, 18=propietario_nombre,
+    19=patente, 20=marca, 21=modelo,
+    22=origen_lat, 23=origen_lng, 24=destino_lat, 25=destino_lng,
+    26=metodo_pago, 27=origen_tipo
     """
     if not row:
         return None
-    
+
     return {
         "id": row[0],
         "estado": row[1],
@@ -143,21 +157,28 @@ async def formatear_respuesta_viaje(row) -> Dict[str, Any]:
         "tiempo_estimado_segundos": row[11],
         "pasajero_nombre": row[12],
         "chofer_nombre": row[13] or "Sin asignar",
-        "origen_lat": float(row[14]) if row[14] else None,
-        "origen_lng": float(row[15]) if row[15] else None,
-        "destino_lat": float(row[16]) if row[16] else None,
-        "destino_lng": float(row[17]) if row[17] else None
+        "origen_lat": float(row[22]) if row[22] else None,
+        "origen_lng": float(row[23]) if row[23] else None,
+        "destino_lat": float(row[24]) if row[24] else None,
+        "destino_lng": float(row[25]) if row[25] else None,
+        # Nuevos campos que ViajeEstadoResponse acepta (opcionales):
+        "empresa": row[17] if len(row) > 17 else None,
+        "patente": row[19] if len(row) > 19 else None,
+        "propietario": row[18] if len(row) > 18 else None,
+        # M3 - Etapa 10.5.b (G24): campos persistidos que faltaban exponer
+        "metodo_pago": row[26] if len(row) > 26 else None,
+        "origen_tipo": row[27] if len(row) > 27 else None,
     }
 
 
 async def formatear_respuesta_viaje_mejorado(row) -> Dict[str, Any]:
     """
     Convierte una fila de la base de datos en un diccionario para la API
-    VERSIÓN MEJORADA con empresa, propietario, fecha y hora
+    VERSION MEJORADA con empresa, propietario, fecha y hora
     """
     if not row:
         return None
-    
+
     # La consulta mejorada tiene 27 campos
     return {
         "id": row[0],
@@ -174,8 +195,8 @@ async def formatear_respuesta_viaje_mejorado(row) -> Dict[str, Any]:
         "tiempo_estimado_segundos": row[11],
         "pasajero_nombre": row[12],
         "chofer_nombre": row[13] or "Sin asignar",
-        
-        # ✅ NUEVOS CAMPOS
+
+        # NUEVOS CAMPOS
         "fecha": row[14] if len(row) > 14 else None,      # DD/MM/YYYY
         "hora": row[15] if len(row) > 15 else None,       # HH24:MI
         "precio_mostrado": float(row[16]) if row[16] and len(row) > 16 else None,
@@ -184,14 +205,14 @@ async def formatear_respuesta_viaje_mejorado(row) -> Dict[str, Any]:
         "patente": row[19] if len(row) > 19 else None,
         "marca": row[20] if len(row) > 20 else None,
         "modelo": row[21] if len(row) > 21 else None,
-        
+
         # Coordenadas
         "origen_lat": float(row[22]) if row[22] and len(row) > 22 else None,
         "origen_lng": float(row[23]) if row[23] and len(row) > 23 else None,
         "destino_lat": float(row[24]) if row[24] and len(row) > 24 else None,
         "destino_lng": float(row[25]) if row[25] and len(row) > 25 else None,
-        
-        # Calificación (si existe)
+
+        # Calificacion (si existe)
         "calificacion": row[26] if len(row) > 26 else None
     }
 
@@ -202,8 +223,8 @@ def formatear_viaje_dashboard(row) -> Dict[str, Any]:
     """
     if not row:
         return None
-    
-    # Índices según GET_VIAJES_DASHBOARD (26 campos)
+
+    # Indices segun GET_VIAJES_DASHBOARD (26 campos)
     return {
         "viaje_id": str(row[0]),
         "estado": row[1],
@@ -236,7 +257,7 @@ def formatear_viaje_dashboard(row) -> Dict[str, Any]:
 
 def formatear_viajes_dashboard(rows: List) -> List[Dict[str, Any]]:
     """
-    Formatea múltiples filas del dashboard
+    Formatea multiples filas del dashboard
     """
     if not rows:
         return []
@@ -247,6 +268,29 @@ def formatear_viajes_dashboard(rows: List) -> List[Dict[str, Any]]:
 # OPERACIONES CON VIAJES
 # ============================================
 
+# G62: transiciones validas de estado de viaje
+TRANSICIONES_VALIDAS: dict[str, set[str]] = {
+    "pendiente":  {"publicado", "aceptado", "cancelado"},
+    "publicado":  {"aceptado", "cancelado", "expirado"},
+    "aceptado":   {"en_curso", "cancelado"},
+    "en_curso":   {"finalizado", "cancelado"},
+    "programada": {"pendiente", "aceptado", "cancelado"},
+    # Terminales
+    "finalizado": set(),
+    "cancelado":  set(),
+    "expirado":   set(),
+    "pagado":     set(),
+}
+
+# G60: columnas de fecha permitidas (lista blanca)
+CAMPOS_FECHA_VALIDOS = {
+    "aceptado_en",
+    "iniciado_en",
+    "finalizado_en",
+    "cancelado_en",
+}
+
+
 async def actualizar_estado_viaje(
     db: AsyncSession,
     viaje_id: UUID,
@@ -255,8 +299,41 @@ async def actualizar_estado_viaje(
     campo_fecha: str
 ):
     """
-    Actualiza el estado de un viaje y registra la fecha correspondiente
+    Actualiza el estado de un viaje y registra la fecha correspondiente.
+
+    G60: campo_fecha se valida contra lista blanca.
+    G62: se valida la transicion de estado contra TRANSICIONES_VALIDAS.
     """
+    # G60: lista blanca
+    if campo_fecha not in CAMPOS_FECHA_VALIDOS:
+        raise ValueError(
+            f"campo_fecha invalido: '{campo_fecha}'. "
+            f"Validos: {sorted(CAMPOS_FECHA_VALIDOS)}"
+        )
+
+    # G62: validar transicion
+    estado_actual_row = await db.execute(
+        text("""
+            SELECT estado
+            FROM trip.viaje_solicitado
+            WHERE id = :viaje_id AND control_base_id = :control_base_id
+            LIMIT 1
+        """),
+        {"viaje_id": viaje_id, "control_base_id": control_base_id},
+    )
+    estado_actual = estado_actual_row.scalar()
+
+    if estado_actual is None:
+        return None
+
+    permitidos = TRANSICIONES_VALIDAS.get(estado_actual, set())
+    if estado not in permitidos:
+        raise ValueError(
+            f"Transicion invalida: '{estado_actual}' -> '{estado}'. "
+            f"Permitidos: {sorted(permitidos) if permitidos else 'ninguno (estado terminal)'}"
+        )
+
+    # UPDATE con lista blanca
     query = text(f"""
         UPDATE trip.viaje_solicitado
         SET estado = :estado, {campo_fecha} = NOW()
@@ -277,7 +354,7 @@ async def verificar_permiso_viaje(user_id: UUID, viaje_id: UUID, user_tipo: str)
     """
     if user_tipo.lower() == 'admin':
         return True
-    return True  # La verificación se hace en la consulta SQL
+    return True  # La verificacion se hace en la consulta SQL
 
 
 # ============================================
@@ -290,7 +367,7 @@ async def obtener_viaje_con_detalles(
     control_base_id: UUID
 ) -> Optional[Dict[str, Any]]:
     """
-    Obtiene un viaje con todos sus detalles (empresa, propietario, vehículo)
+    Obtiene un viaje con todos sus detalles (empresa, propietario, vehiculo)
     """
     query = text("""
         SELECT 
@@ -327,13 +404,13 @@ async def obtener_viaje_con_detalles(
         LEFT JOIN auth.perfil_general p_prop ON p_prop.usuario_id = u_prop.id
         WHERE vs.id = :viaje_id AND vs.control_base_id = :control_base_id
     """)
-    
+
     result = await db.execute(query, {"viaje_id": viaje_id, "control_base_id": control_base_id})
     row = result.first()
-    
+
     if not row:
         return None
-    
+
     return {
         "id": row[0],
         "estado": row[1],
@@ -365,7 +442,7 @@ async def obtener_viaje_con_detalles(
 
 
 # ============================================
-# ASIGNACIÓN DE CHOFER
+# ASIGNACION DE CHOFER
 # ============================================
 
 async def encontrar_y_asignar_chofer(
@@ -376,22 +453,22 @@ async def encontrar_y_asignar_chofer(
     lng: float
 ) -> Optional[dict]:
     """
-    Encuentra el chofer más cercano y lo asigna al viaje
+    Encuentra el chofer mas cercano y lo asigna al viaje
     Retorna los datos del chofer asignado o None si no hay choferes disponibles
     """
     from app.routers.viajes.queries import ENCONTRAR_CHOFER_MAS_CERCANO
-    
-    # Buscar chofer más cercano
+
+    # Buscar chofer mas cercano
     result = await db.execute(ENCONTRAR_CHOFER_MAS_CERCANO, {
         "control_base_id": control_base_id,
         "lat": lat,
         "lng": lng
     })
     chofer = result.first()
-    
+
     if not chofer:
         return None
-    
+
     # Asignar chofer al viaje
     assign_query = text("""
         UPDATE trip.viaje_solicitado
@@ -402,24 +479,24 @@ async def encontrar_y_asignar_chofer(
         WHERE id = :viaje_id
         RETURNING id
     """)
-    
+
     await db.execute(assign_query, {
         "viaje_id": viaje_id,
         "chofer_id": chofer[1],  # usuario_id
         "vehiculo_id": chofer[2]  # vehiculo_id
     })
-    
+
     # Actualizar estado del chofer
     update_chofer = text("""
         UPDATE fleet.chofer_vehiculo
         SET estado_laboral = 'ocupado', updated_at = NOW()
         WHERE usuario_id = :chofer_id
     """)
-    
+
     await db.execute(update_chofer, {"chofer_id": chofer[1]})
-    
+
     await db.commit()
-    
+
     return {
         "chofer_vehiculo_id": chofer[0],
         "usuario_id": chofer[1],

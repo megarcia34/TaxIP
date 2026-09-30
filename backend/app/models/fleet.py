@@ -1,4 +1,4 @@
-"""
+﻿"""
 Fleet and Driver Management Models (PostGIS enabled)
 Tablas: vehiculo, chofer_vehiculo, gasto_vehiculo, mantenimiento_vehiculo,
 propietario_vehiculo, contrato_vehiculo, turno_chofer, gasto_turno,
@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from geoalchemy2 import Geography
 from app.database import Base
 
-# Alias para que los modelos de neumáticos puedan usar default=now
+# Alias para que los modelos de neumÃ¡ticos puedan usar default=now
 now = datetime.now
 
 
@@ -42,6 +42,15 @@ class Vehiculo(Base):
     anio: Mapped[int] = mapped_column(Integer, nullable=True)
     numero_licencia: Mapped[str] = mapped_column(String(50), nullable=True)
     capacidad: Mapped[int] = mapped_column(Integer, default=4)
+    capacidad_baul: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default='sin_baul'
+    )
+    estado_vehiculo: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default='bueno'
+    )
+    equipamiento: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default='[]'
+    )
     qr_uuid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
     qr_activo: Mapped[bool] = mapped_column(Boolean, default=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -137,6 +146,12 @@ class ChoferVehiculo(Base):
     ultima_conexion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     calificacion_promedio: Mapped[float] = mapped_column(DECIMAL(3, 2), default=5.0)
     total_calificaciones: Mapped[int] = mapped_column(Integer, default=0)
+    estado_aprobacion: Mapped[str] = mapped_column(
+        String(20), nullable=True, server_default='pendiente'
+    )
+    total_viajes: Mapped[int] = mapped_column(
+        Integer, nullable=True, server_default='0'
+    )
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(
@@ -169,12 +184,12 @@ class ChoferVehiculo(Base):
 
 
 # ============================================================
-# CATEGORÍAS DE GASTOS
+# CATEGORÃAS DE GASTOS
 # ============================================================
 
 class CategoriaGasto(Base):
     """
-    Categorías y subcategorías de gastos para vehículos y turnos.
+    CategorÃ­as y subcategorÃ­as de gastos para vehÃ­culos y turnos.
     """
     __tablename__ = "categoria_gasto"
     __table_args__ = (
@@ -231,7 +246,7 @@ class CategoriaGasto(Base):
 
 
 # ============================================================
-# GASTO VEHÍCULO
+# GASTO VEHÃCULO
 # ============================================================
 
 class GastoVehiculo(Base):
@@ -392,7 +407,7 @@ class ContratoVehiculo(Base):
     dia_inicio_semana: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     
     # ============================================
-    # NUEVO: Compensación de KM
+    # NUEVO: CompensaciÃ³n de KM
     # ============================================
     compensacion_km: Mapped[str] = mapped_column(String(20), nullable=False, default='DIARIA')
     
@@ -409,7 +424,7 @@ class ContratoVehiculo(Base):
 # ============================================================
 
 class DocumentoVehiculo(Base):
-    """Documentos del vehículo (seguro, VTV, patente, cédula, etc.)"""
+    """Documentos del vehÃ­culo (seguro, VTV, patente, cÃ©dula, etc.)"""
     __tablename__ = "documento_vehiculo"
     __table_args__ = {"schema": "fleet"}
 
@@ -430,7 +445,7 @@ class DocumentoVehiculo(Base):
     observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     url_archivo: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-    # ✅ CAMPOS AGREGADOS
+    # âœ… CAMPOS AGREGADOS
     activo: Mapped[bool] = mapped_column(Boolean, server_default="true")
     notificar_dias: Mapped[int] = mapped_column(Integer, server_default="30")
     
@@ -471,7 +486,7 @@ class DocumentoPropietario(Base):
 
 
 # ============================================================
-# MODELOS DE NEUMÁTICOS (sin cambios)
+# MODELOS DE NEUMÃTICOS (sin cambios)
 # ============================================================
 
 class NeumaticoVehiculo(Base):
@@ -774,7 +789,7 @@ class NotificacionVencimiento(Base):
     propietario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
 
     # ============================================================
-# MODELOS MARCA Y MODELO - CATÁLOGO DE VEHÍCULOS
+# MODELOS MARCA Y MODELO - CATÃLOGO DE VEHÃCULOS
 # ============================================================
 
 class Marca(Base):
@@ -826,14 +841,14 @@ class Modelo(Base):
     marca: Mapped["Marca"] = relationship("Marca", back_populates="modelos", lazy="selectin")
 
     # ============================================================
-# MODELO INGRESO_TURNO - RECAUDACIÓN POR JORNADA
+# MODELO INGRESO_TURNO - RECAUDACIÃ“N POR JORNADA
 # ============================================================
 
 class IngresoTurno(Base):
     """
     Income/collection records per shift
-    Reemplaza los campos legacy de recaudación en turno_chofer
-    Tabla: fleet.ingreso_turno (NUEVA - aún no existe en BD)
+    Reemplaza los campos legacy de recaudaciÃ³n en turno_chofer
+    Tabla: fleet.ingreso_turno (NUEVA - aÃºn no existe en BD)
     """
     __tablename__ = "ingreso_turno"
     __table_args__ = {"schema": "fleet"}
@@ -877,7 +892,7 @@ class IngresoTurno(Base):
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="SET NULL"),
         nullable=True,
-        comment="Usuario que declaró el ingreso (chofer)"
+        comment="Usuario que declarÃ³ el ingreso (chofer)"
     )
     estado: Mapped[str] = mapped_column(
         String(20),
@@ -891,7 +906,7 @@ class IngresoTurno(Base):
         UUID(as_uuid=True),
         ForeignKey("payment.transaccion.id", ondelete="SET NULL"),
         nullable=True,
-        comment="Referencia a transacción electrónica si aplica"
+        comment="Referencia a transacciÃ³n electrÃ³nica si aplica"
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
