@@ -877,7 +877,7 @@ class IngresoTurno(Base):
     medio_pago: Mapped[str] = mapped_column(
         String(30),
         nullable=True,
-        comment="efectivo | debito | credito | qr | transferencia | billetera"
+        comment="efectivo | debito | qr | transferencia "
     )
     origen: Mapped[str] = mapped_column(
         String(30),

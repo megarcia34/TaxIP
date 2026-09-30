@@ -33,9 +33,7 @@ async def get_medios_pago(
     
     return {
         "efectivo": {"nombre": "Efectivo", "activo": True},
-        "transferencia": {"nombre": "Transferencia Bancaria", "activo": True},
+        "tarjeta_debito": {"nombre": "Tarjeta de Débito", "activo": True},
         "qr": {"nombre": "QR", "activo": True},
-        "debito": {"nombre": "Débito", "activo": True},
-        "credito": {"nombre": "Crédito", "activo": False},
-        "wallet": {"nombre": "Billetera TaxIP", "activo": True}
+        "transferencia": {"nombre": "Transferencia Bancaria", "activo": True}
     }

@@ -2,20 +2,23 @@
 TaxIP 2.0 - Entry point de la aplicacion FastAPI.
 
 FIX CRITICO (2026-09-24): en Windows, Python del sistema usa cp1252 para
-stdout/stderr y falla al imprimir emojis con UnicodeEncodeError. Eso
-rompe el import de app.main cuando Uvicorn spawnea el worker con el
-Python del sistema.
+stdout/stderr y rompe el StreamHandler del logging_config al escribir
+tildes o caracteres no-ASCII.
 
-Forzamos UTF-8 al inicio para que todos los print() con emojis funcionen.
+Forzamos UTF-8 en stdout/stderr al inicio para que los logs salgan
+limpios en consola. El archivo taxip.log ya escribe en UTF-8 explicito.
 Ver deuda B3.
 """
 import sys
 import io
+import logging
 
 if hasattr(sys.stdout, 'buffer') and sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 if hasattr(sys.stderr, 'buffer') and sys.stderr.encoding and sys.stderr.encoding.lower() != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================
@@ -32,7 +35,7 @@ from app.models.foto_viaje import FotoViaje
 from app.models.turno import TurnoChofer
 from app.models.gasto_turno import GastoTurno
 from app.models.audit import LogGps, AlertaDesvio
-print("OK: Todos los modelos importados")
+logger.info("Modelos importados OK")
 
 from fastapi import FastAPI, WebSocket, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -104,18 +107,18 @@ load_dotenv()
 # ============================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("TaxIP API iniciando...")
+    logger.info("TaxIP API iniciando...")
 
     try:
         async with AsyncSessionLocal() as db:
             await db.execute(text("SELECT 1"))
-            print("Conexion a base de datos establecida")
+            logger.info("Conexion a base de datos establecida")
     except Exception as e:
-        print(f"Advertencia: No se pudo verificar la base de datos: {e}")
+        logger.warning("No se pudo verificar la base de datos: %s", e)
 
     from app.core.scheduler import scheduler_loop
     scheduler_task = asyncio.create_task(scheduler_loop())
-    print("Scheduler arrancado en background")
+    logger.info("Scheduler arrancado en background")
 
     yield
 
@@ -124,9 +127,9 @@ async def lifespan(app: FastAPI):
         await scheduler_task
     except asyncio.CancelledError:
         pass
-    print("Scheduler detenido")
+    logger.info("Scheduler detenido")
 
-    print("TaxIP API cerrando...")
+    logger.info("TaxIP API cerrando...")
 
 # ============================================
 # Crear aplicacion FastAPI
@@ -162,7 +165,7 @@ if env_origins:
             origins.append(origin.strip())
 
 origins = list(set(origins))
-print(f"CORS Origins permitidos: {origins}")
+logger.info("CORS Origins permitidos: %s", origins)
 
 app.add_middleware(
     CORSMiddleware,
@@ -177,7 +180,7 @@ app.add_middleware(
 # ============================================
 # ROUTERS PRINCIPALES
 # ============================================
-print("Registrando routers...")
+logger.info("Registrando routers...")
 app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(choferes.router)
@@ -188,9 +191,9 @@ app.include_router(vehiculo.router)
 app.include_router(viajes_router)
 app.include_router(viajes_public_router)
 app.include_router(control_base.router)
-print("Registrando router de propietario...")
+logger.info("Registrando router de propietario...")
 app.include_router(propietario_router, prefix="/api")
-print("Router de propietario registrado")
+logger.info("Router de propietario registrado")
 app.include_router(corporate.router)
 app.include_router(choferes_public_router)
 app.include_router(liquidacion_router)
@@ -263,7 +266,7 @@ app.include_router(catalogo.router)
 app.include_router(comercio.router)
 app.include_router(verificacion.router)
 
-print("Todos los routers registrados")
+logger.info("Todos los routers registrados")
 
 
 # ============================================

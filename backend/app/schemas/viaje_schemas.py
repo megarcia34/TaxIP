@@ -16,7 +16,7 @@ class SolicitarViajeRequest(BaseModel):
     destino_latitud: Optional[float] = None
     destino_longitud: Optional[float] = None
     direccion_destino: Optional[str] = None
-    metodo_pago: str = Field(default="efectivo", description="efectivo, billetera, tarjeta_credito, tarjeta_debito")
+    metodo_pago: str = Field(default="efectivo", description="efectivo, tarjeta_debito, qr, transferencia")
 
 
 class SolicitarViajeResponse(BaseModel):

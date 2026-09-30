@@ -14,8 +14,32 @@ from app.database import Base
 
 class ViajeSolicitado(Base):
     """
-    Main trip/ride table - Core business entity
-    Uses PostGIS for origin/destination points
+    Viaje solicitado por cualquier canal (calle, landing, qr, corporativo, despacho).
+
+    Usa PostGIS para los puntos de origen y destino.
+
+    SEMANTICA DE TIMESTAMPS (deuda B9 cerrada 2026-09-30):
+
+    - solicitado_en: fecha y hora en que se solicito el viaje.
+      Snapshot del momento de la solicitud. Es el timestamp de NEGOCIO.
+      Fuente de verdad: COMMENT ON COLUMN en Postgres, agregado por la
+      migracion 4fa1ae56e7e7. Para reportes, liquidaciones y
+      ordenamiento historico usar SIEMPRE este campo.
+
+    - created_at: timestamp TECNICO de insercion de la fila en la DB.
+      Sin semantica de negocio. Sin COMMENT en Postgres. Lo setea
+      SQLAlchemy via default=datetime.now. Usar solo para auditoria
+      tecnica y debugging.
+
+    - updated_at: fecha y hora de la ultima actualizacion del viaje.
+      Ver COMMENT ON COLUMN en Postgres.
+
+    En el flujo normal (trip_service.py) solicitado_en y created_at
+    coinciden salvo microsegundos, porque ambos usan datetime.now() al
+    construir el objeto. En filas legacy (pre-migracion 4fa1ae56e7e7)
+    solicitado_en se poblo igual a created_at. No asumir que pueden
+    diferir en el flujo actual, pero NO usar created_at para logica de
+    negocio: la semantica la define solicitado_en.
     """
     __tablename__ = "viaje_solicitado"
     __table_args__ = {"schema": "trip"}
@@ -87,11 +111,12 @@ class ViajeSolicitado(Base):
     codigo_compartido: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
 
     # Timestamps
+     # Timestamp de NEGOCIO. Ver docstring de clase. No confundir con created_at.
     solicitado_en: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now,
         nullable=False,
-        comment="Fecha y hora en que se solicitó el viaje (snapshot del momento de la solicitud)"
+        comment="Fecha y hora en que se solicito el viaje (snapshot del momento de la solicitud)"
     )
     aceptado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     iniciado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -105,7 +130,10 @@ class ViajeSolicitado(Base):
     reserva_procesada: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     procesado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
+    # Timestamp TECNICO de insercion. Ver docstring de clase.
+    # Para logica de negocio usar solicitado_en.
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    # Timestamp de ultima actualizacion. Ver docstring de clase.
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now,

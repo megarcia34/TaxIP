@@ -188,7 +188,7 @@ async def solicitar_viaje_calle(
     chofer_id, control_base_id, _, _ = current_user
 
     # 1. Validar método de pago
-    METODOS_VALIDOS = {"efectivo", "billetera", "tarjeta_debito"}
+    METODOS_VALIDOS = {"efectivo", "tarjeta_debito", "qr", "transferencia"}
     if request.metodo_pago not in METODOS_VALIDOS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
