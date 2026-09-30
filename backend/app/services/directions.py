@@ -189,29 +189,39 @@ class DirectionsService:
             return None, None
     
     def _simular_ruta(
-        self,
-        origen: str,
-        destino: str
+       self,
+       origen: str,
+       destino: str
     ) -> Dict[str, Any]:
         """
-        Simula una ruta cuando la API no está disponible (fallback)
+        Fallback cuando Directions API no esta disponible.
+
+        NO devuelve valores simulados: devuelve None en todos los campos
+        para forzar a los consumidores a usar su propio fallback (Haversine
+        o datos persistidos). Antes devolvia 5 km / 15 min hardcodeados,
+        lo que causaba que se cobraran distancias ficticias.
+
+        Los 6 consumidores chequean `if ruta and ruta.get("distancia_km")`,
+        por lo que con este cambio caen correctamente a Haversine.
+
+        Ref: G59 en DEUDA_TECNICA.md.
         """
-        # Distancia aproximada en km (simulación)
-        distancia_km = 5.0
-        
-        # Tiempo aproximado en minutos
-        tiempo_minutos = 15
-        
-        logger.info(f"🔄 Simulando ruta: {distancia_km}km, {tiempo_minutos}min")
-        
+        logger.error(
+           f"Directions API no disponible. "
+           f"Origen: {origen}, Destino: {destino}. "
+           f"Devolviendo dict vacio para forzar fallback del consumidor."
+        )
+
         return {
-            "distancia_km": distancia_km,
-            "tiempo_minutos": tiempo_minutos,
+            "distancia_km": None,
+            "tiempo_minutos": None,
             "lat_origen": None,
             "lon_origen": None,
             "lat_destino": None,
             "lon_destino": None,
-            "ruta_completa": None
+            "ruta_completa": None,
+            "overview_polyline": None,
+            "es_fallback": True,
         }
 
 

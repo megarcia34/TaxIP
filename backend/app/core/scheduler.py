@@ -286,6 +286,80 @@ async def procesar_viajes_huerfanos():
             logger.error(f"Error en procesar_viajes_huerfanos: {e}")
             await db.rollback()
 
+# ============================================================
+# JOB 6: LIMPIEZA DE TURNOS COLGADOS (cada 1h) - G64
+# ============================================================
+
+async def procesar_turnos_colgados():
+    """
+    Detecta y cancela turnos colgados.
+
+    Un turno es colgado si:
+    - estado='ACTIVO' y inicio_turno < NOW() - 24h
+
+    Un turno normal dura 8-12 horas. Uno excepcional hasta 16 horas.
+    24h es claramente abandono.
+
+    Efectos:
+    - Marca el turno como CANCELADO.
+    - Guarda fin_turno.
+    - Libera al chofer (fuera_servicio).
+    """
+    async with AsyncSessionLocal() as db:
+        try:
+            # 1. Detectar turnos colgados
+            query = text("""
+                SELECT id, chofer_id, vehiculo_id, inicio_turno
+                FROM fleet.turno_chofer
+                WHERE estado = 'ACTIVO'
+                  AND inicio_turno < NOW() - INTERVAL '24 hours'
+            """)
+            result = await db.execute(query)
+            turnos = result.all()
+
+            if not turnos:
+                return
+
+            logger.warning(f"Auto-cancelando {len(turnos)} turnos colgados")
+
+            for turno in turnos:
+                turno_id = turno[0]
+                chofer_id = turno[1]
+                vehiculo_id = turno[2]
+                inicio_turno = turno[3]
+
+                logger.info(
+                    f"   Turno {turno_id}: chofer_id={chofer_id}, "
+                    f"vehiculo_id={vehiculo_id}, inicio={inicio_turno}"
+                )
+
+                # 2. Marcar turno como CANCELADO
+                await db.execute(text("""
+                    UPDATE fleet.turno_chofer
+                    SET estado = 'CANCELADO',
+                        fin_turno = NOW(),
+                        updated_at = NOW()
+                    WHERE id = :turno_id
+                """), {"turno_id": turno_id})
+
+                # 3. Liberar al chofer
+                await db.execute(text("""
+                    UPDATE fleet.chofer_vehiculo
+                    SET estado_laboral = 'fuera_servicio',
+                        updated_at = NOW()
+                    WHERE usuario_id = :chofer_id
+                """), {"chofer_id": chofer_id})
+
+            await db.commit()
+            logger.info(
+                f"Limpieza de turnos colgados completada: "
+                f"{len(turnos)} turnos cancelados"
+            )
+
+        except Exception as e:
+            logger.error(f"Error en procesar_turnos_colgados: {e}")
+            await db.rollback()
+
 
 # ============================================================
 # LOOP PRINCIPAL DEL SCHEDULER
@@ -302,6 +376,7 @@ async def scheduler_loop():
     logger.info("   Reservas: cada 60s")
     logger.info("   KPIs: cada 1h")
     logger.info("   Viajes huerfanos: cada 1h")
+    logger.info("   Turnos colgados: cada 1h")
     logger.info("   Vencimientos: cada 6h")
 
     seconds_counter = 0
@@ -322,6 +397,10 @@ async def scheduler_loop():
             # Cada 3600s: limpieza de viajes huerfanos (J17)
             if seconds_counter % 3600 == 0 and seconds_counter > 0:
                 await procesar_viajes_huerfanos()
+
+            # Cada 3600s: limpieza de turnos colgados (G64)
+            if seconds_counter % 3600 == 0 and seconds_counter > 0:
+                await procesar_turnos_colgados()
 
             # Cada 21600s (6h): notificaciones de vencimiento (solo 6-22hs)
             if seconds_counter % 21600 == 0 and seconds_counter > 0:
