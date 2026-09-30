@@ -2,7 +2,6 @@
 Security utilities: JWT tokens, password hashing (bcrypt), password recovery
 """
 
-import os
 import uuid
 import random
 import string
@@ -11,15 +10,13 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
-from dotenv import load_dotenv
+from app.core.config import settings
 
-load_dotenv()
-
-# JWT configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-in-production")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+# JWT configuration - fuente unica: app.core.config.Settings
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -85,7 +82,30 @@ def decode_token(token: str) -> dict:
         logger.error(f"❌ Error inesperado decodificando token: {e}")
         return {}
 
+def decode_token_strict(token: str) -> dict:
+    """
+    Decodifica y valida un JWT. Levanta JWTError si el token es invalido
+    o expirado.
 
+    A diferencia de decode_token (que devuelve {} para mantener
+    compatibilidad), esta version falla rapido.
+
+    Usar en codigo nuevo. Migrar consumidores existentes de a poco.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        logger.debug("Token decodificado exitosamente (strict)")
+        return payload
+    except jwt.ExpiredSignatureError:
+        logger.error("Token expirado - verificar ACCESS_TOKEN_EXPIRE_MINUTES")
+        raise
+    except jwt.JWTClaimsError as e:
+        logger.error(f"Claims invalidos en el token: {e}")
+        raise
+    except jwt.JWTError as e:
+        logger.error(f"Error JWT: {e}")
+        raise
+    
 def generate_reset_token() -> str:
     """Generate a secure token for password recovery"""
     return str(uuid.uuid4()) + str(uuid.uuid4())

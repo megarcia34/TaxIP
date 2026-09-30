@@ -502,7 +502,7 @@ async def exportar_resumen_ejecutivo_csv(
 
 @router.get("/reportes/resumen-financiero")
 async def resumen_financiero_reportes(
-    periodo: str = Query("mensual", regex="^(mensual|trimestral|anual)$"),
+    periodo: str = Query("mensual", pattern="^(mensual|trimestral|anual)$"),
     fecha_desde: Optional[datetime] = None,
     fecha_hasta: Optional[datetime] = None,
     propietario_id: UUID = Depends(get_propietario_id),
