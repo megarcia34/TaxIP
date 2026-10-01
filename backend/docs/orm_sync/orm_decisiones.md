@@ -6,6 +6,7 @@
 **Tag baseline:** ronda5-baseline-pre
 **Backup DB:** docs/backups/taxip_db_2026-09-30.dump (546 KB)
 **Responsable:** megarcia34
+**Ultima actualizacion:** 2026-10-01 (Ronda 6, Fase 2, Sesion 1)
 
 ## Proposito
 
@@ -103,22 +104,6 @@ Cada entrada debe incluir:
 - **Justificacion:** la tabla no existe en DB. A1 de la deuda confirma que es modelo huerfano. El modulo corporativo no la usa.
 - **Fecha:** 2026-09-30
 
-### D-005: fleet.ingreso_turno
-
-- **Item:** fleet.ingreso_turno
-- **Clasificacion:** tipo_desalineado (comment) + orm_falta (comment)
-- **Decision:** existe en DB. Alinear comment del ORM con DB y canonizar vocabulario de medio_pago (conecta con metodo_pago.catalogo)
-- **Justificacion:** SELECT EXISTS(...) confirma true. El comment en DB tiene 6 valores, el ORM tiene 4.
-- **Fecha:** 2026-09-30
-
-### D-006: auth.codigo_verificacion + auth.codigo_metadatos
-
-- **Item:** auth.codigo_verificacion, auth.codigo_metadatos
-- **Clasificacion:** orm_falta + requiere_decision (funcional)
-- **Decision:** PENDIENTE. Ambas tablas existen en DB, ORM no las declara. J9 dice que hay ambiguedad de negocio (dos fuentes de verdad para codigos de turno). Requiere analisis del handler validar_codigo_turno.
-- **Justificacion:** ambas tablas confirmadas en DB. Decidir: (a) declarar ambas en ORM y documentar cual es la fuente de verdad, o (b) unificar en una sola (migracion + refactor).
-- **Fecha:** 2026-09-30
-
 ### D-007: tenant.control_base.latitud/longitud
 
 - **Item:** tenant.control_base.latitud, tenant.control_base.longitud
@@ -129,11 +114,17 @@ Cada entrada debe incluir:
 
 ### D-008: fleet.* timestamps naive
 
-- **Item:** fleet.<tabla>.<columna> (70 columnas timestamp en 30 tablas)
+- **Item:** fleet.<tabla>.<columna>
 - **Clasificacion:** tipo_desalineado + requiere_decision (arquitectura)
-- **Decision:** PENDIENTE. DB tiene timestamp without time zone, ORM probablemente DateTime(timezone=True). Decision arquitectonica: (a) ORM se adapta a naive, (b) DB migra a timestamptz, (c) ignorar.
-- **Justificacion:** 70 columnas timestamp en fleet son naive. Decision afecta semantica de turnos, liquidaciones, etc. Fuera de alcance de Fase 1, se documenta como deuda.
-- **Fecha:** 2026-09-30
+- **Decision:** PENDIENTE (ver D-012 para la resolucion acotada de los 19 items
+  del modulo neumatico_*). D-008 como estimacion de Fase 0 decia 70 columnas
+  en 30 tablas; el diff real de Fase 1 identifico 19 columnas desalineadas
+  en 7 tablas neumatico_*.
+- **Justificacion:** Fase 0 estimo 70 columnas. Fase 1 las acoto a 19 (las
+  unicas con razon_decision=timestamp_naive_vs_tz). El resto de las columnas
+  timestamp de fleet (68/68 segun conteo empirico) ya estan coherentes
+  (naive en ambos lados).
+- **Fecha:** 2026-09-30 (actualizado 2026-10-01)
 
 ### D-009: public.comercio y orm_viaje.fk_comercio_schema
 
@@ -162,12 +153,135 @@ Cada entrada debe incluir:
 
 ---
 
-## Decisiones pendientes (se resolveran en Fase 2)
+## Decisiones tomadas en Fase 2 (Ronda 6, Sesion 1)
 
-- D-006: auth.codigo_verificacion + auth.codigo_metadatos (decision funcional)
-- D-008: fleet.* timestamps (decision arquitectonica)
-- D-009: public.comercio FK (decision de schema)
-- D-010: ciclo de FKs (decision tecnica)
+### D-005: Vocabulario de metodo_pago (grupo D)
+
+- **Item:** trip.viaje_solicitado.metodo_pago, fleet.ingreso_turno.medio_pago,
+  payment.metodo_pago
+- **Clasificacion:** requiere_decision (negocio) - Tier 1
+- **Decision (Fase 2):** fijar como canonico el vocabulario del CHECK
+  actual de trip.viaje_solicitado.metodo_pago:
+  efectivo | tarjeta_debito | qr | transferencia.
+  NO migrar DB en Fase 2. NO tocar CHECK. NO unificar con catalogo.
+- **Justificacion:**
+  - Hay 5 vocabularios en juego (ver detalle abajo). Unificarlos es
+    refactor grande que no cabe en Fase 2.
+  - El CHECK de trip.viaje_solicitado es el unico enforceado. Ya cerro
+    parcialmente B7 en Ronda 4.
+  - El frontend (E2 de la deuda) esta limitado a 4 valores. Ampliar el
+    CHECK sin tocar frontend rompe E2.
+  - payment.metodo_pago es catalogo sucio (2 duplicados, 1 sinonimo,
+    1 pasarela mezclada). Limpiarlo es deuda aparte.
+  - Regla de oro del traspaso: la DB es la fuente de verdad. El CHECK
+    actual define el vocabulario de facto para viajes.
+- **Vocabularios documentados (estado actual):**
+  1. trip.viaje_solicitado.metodo_pago (CHECK):
+     efectivo | tarjeta_debito | qr | transferencia
+  2. fleet.ingreso_turno.medio_pago (comment DB, sin CHECK):
+     efectivo | debito | credito | qr | transferencia | billetera
+  3. fleet.ingreso_turno.medio_pago (datos reales):
+     debito (16 filas), efectivo (57 filas)
+  4. payment.metodo_pago (catalogo, 12 filas con duplicados):
+     billetera, mercadopago x2, wallet, tarjeta_debito,
+     tarjeta_credito, transferencia, qr, efectivo x2, debito, credito
+  5. schemas/recaudacion_schemas.py:22 (sin CHECK):
+     efectivo | debito | credito | qr | transferencia | billetera
+- **Accion en Fase 4 (deuda nueva, ver seccion Deudas Fase 2):**
+  - metodo_pago.catalogo_sucio
+  - metodo_pago.fk_catalogo
+  - metodo_pago.ingreso_turno
+  - metodo_pago.frontend_e2
+- **Migracion DB en Fase 2:** ninguna.
+- **Archivos ORM a tocar en Fase 4:** app/models/fleet.py (comment de
+  IngresoTurno.medio_pago).
+- **Fecha:** 2026-09-30 (actualizado 2026-10-01)
+- **Estado:** APROBADA (con alcance acotado).
+
+### D-006: auth.codigo_verificacion + auth.codigo_metadatos (J9)
+
+- **Item:** auth.codigo_verificacion, auth.codigo_metadatos
+- **Clasificacion:** orm_falta - Tier 2
+- **Decision (Fase 2):** declarar AMBAS tablas en el ORM. NO unificar.
+  J9 es un falso positivo documental.
+- **Justificacion:**
+  - J9 original decia "dos fuentes de verdad para codigos de turno" y
+    "el handler validar_codigo_turno lee de codigo_metadatos".
+  - Verificado en Fase 2: J9 es un FALSO POSITIVO documental.
+  - FK real: codigo_metadatos.codigo_id -> codigo_verificacion.id
+    (ON DELETE CASCADE). codigo_metadatos es tabla SATELITE, no
+    fuente alternativa.
+  - Handler validar_codigo_turno (app/routers/chofer_turnos.py:233)
+    lee de codigo_verificacion (linea 282), NO de codigo_metadatos.
+  - El dominio de codigo_metadatos es contrato/vehiculo/propietario
+    (FKs a fleet.contrato_vehiculo, fleet.vehiculo, auth.usuario).
+    Es metadata ESTRUCTURADA, no jsonb generico.
+  - codigo_verificacion tiene su propio campo metadata (jsonb),
+    ortogonal a codigo_metadatos. Conviven sin conflicto.
+  - No hay ambiguedad funcional que resolver. No hay que unificar.
+- **Columnas codigo_verificacion (9):** id, usuario_id, codigo, tipo,
+  usado, intentos, creado_en, expira_en, metadata.
+- **Columnas codigo_metadatos (6):** id, codigo_id, contrato_id,
+  vehiculo_id, propietario_id, created_at.
+- **Filas actuales:** codigo_verificacion=29, codigo_metadatos=11.
+- **FKs de codigo_metadatos:**
+  - codigo_id -> auth.codigo_verificacion(id) ON DELETE CASCADE
+  - contrato_id -> fleet.contrato_vehiculo(id) ON DELETE CASCADE
+  - propietario_id -> auth.usuario(id) ON DELETE CASCADE
+  - vehiculo_id -> fleet.vehiculo(id) ON DELETE CASCADE
+- **Migracion DB:** ninguna.
+- **Archivos ORM a tocar en Fase 4:** app/models/auth.py (agregar ambas clases).
+- **Accion adicional:** marcar J9 en DEUDA_TECNICA_ACTUAL.md como FALSO
+  POSITIVO (resuelto).
+- **Fecha:** 2026-09-30 (actualizado 2026-10-01)
+- **Estado:** APROBADA.
+
+### D-012: Timestamps naive en fleet.neumatico_* (grupo A, 19 items)
+
+- **Item:** fleet.neumatico_*.<columna> (19 columnas en 7 tablas)
+- **Clasificacion:** tipo_desalineado + timestamp_naive_vs_tz - Tier 2
+- **Decision:** ORM se adapta a DB (opcion a). Cambiar DateTime(timezone=True)
+  a DateTime(timezone=False). Reemplazar default=datetime.now por
+  server_default=func.now() (quitar default de Python).
+- **Justificacion:**
+  - La DB tiene timestamp without time zone con default now().
+  - El ORM declara DateTime(timezone=True) con default datetime.now (naive).
+  - Incoherencia detectada: el default Python es naive pero la columna ORM
+    es tz-aware. PostgreSQL interpreta el naive con el timezone del server.
+  - Verificado empiricamente: 68/68 columnas timestamp en fleet son
+    timestamp without time zone. La convencion del schema es naive.
+  - Volumen de datos: 41 filas en total (todas simulacion de prueba,
+    modulo en desarrollo). Migrar la DB a timestamptz no tiene justificacion.
+  - Regla de oro del traspaso original: la DB es la fuente de verdad,
+    el ORM se adapta.
+  - Opcion (b) descartada: 41 filas no justifican migracion de schema;
+    rompe coherencia de fleet; riesgo de interpretacion de zona.
+  - Opcion (c) descartada: el bug del default sigue activo; costo de
+    arreglar (a) es bajisimo (19 lineas en 1 archivo).
+- **Items del diff:** D-0608, D-0610, D-0611, D-0631, D-0632, D-0649, D-0650,
+  D-0665, D-0666, D-0667, D-0684, D-0696, D-0697, D-0698, D-0699, D-0719,
+  D-0720, D-0721, D-0722.
+- **Tablas afectadas:**
+  - fleet.neumatico_historial_posicion (3): created_at, fecha_desmontaje, fecha_montaje
+  - fleet.neumatico_imagen (2): created_at, fecha_subida
+  - fleet.neumatico_medicion (2): created_at, fecha_medicion
+  - fleet.neumatico_operacion (3): created_at, fecha_operacion, updated_at
+  - fleet.neumatico_operacion_detalle (1): created_at
+  - fleet.neumatico_sugerencia (4): created_at, fecha_atendida, fecha_generacion, updated_at
+  - fleet.neumatico_vehiculo (4): created_at, fecha_alta, fecha_baja, updated_at
+- **Datos afectados:** 41 filas (simulacion de prueba).
+- **Migracion DB:** ninguna.
+- **Archivos ORM a tocar en Fase 4:** app/models/fleet.py (modulo de neumaticos).
+- **Fecha:** 2026-10-01
+- **Estado:** APROBADA.
+
+---
+
+## Decisiones pendientes (se resolveran en Fase 4 o rondas siguientes)
+
+- D-009: public.comercio FK (decision de schema).
+- D-010: ciclo de FKs auth.usuario <-> tenant.control_base (decision tecnica).
+- D-011: esquema de trabajo Fase 1 (cerrado en Ronda 5).
 
 ---
 
@@ -186,8 +300,6 @@ Cada entrada debe incluir:
 
 - docs/orm_sync/alembic_check_baseline_2026-09-30.txt (849 KB, 2.611 lineas)
 - docs/backups/taxip_db_2026-09-30.dump (546 KB)
-
----
 
 ---
 
@@ -228,7 +340,7 @@ Cada entrada debe incluir:
   - CHECK en trip.viaje_solicitado.metodo_pago: efectivo, tarjeta_debito, qr, transferencia
   - Comment en fleet.ingreso_turno.medio_pago: efectivo, debito, credito, qr, transferencia, billetera
   - payment.metodo_pago (catalogo): duplicados (efectivo x2, mercadopago x2)
-- **Accion:** definir vocabulario canonico antes de tocar el ORM. Requiere input de negocio.
+- **Accion:** definido en D-005 (Fase 2). Vocabulario canonico = CHECK actual.
 - **Fecha:** 2026-10-01
 
 ### H-004: Constraints autogenerados con nombres numericos
@@ -385,11 +497,11 @@ Cada entrada debe incluir:
 - **Item:** multiples
 - **Clasificacion:** requiere_decision
 - **Desglose:**
-  - 19 timestamps naive (7 tablas neumatico_*)
-  - 2 J9 (auth.codigo_metadatos, auth.codigo_verificacion)
-  - 2 orm_mal_db_bien (tenant.control_base.latitud/longitud)
-  - 1 vocabulario (fleet.ingreso_turno.medio_pago)
-- **Accion:** resolver en Fase 2.
+  - 19 timestamps naive (7 tablas neumatico_*) -> D-012
+  - 2 J9 (auth.codigo_metadatos, auth.codigo_verificacion) -> D-006
+  - 2 orm_mal_db_bien (tenant.control_base.latitud/longitud) -> D-007
+  - 1 vocabulario (fleet.ingreso_turno.medio_pago) -> D-005
+- **Accion:** resueltos en Fase 2 (Ronda 6, Sesion 1). 24/24.
 - **Fecha:** 2026-10-01
 
 ### H-022: Total diferencias del diff
@@ -399,11 +511,74 @@ Cada entrada debe incluir:
 - **Tier 2:** 912
 - **Tier 3:** 120
 - **Tier 4:** 1
-- **Requieren decision:** 24
+- **Requieren decision:** 24 (resueltos en Fase 2)
 - **Archivos generados:**
   - orm_diff.json (823 KB)
   - orm_diff_reporte.md (21 KB)
   - orm_diff_acciones.csv (115 KB)
 - **Fecha:** 2026-10-01
+
+---
+
+## Hallazgos de Fase 2 (Ronda 6, Sesion 1)
+
+### H-023: J9 es un falso positivo documental
+
+- **Item:** J9 (auth.codigo_metadatos vs auth.codigo_verificacion)
+- **Clasificacion:** documental (resuelto)
+- **Descripcion:** J9 decia "dos fuentes de verdad para codigos de turno"
+  y "el handler validar_codigo_turno lee de codigo_metadatos". Verificado:
+  la FK codigo_id -> codigo_verificacion.id ON DELETE CASCADE existe;
+  el handler lee de codigo_verificacion. NO hay dos fuentes de verdad.
+  Es una relacion padre-hijo (codigo_verificacion es padre, codigo_metadatos
+  es satelite con metadata estructurada del dominio propietario).
+- **Accion:** marcar J9 como FALSO POSITIVO en DEUDA_TECNICA_ACTUAL.md.
+- **Fecha:** 2026-10-01
+
+### H-024: fleet tiene 68 columnas timestamp, todas naive
+
+- **Item:** information_schema.columns WHERE table_schema='fleet' AND data_type LIKE 'timestamp%'
+- **Clasificacion:** verificacion empirica
+- **Descripcion:** Conteo real: 68 columnas, todas timestamp without time zone.
+  Cero timestamptz. Confirma que la convencion del schema fleet es naive.
+- **Implicacion:** la opcion (a) de D-012 (ORM a naive) es coherente con el schema.
+- **Fecha:** 2026-10-01
+
+### H-025: Volumen de datos en neumatico_*
+
+- **Item:** 7 tablas neumatico_*
+- **Clasificacion:** verificacion empirica
+- **Descripcion:** 41 filas totales (11 + 1 + 3 + 8 + 11 + 0 + 7).
+  Todo simulacion de prueba, modulo en desarrollo.
+- **Implicacion:** descarta la opcion (b) de D-012 (migrar a timestamptz).
+- **Fecha:** 2026-10-01
+
+### H-026: Vocabularios de metodo_pago - 5 variantes documentadas
+
+- **Item:** trip.viaje_solicitado.metodo_pago, fleet.ingreso_turno.medio_pago,
+  payment.metodo_pago, schemas/recaudacion_schemas.py, empresa_dashboard.py
+- **Clasificacion:** requiere_decision (negocio)
+- **Descripcion:** Hay 5 vocabularios en juego. Ver D-005 para el detalle.
+  El CHECK de trip.viaje_solicitado es el unico enforceado.
+- **Accion:** vocabulario canonico = CHECK actual. Refactor a catalogo
+  (FK por metodo_pago_id) va a Fase 4.
+- **Fecha:** 2026-10-01
+
+---
+
+## Deudas nuevas detectadas en Fase 2
+
+- **metodo_pago.catalogo_sucio:** payment.metodo_pago tiene 12 filas con
+  2 duplicados (efectivo x2, mercadopago x2), 1 sinonimo (wallet=billetera),
+  1 pasarela mezclada (mercadopago). Limpiar en Fase 4.
+- **metodo_pago.fk_catalogo:** evaluar refactor a FK por metodo_pago_id en
+  trip.viaje_solicitado y fleet.ingreso_turno. Toca app, reportes, ORM.
+  NO en Fase 2.
+- **metodo_pago.ingreso_turno:** alinear comment del ORM con DB y decidir
+  si se agrega CHECK a fleet.ingreso_turno.medio_pago.
+- **metodo_pago.frontend_e2:** ampliar MetodoPago del frontend cuando se
+  decida agregar credito o billetera.
+
+---
 
 **FIN DEL DOCUMENTO**
