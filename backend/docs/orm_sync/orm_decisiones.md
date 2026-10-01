@@ -189,4 +189,86 @@ Cada entrada debe incluir:
 
 ---
 
+---
+
+## Hallazgos de Fase 1 - Sesion 1 (introspect_db.py)
+
+### H-001: trip.viaje_solicitado tiene 66 columnas
+
+- **Item:** trip.viaje_solicitado
+- **Clasificacion:** orm_falta (masivo) - Tier 1
+- **Descripcion:** la DB tiene 66 columnas. El ORM declara ~37 (29 faltantes). Confirmado con introspect_db.py.
+- **Accion:** declarar las 29 faltantes en ORM (B5).
+- **Fecha:** 2026-10-01
+
+### H-002: trip.viaje_solicitado tiene 10 CHECK constraints
+
+- **Item:** trip.viaje_solicitado.constraints.check
+- **Clasificacion:** orm_falta - Tier 1
+- **Descripcion:** 10 CHECK constraints en DB, 0 en ORM.
+- **Lista:**
+  - ck_viaje_solicitado_metodo_pago (efectivo, tarjeta_debito, qr, transferencia)
+  - ck_viaje_solicitado_ck_viaje_calidad_min (regular, bueno, excelente)
+  - ck_viaje_solicitado_ck_viaje_cc_obligatoria
+  - ck_viaje_solicitado_ck_viaje_centro_costo_despacho
+  - ck_viaje_solicitado_ck_viaje_estado_cobro (pendiente, cobrado, facturado, pagado)
+  - ck_viaje_solicitado_ck_viaje_origen_tipo (plataforma, via_publica, qr_comercio, corporativo, despacho_manual)
+  - ck_viaje_solicitado_ck_viaje_responsable_cobro (chofer, propietario, tenant, comercio, empresa)
+  - ck_viaje_solicitado_ck_viaje_subestado_despacho (reservado, despachado, vehiculo_llego, pasajero_a_bordo, completado)
+  - 63669_63825_1_not_null (autogenerado, renombrar)
+  - 63669_63825_38_not_null (autogenerado, renombrar)
+- **Accion:** declarar en ORM + renombrar los 2 autogenerados.
+- **Fecha:** 2026-10-01
+
+### H-003: Vocabularios de metodo_pago siguen divergentes
+
+- **Item:** trip.viaje_solicitado.metodo_pago + fleet.ingreso_turno.medio_pago + payment.metodo_pago
+- **Clasificacion:** requiere_decision (negocio) - Tier 1
+- **Descripcion:** B7 cerro parcialmente, pero los vocabularios siguen divergentes:
+  - CHECK en trip.viaje_solicitado.metodo_pago: efectivo, tarjeta_debito, qr, transferencia
+  - Comment en fleet.ingreso_turno.medio_pago: efectivo, debito, credito, qr, transferencia, billetera
+  - payment.metodo_pago (catalogo): duplicados (efectivo x2, mercadopago x2)
+- **Accion:** definir vocabulario canonico antes de tocar el ORM. Requiere input de negocio.
+- **Fecha:** 2026-10-01
+
+### H-004: Constraints autogenerados con nombres numericos
+
+- **Item:** trip.viaje_solicitado.constraints.check.63669_63825_*
+- **Clasificacion:** constraint_desalineada - Tier 3
+- **Descripcion:** 2 constraints tienen nombres autogenerados por Alembic con numeros. No descriptivos.
+- **Accion:** renombrar en DB + ORM.
+- **Fecha:** 2026-10-01
+
+### H-005: Indices duplicados en trip.viaje_solicitado
+
+- **Item:** idx_viaje_estado + ix_viaje_estado
+- **Clasificacion:** indice_duplicado - Tier 3
+- **Descripcion:** dos indices sobre la misma columna estado. Uno custom (idx_), uno autogenerado (ix_).
+- **Accion:** eliminar uno. Decidir cual.
+- **Fecha:** 2026-10-01
+
+### H-006: public.comercio tiene 13 columnas
+
+- **Item:** public.comercio
+- **Clasificacion:** orm_falta - Tier 2
+- **Descripcion:** 13 columnas: id, nombre, rubro, direccion, latitud, longitud, codigo_qr, email_contacto, telefono, activo, created_at, updated_at, control_base_id.
+- **Accion:** declarar en ORM. Conecta con D-009 (FK sin schema).
+- **Fecha:** 2026-10-01
+
+### H-007: auth.codigo_verificacion tiene 9 columnas
+
+- **Item:** auth.codigo_verificacion
+- **Clasificacion:** orm_falta - Tier 2
+- **Descripcion:** 9 columnas: id, usuario_id, codigo, tipo, usado, intentos, creado_en, expira_en, metadata.
+- **Accion:** declarar en ORM. Conecta con D-006 (J9).
+- **Fecha:** 2026-10-01
+
+### H-008: trip.viaje_solicitado tiene 19 indices
+
+- **Item:** trip.viaje_solicitado.indexes
+- **Clasificacion:** indice_falta - Tier 1
+- **Descripcion:** 19 indices en DB: 1 PK, 9 idx_ (custom), 9 ix_ (autogenerados), 1 gist (PostGIS).
+- **Accion:** declarar los custom en ORM. Decidir sobre los autogenerados.
+- **Fecha:** 2026-10-01
+
 **FIN DEL DOCUMENTO**
