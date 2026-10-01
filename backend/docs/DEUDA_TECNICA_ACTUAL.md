@@ -1,7 +1,7 @@
 # DEUDA TECNICA ACTUAL — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-01 (cierre Ronda 5)
-**Total items pendientes:** 51
+**Ultima actualizacion:** 2026-10-01 (Ronda 6, Fase 2, Sesion 1)
+**Total items pendientes:** 53
 **Total criticos:** 1 (orm.db_desalineados)
 
 ---
@@ -32,7 +32,7 @@ columnas a un ORM roto era parche parcial.
 
 ### orm.db_desalineados — ACTUALIZADO 2026-10-01
 
-**Estado:** DIAGNOSTICADO (Fase 1 completa). Pendiente de resolucion.
+**Estado:** DECISIONES TOMADAS (Fase 2 completa). Pendiente de aplicacion.
 
 **Datos reales (post Fase 1):**
 
@@ -50,12 +50,20 @@ columnas a un ORM roto era parche parcial.
 - Tier 3 (cosmetico): 120
 - Tier 4 (muerte): 1
 
-**Items que requieren decision manual:** 24.
+**Items que requerian decision manual:** 24.
+**Items con decision tomada en Fase 2:** 24/24 (Ronda 6, Sesion 1).
+
+**Decisiones tomadas en Fase 2:**
+- D-005 (metodo_pago): vocabulario canonico acotado, sin migracion.
+- D-006 (J9 auth): falso positivo, declarar ambas tablas sin unificar.
+- D-007 (control_base): ORM String(50) -> Numeric (ya estaba).
+- D-012 (timestamps neumatico_*): ORM a naive (opcion a).
 
 **Riesgo:** cualquier `alembic revision --autogenerate` es DESTRUCTIVA.
 Verificado: ninguna migracion historica uso autogenerate.
 
 **Plan:** 5 fases (0 a 4). Fases 0 y 1 completas en Ronda 5.
+Fase 2 (decisiones) completa en Ronda 6, Sesion 1.
 
 **Ver:**
 - docs/orm_sync/orm_diff_reporte.md
@@ -65,19 +73,19 @@ Verificado: ninguna migracion historica uso autogenerate.
 
 ---
 
-## NUEVOS — Ronda 5
+## NUEVOS — Ronda 5 (Fase 1)
 
-### orm.nullable_desalineado — NUEVO 2026-10-01
+### orm.nullable_desalineado — 2026-10-01
 
 158 columnas con nullable divergente entre ORM y DB.
 Bug potencial activo: si ORM declara nullable=True pero DB tiene NOT NULL,
 los INSERTs del ORM pueden fallar silenciosamente.
 
-**Tier 2.** Requiere revision en Fase 2.
+**Tier 2.** Requiere revision en Fase 4.
 
 **Ver:** docs/orm_sync/orm_diff_reporte.md (H-017).
 
-### orm.schema_falta_comunicacion — NUEVO 2026-10-01
+### orm.schema_falta_comunicacion — 2026-10-01
 
 El schema `comunicacion` (3 tablas: conversacion, email_enviado, mensaje)
 existe en DB pero no en ORM.
@@ -86,7 +94,7 @@ existe en DB pero no en ORM.
 
 **Ver:** docs/orm_sync/orm_decisiones.md (H-012).
 
-### orm.schema_falta_rentabilidad — NUEVO 2026-10-01
+### orm.schema_falta_rentabilidad — 2026-10-01
 
 El schema `rentabilidad` (3 tablas: analisis_medios_pago,
 rentabilidad_diaria_vehiculo, rentabilidad_mensual_vehiculo) existe en DB
@@ -96,7 +104,7 @@ pero no en ORM.
 
 **Ver:** docs/orm_sync/orm_decisiones.md (H-013).
 
-### orm.constraint_nombres_numericos — NUEVO 2026-10-01
+### orm.constraint_nombres_numericos — 2026-10-01
 
 2 constraints con nombres autogenerados por Alembic:
 - 63669_63825_1_not_null (trip.viaje_solicitado).
@@ -106,7 +114,7 @@ pero no en ORM.
 
 **Ver:** docs/orm_sync/orm_decisiones.md (H-004).
 
-### orm.indices_duplicados — NUEVO 2026-10-01
+### orm.indices_duplicados — 2026-10-01
 
 Indices duplicados funcionales:
 - idx_viaje_estado + ix_viaje_estado (trip.viaje_solicitado).
@@ -115,7 +123,7 @@ Indices duplicados funcionales:
 
 **Ver:** docs/orm_sync/orm_decisiones.md (H-005).
 
-### orm.system_tables_whitelist — NUEVO 2026-10-01
+### orm.system_tables_whitelist — 2026-10-01
 
 `public.alembic_version` y `public.spatial_ref_sys` son tablas de sistema.
 No deben considerarse parte del diff.
@@ -123,6 +131,59 @@ No deben considerarse parte del diff.
 **Accion:** whitelist en diff.py (ya implementado).
 
 **Ver:** docs/orm_sync/orm_decisiones.md (H-014).
+
+---
+
+## NUEVOS — Ronda 6 (Fase 2, Sesion 1)
+
+### metodo_pago.catalogo_sucio — NUEVA 2026-10-01
+
+`payment.metodo_pago` tiene 12 filas con:
+- 2 duplicados: efectivo (x2), mercadopago (x2).
+- 1 sinonimo: wallet = billetera.
+- 1 pasarela mezclada: mercadopago (es proveedor, no metodo).
+
+**Impacto:** todos los reportes leen del catalogo sucio en vez de
+`viaje_solicitado.metodo_pago`. Bug real de calculo de comisiones.
+
+**Tier 2.** Limpiar en Fase 4 (dedupe + renombre + decidir si mercadopago
+queda como pasarela separada).
+
+**Ver:** docs/orm_sync/orm_decisiones.md (D-005, H-026).
+
+### metodo_pago.fk_catalogo — NUEVA 2026-10-01
+
+Refactor estructural: evaluar FK por `metodo_pago_id` en
+`trip.viaje_solicitado` y `fleet.ingreso_turno` (en vez de string).
+
+**Impacto:** toca app, reportes, ORM. Refactor grande.
+
+**Tier 2.** Evaluar en Fase 4. NO en Fase 2.
+
+**Ver:** docs/orm_sync/orm_decisiones.md (D-005).
+
+### metodo_pago.ingreso_turno — NUEVA 2026-10-01
+
+`fleet.ingreso_turno.medio_pago`:
+- Comment en DB: 6 valores (efectivo, debito, credito, qr, transferencia,
+  billetera). Sin CHECK.
+- Datos reales: solo 2 valores (efectivo=57, debito=16).
+- ORM: comment divergente, 4 valores.
+
+**Tier 2.** Alinear comment del ORM con DB en Fase 4. Decidir si se agrega
+CHECK.
+
+**Ver:** docs/orm_sync/orm_decisiones.md (D-005, H-003).
+
+### metodo_pago.frontend_e2 — NUEVA 2026-10-01
+
+MetodoPago del frontend limitado a 4 valores (deuda E2 original).
+Si se amplia el vocabulario (credito, billetera), hay que ampliar el
+frontend tambien.
+
+**Tier 3.** Resolver en Fase 4 si se decide ampliar vocabulario.
+
+**Ver:** docs/orm_sync/orm_decisiones.md (D-005).
 
 ---
 
@@ -143,7 +204,7 @@ negocio: auto-cancelar huerfanos con motivo, o boton "forzar cierre".
 La app en el celular apunta a 192.168.1.14:8081. Para pruebas en terreno:
 build preview o production apuntando al backend publico.
 
-### metodo_pago.pasarela — NUEVA (2026-09-30)
+### metodo_pago.pasarela — 2026-09-30
 
 Pasarela de pago: campo/tabla separada. No existe.
 Bloqueante de `/cobro-qr` (M3 pendiente). Requiere decision comercial
@@ -161,6 +222,9 @@ Numeros sueltos vs Coordenada. Mapear en el store al conectar el WS.
 
 El INSERT en codigo_verificacion solo no alcanza. Documentar en flujo
 del propietario.
+
+**Nota Fase 2:** relacionado con D-006. Ver H-023. La tabla es satelite
+de codigo_verificacion, no alternativa.
 
 ### G68 — Job procesar_viajes_huerfanos corre cada 1h
 
@@ -189,45 +253,27 @@ Verificar LastWriteTime vs StartTime del proceso Python.
 ### G81 — DB y modelos ORM desincronizados silenciosamente
 
 Sintoma: INSERTs fallan por columna inexistente, sin error visible.
-**Relacionado con:** orm.db_desalineados (critico). Ahora cuantificado
+**Relacionado con:** orm.db_desalineados (critico). Cuantificado
 como 158 items nullable_desalineado (H-017).
-
-### J9 — Dos fuentes de verdad para codigos de turno
-
-auth.codigo_verificacion.metadata (jsonb) existe pero NO se usa.
-El handler validar_codigo_turno lee de auth.codigo_metadatos.
-Ambiguedad peligrosa.
-**Confirmado en diff:** D-0004 y D-0005. Requiere decision funcional.
 
 ### J15 — No hay deteccion de viaje activo al abrir la app
 
 Plan: endpoint GET /api/chofer/viaje-activo + chequeo en
 (app)/_layout.tsx.
 
-### metodo_pago.flujo_propietario — NUEVA (2026-09-30)
+### metodo_pago.flujo_propietario — 2026-09-30
 
 `liquidacion.py:329`, `fleet.py:875/880` (comments de IngresoTurno).
 Dominio: como el propietario le paga al chofer.
 Vocabulario propio por definir. Probablemente `efectivo | transferencia`.
 
-### metodo_pago.flujo_empresa — NUEVA (2026-09-30)
+### metodo_pago.flujo_empresa — 2026-09-30
 
 `empresa_dashboard.py:790`. Dominio: como la empresa le paga a TaxIP.
 Valores actuales: transferencia, efectivo, tarjeta, deposito, otros.
 Requiere vocabulario propio.
 
-### metodo_pago.catalogo — NUEVA (2026-09-30)
-
-`payment.metodo_pago` (tabla catalogo): duplicados (efectivo x2,
-mercadopago x2), sinonimos (wallet/billetera, debito/tarjeta_debito),
-pasarela mezclada (mercadopago).
-Usado por: rentabilidad.py, optimizacion.py, admin/dashboard.py:663,
-super_admin/dashboard.py:111, pagos.py:203.
-**Impacto:** todos los reportes leen del catalogo sucio en vez de
-`viaje_solicitado.metodo_pago`. Bug real de calculo de comisiones.
-**Confirmado en diff:** D-0487 (fleet.ingreso_turno.medio_pago).
-
-### metodo_pago.recaudacion — NUEVA (2026-09-30)
+### metodo_pago.recaudacion — 2026-09-30
 
 `schemas/recaudacion_schemas.py:22` con valores
 `efectivo | debito | credito | qr | transferencia | billetera`.
@@ -236,18 +282,17 @@ Alinear cuando se toque ese modulo.
 ### flujo_caja.ingreso_turno — ACTUALIZADO 2026-10-01
 
 **Correccion:** el modelo IngresoTurno en `models/fleet.py` declara tabla
-`fleet.ingreso_turno` que SI existe en DB (el doc original decia que no).
-Verificado via introspect_db.py.
+`fleet.ingreso_turno` que SI existe en DB. Verificado via introspect_db.py.
 
 Comments de `tipo_ingreso`, `medio_pago`, `origen` mezclan vocabularios.
 `medio_pago` con espacio final en el comment.
 
 **Accion:** alinear comment del ORM con DB y canonizar vocabulario
-(conecta con metodo_pago.catalogo).
+(conecta con metodo_pago.catalogo). Resuelto en D-005.
 
 **Ver:** docs/orm_sync/orm_decisiones.md (D-005, H-003).
 
-### G82 — NUEVA (2026-09-30)
+### G82 — 2026-09-30
 
 `run.py` tiene `reload=True` hardcodeado. Contradice N14.
 Propuesta: `reload=os.getenv("RELOAD", "false").lower() == "true"`,
@@ -261,7 +306,7 @@ default apagado. No bloqueante.
 
 - **A1** — Modelo Reserva apunta a tabla dropeada (trip.reserva).
   **Confirmado 2026-10-01:** trip.reserva esta en ORM (29 columnas), no
-  en DB. Borrar modelo en Fase 4.
+  en DB. Borrar modelo en Fase 4 (D-004).
 - **A2** — Schemas legacy snake_case mezclados en viajes/schemas.py.
 - **A5** — ~22 warnings Duplicate Operation ID en neumaticos OpenAPI.
 
@@ -270,6 +315,7 @@ default apagado. No bloqueante.
 - **D2** — tsconfig.json con ignoreDeprecations "6.0".
 - **D6** — splash.tsx "paso 2 veces la pantalla" (no reproducible).
 - **E2** — MetodoPago limitado a 4 valores.
+  **Conecta con D-005.** Ver metodo_pago.frontend_e2.
 
 ### Endpoints faltantes
 
@@ -324,7 +370,7 @@ default apagado. No bloqueante.
 - **orm_viaje.fk_comercio_schema** — FK de `viaje_solicitado.comercio_id`
   apunta a `comercio(id)` sin schema.
   **Confirmado 2026-10-01:** `public.comercio` existe con 13 columnas.
-  La FK resuelve por search_path. Revisar en Fase 4.
+  La FK resuelve por search_path. Revisar en Fase 4 (D-009).
 
 ---
 
@@ -342,7 +388,7 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 
 ## CERRADAS EN RONDA 4 (2026-09-30)
 
-- **G30** — CERRADO. print() → logger.info() en main.py (12 prints).
+- **G30** — CERRADO. print() -> logger.info() en main.py (12 prints).
 - **B9** — CERRADO. Semantica solicitado_en vs created_at documentada.
 - **B7** — CERRADO. Migracion m3_010 (CHECK + normalizacion metodo_pago)
   + 3 ediciones de codigo en routes.py, viaje_schemas.py, medios_pago.py.
@@ -378,6 +424,39 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 
 ---
 
+## CERRADAS EN RONDA 6 (2026-10-01, Fase 2, Sesion 1)
+
+### Decisiones tomadas
+
+- **D-005** (metodo_pago): vocabulario canonico acotado al CHECK actual de
+  trip.viaje_solicitado. Sin migracion DB. 4 deudas nuevas derivadas.
+- **D-006** (J9 auth): FALSO POSITIVO documental. Declarar ambas tablas
+  en ORM, no unificar.
+- **D-007** (control_base): confirmado, sin cambios.
+- **D-012** (timestamps neumatico_*): ORM a naive (opcion a).
+
+### Items cerrados
+
+- **J9** — CERRADO como FALSO POSITIVO (H-023). No hay dos fuentes de
+  verdad. codigo_metadatos es satelite de codigo_verificacion.
+- **metodo_pago.catalogo** (item original de la deuda) — CERRADO en su
+  parte de decision. La limpieza del catalogo pasa a metodo_pago.catalogo_sucio.
+
+### Items con decision acotada
+
+- **D-008** (fleet timestamps): corregido de 70 columnas (estimacion Fase 0)
+  a 19 columnas (dato real Fase 1). Resuelto en D-012.
+- **H-021** (24 items requieren decision): 24/24 resueltos.
+
+### Hallazgos nuevos
+
+- **H-023** — J9 es falso positivo.
+- **H-024** — fleet tiene 68 columnas timestamp, todas naive.
+- **H-025** — volumen de datos en neumatico_*: 41 filas de prueba.
+- **H-026** — vocabularios de metodo_pago: 5 variantes documentadas.
+
+---
+
 ## RECUENTO
 
 | Categoria | Cantidad |
@@ -385,11 +464,19 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 | Bloqueante | 1 |
 | Critico | 1 |
 | Nuevos Ronda 5 | 6 |
+| Nuevos Ronda 6 (Fase 2) | 4 |
 | Alta prioridad | 4 |
 | Media prioridad | 15 |
 | Baja prioridad | 21 |
 | Expo-router / EAS | 3 |
-| **TOTAL PENDIENTES** | **51** |
+| **TOTAL PENDIENTES** | **53** |
+
+**Notas sobre el recuento:**
+- Cerradas en Ronda 6: J9 (falso positivo), metodo_pago.catalogo (absorbido
+  en D-005).
+- Nuevas en Ronda 6: metodo_pago.catalogo_sucio, metodo_pago.fk_catalogo,
+  metodo_pago.ingreso_turno, metodo_pago.frontend_e2.
+- Balance neto: -2 cerradas + 4 nuevas = +2 items. De 51 a 53.
 
 ---
 
