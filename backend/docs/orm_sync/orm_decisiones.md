@@ -343,4 +343,67 @@ Cada entrada debe incluir:
 - **Accion:** declarar los 13 faltantes en ORM. Considerar alinear naming convention con DB (o viceversa).
 - **Fecha:** 2026-10-01
 
+---
+
+## Hallazgos de Fase 1 - Sesion 3 (diff.py)
+
+### H-017: nullable_desalineado masivo (158 items)
+
+- **Item:** multiples columnas en 10 schemas
+- **Clasificacion:** nullable_desalineado - Tier 2
+- **Descripcion:** El ORM declara nullable distinto que la DB en 158 columnas.
+- **Riesgo:** si ORM declara nullable=True pero DB tiene NOT NULL, los INSERTs del ORM pueden fallar. Bug potencial activo.
+- **Accion:** revisar en Fase 2. Puede requerir migracion de nullable en DB o ajuste en ORM.
+- **Fecha:** 2026-10-01
+
+### H-018: constraint_nombre_desalineado (124 items)
+
+- **Item:** multiples constraints
+- **Clasificacion:** constraint_nombre_desalineado - Tier 3
+- **Descripcion:** 124 constraints difieren solo en nombre. Consecuencia del naming convention del ORM (pk_%, fk_%, ck_%, uq_%).
+- **Accion:** automatico en Fase 3 (apply.py). Cosmetico pero masivo.
+- **Fecha:** 2026-10-01
+
+### H-019: constraint_falta (428 items)
+
+- **Item:** multiples constraints
+- **Clasificacion:** constraint_falta - Tier 1-2
+- **Descripcion:** 428 constraints en DB que el ORM no declara. FKs, UNIQUEs, CHECKs.
+- **Accion:** priorizar por tabla en Fase 2. Declarar en ORM en Fase 4.
+- **Fecha:** 2026-10-01
+
+### H-020: tipo_desalineado (114 items)
+
+- **Item:** multiples columnas
+- **Clasificacion:** tipo_desalineado - Tier 1-2
+- **Descripcion:** 114 columnas con tipo distinto entre ORM y DB. Incluye 19 timestamps naive y 2 control_base lat/lng.
+- **Accion:** 21 ya identificados (requieren decision). Los ~93 restantes, revisar en Fase 2.
+- **Fecha:** 2026-10-01
+
+### H-021: 24 items requieren decision manual
+
+- **Item:** multiples
+- **Clasificacion:** requiere_decision
+- **Desglose:**
+  - 19 timestamps naive (7 tablas neumatico_*)
+  - 2 J9 (auth.codigo_metadatos, auth.codigo_verificacion)
+  - 2 orm_mal_db_bien (tenant.control_base.latitud/longitud)
+  - 1 vocabulario (fleet.ingreso_turno.medio_pago)
+- **Accion:** resolver en Fase 2.
+- **Fecha:** 2026-10-01
+
+### H-022: Total diferencias del diff
+
+- **Total:** 1280
+- **Tier 1:** 247
+- **Tier 2:** 912
+- **Tier 3:** 120
+- **Tier 4:** 1
+- **Requieren decision:** 24
+- **Archivos generados:**
+  - orm_diff.json (823 KB)
+  - orm_diff_reporte.md (21 KB)
+  - orm_diff_acciones.csv (115 KB)
+- **Fecha:** 2026-10-01
+
 **FIN DEL DOCUMENTO**
