@@ -271,4 +271,76 @@ Cada entrada debe incluir:
 - **Accion:** declarar los custom en ORM. Decidir sobre los autogenerados.
 - **Fecha:** 2026-10-01
 
+---
+
+## Hallazgos de Fase 1 - Sesion 2 (introspect_orm.py)
+
+### H-009: El ORM tiene 73 tablas, la DB tiene 90
+
+- **Item:** Base.metadata vs DB
+- **Clasificacion:** orm_falta (masivo) - Tier 2
+- **Descripcion:** El ORM declara 73 tablas, la DB tiene 90. Faltan 17 tablas de negocio (18 contando system tables).
+- **Accion:** declarar las 17 faltantes en ORM (ver H-012, H-013 y lista en db_snapshot vs orm_snapshot).
+- **Fecha:** 2026-10-01
+
+### H-010: El ORM tiene 29 indices, la DB tiene 280
+
+- **Item:** Base.metadata.indexes vs DB
+- **Clasificacion:** indice_falta (masivo) - Tier 1
+- **Descripcion:** El ORM declara 29 indices, la DB tiene 280. Falta el 90%.
+- **Riesgo:** si alguien corre alembic autogenerate, dropearia 251 indices.
+- **Accion:** declarar los 251 faltantes en ORM. Priorizar los de viaje_solicitado, turno_chofer, control_base.
+- **Fecha:** 2026-10-01
+
+### H-011: El ORM tiene 243 constraints, la DB tiene 784
+
+- **Item:** Base.metadata.constraints vs DB
+- **Clasificacion:** constraint_desalineada (masivo) - Tier 1
+- **Descripcion:** El ORM declara 243 constraints, la DB tiene 784. Falta el 69%.
+- **Distribucion probable:** PKs (73 en ORM vs 90 en DB), FKs (menos en ORM), UNIQUEs, CHECKs (10 en viaje_solicitado solo, 0 en ORM).
+- **Accion:** declarar los faltantes en ORM. Incluye CHECK constraints de viaje_solicitado (H-002).
+- **Fecha:** 2026-10-01
+
+### H-012: Schema comunicacion completo no esta en ORM
+
+- **Item:** comunicacion.*
+- **Clasificacion:** orm_falta (schema completo) - Tier 2
+- **Descripcion:** El schema comunicacion tiene 3 tablas (conversacion, email_enviado, mensaje) en DB. Ninguna esta en ORM.
+- **Accion:** crear app/models/comunicacion.py con las 3 tablas. Registrar en app/models/__init__.py.
+- **Fecha:** 2026-10-01
+
+### H-013: Schema rentabilidad completo no esta en ORM
+
+- **Item:** rentabilidad.*
+- **Clasificacion:** orm_falta (schema completo) - Tier 2
+- **Descripcion:** El schema rentabilidad tiene 3 tablas (analisis_medios_pago, rentabilidad_diaria_vehiculo, rentabilidad_mensual_vehiculo) en DB. Ninguna esta en ORM.
+- **Accion:** crear app/models/rentabilidad.py con las 3 tablas. Registrar en app/models/__init__.py.
+- **Fecha:** 2026-10-01
+
+### H-014: public.alembic_version y public.spatial_ref_sys son system tables
+
+- **Item:** public.alembic_version, public.spatial_ref_sys
+- **Clasificacion:** ignorar en diff
+- **Descripcion:** Estas 2 tablas no son de negocio. Una la maneja Alembic, otra PostGIS.
+- **Accion:** whitelist en diff.py para excluirlas.
+- **Fecha:** 2026-10-01
+
+### H-015: trip.reserva es la unica tabla sobrante en ORM
+
+- **Item:** trip.reserva
+- **Clasificacion:** orm_sobra - Tier 4 (muerte)
+- **Descripcion:** 29 columnas declaradas en ORM, tabla no existe en DB.
+- **Accion:** borrar el modelo Reserva de app/models/trip.py. Verificar que no haya FKs ni relationships apuntando a el.
+- **Fecha:** 2026-10-01
+
+### H-016: Indices de trip.viaje_solicitado (6 en ORM vs 19 en DB)
+
+- **Item:** trip.viaje_solicitado.indexes
+- **Clasificacion:** indice_falta + constraint_nombre_desalineado - Tier 1
+- **Descripcion:** ORM declara 6 indices, DB tiene 19. Divergencia doble: faltan 13, y los nombres divergen por naming convention.
+- **ORM:** ix_trip_viaje_solicitado_origen, idx_viaje_solicitado_origen, idx_viaje_solicitado_destino, ix_trip_viaje_solicitado_destino, ix_trip_viaje_solicitado_codigo_compartido, ix_trip_viaje_solicitado_estado.
+- **DB:** idx_viaje_aceptado, idx_viaje_chofer, idx_viaje_comercio, idx_viaje_estado, idx_viaje_fecha_programada, idx_viaje_origen_gist, idx_viaje_pasajero, idx_viaje_reservas_pendientes, idx_viaje_solicitado_chofer_vehiculo, idx_viajes_llegado_en, ix_viaje_centro_costo, ix_viaje_cuenta_corriente_id, ix_viaje_empleado_id, ix_viaje_empresa_id, ix_viaje_estado, ix_viaje_fecha_expiracion_publicado, ix_viaje_qr_cobro_token, ix_viaje_solicitado_turno_id, viaje_solicitado_pkey.
+- **Accion:** declarar los 13 faltantes en ORM. Considerar alinear naming convention con DB (o viceversa).
+- **Fecha:** 2026-10-01
+
 **FIN DEL DOCUMENTO**
