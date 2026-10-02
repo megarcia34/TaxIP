@@ -78,7 +78,25 @@ class ViajeSolicitado(Base):
             "((metodo_pago IS NULL) OR ((metodo_pago)::text = ANY ((ARRAY['efectivo'::character varying, 'tarjeta_debito'::character varying, 'qr'::character varying, 'transferencia'::character varying])::text[])))",
             name="ck_viaje_solicitado_metodo_pago",
         ),
-        {"schema": "trip"},
+        Index("idx_viaje_aceptado", "aceptado_en", postgresql_where=text("(estado)::text = 'aceptado'::text")),
+        Index("idx_viaje_chofer", "chofer_id"),
+        Index("idx_viaje_comercio", "comercio_id"),
+        Index("idx_viaje_estado", "estado"),
+        Index("idx_viaje_fecha_programada", "fecha_programada", postgresql_where=text("(estado)::text = 'programada'::text")),
+        Index("idx_viaje_origen_gist", "origen", postgresql_using="gist"),
+        Index("idx_viaje_pasajero", "pasajero_id"),
+        Index("idx_viaje_reservas_pendientes", "fecha_programada", "reserva_procesada", postgresql_where=text("(estado)::text = 'programada'::text")),
+        Index("idx_viaje_solicitado_chofer_vehiculo", "chofer_vehiculo_id"),
+        Index("idx_viajes_llegado_en", "llegado_en", postgresql_where=text("llegado_en IS NOT NULL")),
+        Index("ix_viaje_centro_costo", "centro_costo"),
+        Index("ix_viaje_cuenta_corriente_id", "cuenta_corriente_id"),
+        Index("ix_viaje_empleado_id", "empleado_id"),
+        Index("ix_viaje_empresa_id", "empresa_id"),
+        Index("ix_viaje_estado", "estado"),
+        Index("ix_viaje_fecha_expiracion_publicado", "fecha_expiracion", postgresql_where=text("(estado)::text = 'publicado'::text")),
+        Index("ix_viaje_qr_cobro_token", "qr_cobro_token"),
+        Index("ix_viaje_solicitado_turno_id", "turno_id"),
+        {"schema": "trip"},    
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -123,16 +141,14 @@ class ViajeSolicitado(Base):
     origen: Mapped[Optional[Geography]] = mapped_column(
         Geography(geometry_type='POINT', srid=4326),
         nullable=True,
-        index=True
     )
     destino: Mapped[Optional[Geography]] = mapped_column(
         Geography(geometry_type='POINT', srid=4326),
         nullable=True,
-        index=True
     )
     direccion_origen: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     direccion_destino: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    estado: Mapped[str] = mapped_column(String(20), default='pendiente', nullable=False, index=True)
+    estado: Mapped[str] = mapped_column(String(20), default='pendiente', nullable=False)
 
     # Pricing
     precio_estimado: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
@@ -145,7 +161,7 @@ class ViajeSolicitado(Base):
 
     # Sharing/Follow Me feature
     url_seguimiento: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    codigo_compartido: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    codigo_compartido: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     # Timestamps
      # Timestamp de NEGOCIO. Ver docstring de clase. No confundir con created_at.
