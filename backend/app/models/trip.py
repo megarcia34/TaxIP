@@ -107,12 +107,12 @@ class ViajeSolicitado(Base):
     control_base_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("tenant.control_base.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
     pasajero_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
     chofer_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
@@ -148,12 +148,12 @@ class ViajeSolicitado(Base):
     )
     direccion_origen: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     direccion_destino: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    estado: Mapped[str] = mapped_column(String(30), default='pendiente', nullable=False)
+    estado: Mapped[str] = mapped_column(String(30), default='pendiente', nullable=True)
 
     # Pricing
     precio_estimado: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     precio_final: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
-    moneda: Mapped[str] = mapped_column(String(10), default="ARS", nullable=False)
+    moneda: Mapped[str] = mapped_column(String(10), default="ARS", nullable=True)
 
     # Time and distance
     tiempo_estimado_segundos: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -168,7 +168,7 @@ class ViajeSolicitado(Base):
     solicitado_en: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now,
-        nullable=False,
+        nullable=True,
         comment="Fecha y hora en que se solicito el viaje (snapshot del momento de la solicitud)"
     )
     aceptado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -180,18 +180,18 @@ class ViajeSolicitado(Base):
 
     # Reservas anticipadas
     fecha_programada: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    reserva_procesada: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    reserva_procesada: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
     procesado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Timestamp TECNICO de insercion. Ver docstring de clase.
     # Para logica de negocio usar solicitado_en.
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
     # Timestamp de ultima actualizacion. Ver docstring de clase.
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now,
         onupdate=datetime.now,
-        nullable=False,
+        nullable=True,
         comment="Fecha y hora de la última actualización del viaje"
     )
 
@@ -389,13 +389,13 @@ class HistorialEstadoViaje(Base):
     viaje_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("trip.viaje_solicitado.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
-    estado: Mapped[str] = mapped_column(String(30), nullable=False)
+    estado: Mapped[str] = mapped_column(String(30), nullable=True)
     latitud: Mapped[Optional[float]] = mapped_column(Numeric(10, 8), nullable=True)
     longitud: Mapped[Optional[float]] = mapped_column(Numeric(11, 8), nullable=True)
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     viaje: Mapped["ViajeSolicitado"] = relationship(back_populates="historial_estados")
 
@@ -413,20 +413,20 @@ class Panico(Base):
     viaje_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("trip.viaje_solicitado.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
     ubicacion: Mapped[Optional[Geography]] = mapped_column(
         Geography(geometry_type='POINT', srid=4326),
         nullable=True
     )
-    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=True)
     resuelto_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     viaje: Mapped["ViajeSolicitado"] = relationship(back_populates="alertas_panico")
     usuario: Mapped["Usuario"] = relationship(lazy="selectin")
@@ -460,7 +460,7 @@ class Calificacion(Base):
     )
     puntaje: Mapped[int] = mapped_column(Integer, nullable=False)
     comentario: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     viaje: Mapped["ViajeSolicitado"] = relationship(back_populates="calificaciones")
     calificador: Mapped["Usuario"] = relationship(
@@ -499,9 +499,9 @@ class ObjetoOlvidado(Base):
         nullable=False
     )
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
-    estado: Mapped[str] = mapped_column(String(20), default='reportado', nullable=False)
+    estado: Mapped[str] = mapped_column(String(20), default='reportado', nullable=True)
     foto_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     viaje: Mapped["ViajeSolicitado"] = relationship(back_populates="objetos_olvidados")
     pasajero: Mapped["Usuario"] = relationship(foreign_keys=[pasajero_id])
@@ -547,27 +547,27 @@ class TipoVehiculo(Base):
         doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha con metros_por_ficha=0"
     )
     
-    capacidad_pasajeros: Mapped[int] = mapped_column(Integer, default=4, nullable=False)
-    capacidad_equipaje: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    capacidad_pasajeros: Mapped[int] = mapped_column(Integer, default=4, nullable=True)
+    capacidad_equipaje: Mapped[int] = mapped_column(Integer, default=2, nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
     
     precio_por_ficha: Mapped[float] = mapped_column(
         Numeric, 
         default=0,
-        nullable=False,
+        nullable=True,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha"
     )
     distancia_por_ficha: Mapped[float] = mapped_column(
         Numeric, 
         default=100,
-        nullable=False,
+        nullable=True,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.metros_por_ficha"
     )
     precio_por_minuto_espera: Mapped[float] = mapped_column(
         Numeric, 
         default=0,
-        nullable=False,
+        nullable=True,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.seg_por_ficha_espera"
     )
 
