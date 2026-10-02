@@ -148,7 +148,7 @@ class ViajeSolicitado(Base):
     )
     direccion_origen: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     direccion_destino: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    estado: Mapped[str] = mapped_column(String(20), default='pendiente', nullable=False)
+    estado: Mapped[str] = mapped_column(String(30), default='pendiente', nullable=False)
 
     # Pricing
     precio_estimado: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
@@ -391,7 +391,7 @@ class HistorialEstadoViaje(Base):
         ForeignKey("trip.viaje_solicitado.id", ondelete="CASCADE"),
         nullable=False
     )
-    estado: Mapped[str] = mapped_column(String(20), nullable=False)
+    estado: Mapped[str] = mapped_column(String(30), nullable=False)
     latitud: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 8), nullable=True)
     longitud: Mapped[Optional[float]] = mapped_column(DECIMAL(11, 8), nullable=True)
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
