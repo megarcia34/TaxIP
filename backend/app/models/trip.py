@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, JSON, text,
+    String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, JSON, text,
     Numeric, func, Index, UniqueConstraint, CheckConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -151,8 +151,8 @@ class ViajeSolicitado(Base):
     estado: Mapped[str] = mapped_column(String(30), default='pendiente', nullable=False)
 
     # Pricing
-    precio_estimado: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
-    precio_final: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), nullable=True)
+    precio_estimado: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    precio_final: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     moneda: Mapped[str] = mapped_column(String(10), default="ARS", nullable=False)
 
     # Time and distance
@@ -392,8 +392,8 @@ class HistorialEstadoViaje(Base):
         nullable=False
     )
     estado: Mapped[str] = mapped_column(String(30), nullable=False)
-    latitud: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 8), nullable=True)
-    longitud: Mapped[Optional[float]] = mapped_column(DECIMAL(11, 8), nullable=True)
+    latitud: Mapped[Optional[float]] = mapped_column(Numeric(10, 8), nullable=True)
+    longitud: Mapped[Optional[float]] = mapped_column(Numeric(11, 8), nullable=True)
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
 
@@ -529,19 +529,19 @@ class TipoVehiculo(Base):
     # Los precios reales viven en payment.configuracion_tarifa.
     # Estos campos se mantienen en 0 por compatibilidad y no deben usarse en el motor unificado.
     tarifa_base: Mapped[float] = mapped_column(
-        DECIMAL(10, 2), 
+        Numeric(10, 2), 
         nullable=False, 
         default=0,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.tarifa_base"
     )
     tarifa_por_km: Mapped[float] = mapped_column(
-        DECIMAL(10, 2), 
+        Numeric(10, 2), 
         nullable=False, 
         default=0,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha con metros_por_ficha=1000"
     )
     tarifa_por_minuto: Mapped[float] = mapped_column(
-        DECIMAL(10, 2), 
+        Numeric(10, 2), 
         nullable=False, 
         default=0,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha con metros_por_ficha=0"
@@ -553,19 +553,19 @@ class TipoVehiculo(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
     
     precio_por_ficha: Mapped[float] = mapped_column(
-        DECIMAL(10, 2), 
+        Numeric(10, 2), 
         default=0,
         nullable=False,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha"
     )
     distancia_por_ficha: Mapped[float] = mapped_column(
-        DECIMAL(10, 2), 
+        Numeric(10, 2), 
         default=100,
         nullable=False,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.metros_por_ficha"
     )
     precio_por_minuto_espera: Mapped[float] = mapped_column(
-        DECIMAL(10, 2), 
+        Numeric(10, 2), 
         default=0,
         nullable=False,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.seg_por_ficha_espera"
@@ -610,11 +610,11 @@ class Reserva(Base):
     pasajero_nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     pasajero_telefono: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     direccion_origen: Mapped[str] = mapped_column(Text, nullable=False)
-    latitud_origen: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 8), nullable=True)
-    longitud_origen: Mapped[Optional[float]] = mapped_column(DECIMAL(11, 8), nullable=True)
+    latitud_origen: Mapped[Optional[float]] = mapped_column(Numeric(10, 8), nullable=True)
+    longitud_origen: Mapped[Optional[float]] = mapped_column(Numeric(11, 8), nullable=True)
     direccion_destino: Mapped[str] = mapped_column(Text, nullable=False)
-    latitud_destino: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 8), nullable=True)
-    longitud_destino: Mapped[Optional[float]] = mapped_column(DECIMAL(11, 8), nullable=True)
+    latitud_destino: Mapped[Optional[float]] = mapped_column(Numeric(10, 8), nullable=True)
+    longitud_destino: Mapped[Optional[float]] = mapped_column(Numeric(11, 8), nullable=True)
     paradas_intermedias: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, server_default=text("'[]'::jsonb"), comment="JSONB array con las paradas intermedias")
     tipo_vehiculo: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, server_default="standard")
     nota_conductor: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -626,10 +626,10 @@ class Reserva(Base):
     )
     es_programado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     fecha_programada: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    distancia_estimada_km: Mapped[Optional[float]] = mapped_column(DECIMAL(8, 2), nullable=True)
+    distancia_estimada_km: Mapped[Optional[float]] = mapped_column(Numeric(8, 2), nullable=True)
     tiempo_estimado_minutos: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    precio_estimado: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), nullable=True)
-    precio_final: Mapped[Optional[float]] = mapped_column(DECIMAL(10, 2), nullable=True)
+    precio_estimado: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    precio_final: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
     metodo_pago: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, server_default="vehiculo")
     cantidad_pasajeros: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     cantidad_equipaje: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
