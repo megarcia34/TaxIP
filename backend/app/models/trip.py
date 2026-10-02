@@ -553,19 +553,19 @@ class TipoVehiculo(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
     
     precio_por_ficha: Mapped[float] = mapped_column(
-        Numeric(10, 2), 
+        Numeric, 
         default=0,
         nullable=False,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha"
     )
     distancia_por_ficha: Mapped[float] = mapped_column(
-        Numeric(10, 2), 
+        Numeric, 
         default=100,
         nullable=False,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.metros_por_ficha"
     )
     precio_por_minuto_espera: Mapped[float] = mapped_column(
-        Numeric(10, 2), 
+        Numeric, 
         default=0,
         nullable=False,
         doc="DEPRECATED - Usar payment.configuracion_tarifa.seg_por_ficha_espera"
