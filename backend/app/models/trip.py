@@ -189,6 +189,103 @@ class ViajeSolicitado(Base):
         String(100),
         nullable=True,
     )
+    cuenta_corriente_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+    )
+    empleado_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+    )
+    es_anonimo: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+    )
+    es_programado: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+    )
+    estado_cobro: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    fecha_cobro: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    fecha_expiracion: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    fecha_publicacion: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    intentos_broadcast: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    llegado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    lugar_subida: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    metodo_pago: Mapped[Optional[str]] = mapped_column(
+        String(30),
+        nullable=True,
+        comment="Medio de pago del pasajero. Valores canonicos: efectivo, tarjeta_debito, qr, transferencia. NULL permitido para viajes sin info. Billetera se agregara cuando se implemente la wallet TaxIP. Deuda B7.",
+    )
+    movimiento_cc_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+    )
+    origen_tipo: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    paradas_intermedias: Mapped[Optional[dict]] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
+    pasajero_telefono: Mapped[Optional[str]] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    qr_cobro_expira: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    qr_cobro_token: Mapped[Optional[str]] = mapped_column(
+        String(120),
+        nullable=True,
+    )
+    radio_broadcast_metros: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    requiere_baul_grande: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+    )
+    responsable_cobro: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    subestado_despacho: Mapped[Optional[str]] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+    tipo_vehiculo_solicitado: Mapped[Optional[str]] = mapped_column(
+        String(50),
+        nullable=True,
+    )
+    turno_empleado_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+    )
 
     # Relationships
     control_base: Mapped["ControlBase"] = relationship("ControlBase", lazy="selectin")
