@@ -99,10 +99,20 @@ Cada entrada debe incluir:
 ### D-004: trip.reserva
 
 - **Item:** trip.reserva
-- **Clasificacion:** orm_sobra - Tier 4 (muerte)
-- **Decision:** borrar el modelo Reserva del ORM
-- **Justificacion:** la tabla no existe en DB. A1 de la deuda confirma que es modelo huerfano. El modulo corporativo no la usa.
-- **Fecha:** 2026-09-30
+- **Clasificacion:** orm_sobra - Tier 4 (muerte) -> RECLASIFICADO
+- **Decision original:** borrar el modelo Reserva del ORM.
+- **Decision actualizada (2026-10-02):** NO borrar el modelo. Postergar a
+  Fase 4d. El modulo de reservas corporativas esta previsto para uso
+  posterior. Ver deuda `orm.reserva_modulo_activo`.
+- **Justificacion original:** la tabla no existe en DB. A1 de la deuda
+  confirma que es modelo huerfano. El modulo corporativo no la usa.
+- **Justificacion actualizada:** verificado en Fase 4a (Ronda 6) que el
+  modulo SI esta referenciado activamente en 6 lugares (trip_service.py
+  x2, reservas.py, operativo.py, main.py, reserva_schemas.py). Borrar
+  el modelo rompe el backend. Requiere decision funcional previa.
+- **Accion:** documentar en DEUDA_TECNICA_ACTUAL.md como
+  `orm.reserva_modulo_activo`. Resolver en Fase 4d o ronda especifica.
+- **Fecha:** 2026-09-30 (actualizado 2026-10-02)
 
 ### D-007: tenant.control_base.latitud/longitud
 
