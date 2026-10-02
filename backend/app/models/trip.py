@@ -5,7 +5,10 @@ Tablas: viaje_solicitado, calificacion, historial_estado_viaje, objeto_olvidado,
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, JSON, text
+from sqlalchemy import (
+    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, JSON, text,
+    Numeric, func, Index, UniqueConstraint, CheckConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from geoalchemy2 import Geography
@@ -159,6 +162,33 @@ class ViajeSolicitado(Base):
     notas: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     facturado: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     finalizado_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # ============================================================
+    # COLUMNAS AGREGADAS EN FASE 4a (Ronda 6, reconciliacion ORM)
+    # Origen: DB tiene 66 columnas, ORM tenia 37. Faltaban 29.
+    # Items D-1195 a D-1223 del diff.
+    # ============================================================
+
+    calidad_minima_vehiculo: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+    cantidad_pasajeros: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    cantidad_valijas: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    cargado_a_cuenta: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+    )
+    centro_costo: Mapped[Optional[str]] = mapped_column(
+        String(100),
+        nullable=True,
+    )
 
     # Relationships
     control_base: Mapped["ControlBase"] = relationship("ControlBase", lazy="selectin")
