@@ -135,6 +135,39 @@ No deben considerarse parte del diff.
 ---
 
 ## NUEVOS — Ronda 6 (Fase 2, Sesion 1)
+## NUEVOS — Ronda 6 (Fase 2, Sesion 1)
+
+### orm.reserva_modulo_activo — NUEVA 2026-10-02
+
+La tabla `trip.reserva` NO existe en DB, pero el modulo de reservas
+corporativas la usa activamente desde multiples lugares:
+- `app/models/trip_service.py` (crear_reserva, procesar_reserva).
+- `app/services/trip_service.py` (duplicado exacto del anterior).
+- `app/routers/reservas.py` (CRUD completo: POST, GET, PATCH).
+- `app/routers/operativo.py` (queries SELECT FROM trip.reserva).
+- `app/main.py` (registra el router reservas.router en /api/reservas).
+- `app/schemas/reserva_schemas.py` (ReservaCreate, ReservaUpdate,
+  ReservaResponse, EstadoReservaEnum).
+
+Los endpoints /api/reservas estan rotos actualmente (la tabla no existe).
+Requiere decision funcional: crear la tabla en DB o deprecar el modulo.
+
+**Origen:** D-004 decia "borrar modelo Reserva (huerfano)". En Fase 4a se
+descubrio que el modulo esta previsto para uso posterior. NO es huerfano.
+
+**Tier 2.** Postergado a Fase 4d o ronda especifica. Requiere coordinar
+con frontend si el modulo esta en uso.
+
+**Ver:** docs/orm_sync/orm_decisiones.md (D-004).
+
+### orm.foto_viaje_out_of_scope — NUEVA 2026-10-02
+
+El item D-1125 (`foto_viaje.created_at` nullable desalineado) NO esta en
+`trip.py`, esta en `app/models/foto_viaje.py`. Fase 4a cubrio solo `trip.py`,
+asi que este item queda pendiente para Fase 4d.
+
+**Tier 2.** Resolver junto con el resto de `foto_viaje.py` en Fase 4d.
+
 
 ### metodo_pago.catalogo_sucio — NUEVA 2026-10-01
 
