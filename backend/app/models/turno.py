@@ -30,11 +30,11 @@ class TurnoChofer(Base):
     vehiculo_id = Column(PGUUID(as_uuid=True), ForeignKey("fleet.vehiculo.id"), nullable=False)
     
     # Estado del turno
-    estado = Column(String(20), nullable=False, default='ACTIVO')
+    estado = Column(String(30), nullable=False, default='ACTIVO')
     
     # Control de kilometraje y combustible
-    km_inicial = Column(Numeric(10,2), nullable=False)
-    km_final = Column(Numeric(10,2), nullable=True)
+    km_inicial = Column(Numeric, nullable=False)
+    km_final = Column(Numeric, nullable=True)
     combustible_inicial = Column(String(20), nullable=False)
     combustible_final = Column(String(20), nullable=True)
     

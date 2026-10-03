@@ -7,6 +7,7 @@ Tablas: liquidacion, liquidacion_detalle, liquidacion_estado_historial, liquidac
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, DateTime, ForeignKey, Numeric, Text, JSON, Integer, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -107,7 +108,7 @@ class LiquidacionDetalle(Base):
     fuente_id = Column(PGUUID(as_uuid=True), nullable=True)
     monto = Column(Numeric(12, 2), nullable=False)
     signo = Column(String(5), nullable=False)
-    meta_data = Column(JSON, nullable=True)
+    meta_data = Column(JSONB, nullable=True)
 
     created_at = Column(DateTime, default=datetime.now)
 

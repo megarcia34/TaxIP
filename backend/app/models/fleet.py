@@ -181,8 +181,8 @@ class ChoferVehiculo(Base):
         ForeignKey("tenant.control_base.id", ondelete="CASCADE"),
         nullable=False
     )
-    latitud: Mapped[float] = mapped_column(DECIMAL(10, 8), nullable=True)
-    longitud: Mapped[float] = mapped_column(DECIMAL(11, 8), nullable=True)
+    latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=True)
+    longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=True)
     ubicacion: Mapped[Geography] = mapped_column(
         Geography(geometry_type='POINT', srid=4326),
         nullable=True,
@@ -191,7 +191,7 @@ class ChoferVehiculo(Base):
     estado_laboral: Mapped[str] = mapped_column(String(20), default='libre')
     estado_panico: Mapped[bool] = mapped_column(Boolean, default=False)
     ultima_conexion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    calificacion_promedio: Mapped[float] = mapped_column(DECIMAL(3, 2), default=5.0)
+    calificacion_promedio: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)
     total_calificaciones: Mapped[int] = mapped_column(Integer, default=0)
     estado_aprobacion: Mapped[str] = mapped_column(
         String(20), nullable=True, server_default='pendiente'
@@ -323,7 +323,7 @@ class GastoVehiculo(Base):
         nullable=True
     )
     subcategoria: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    km_registro: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    km_registro: Mapped[Optional[float]] = mapped_column(Numeric, nullable=True)
     tipo_gasto: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     
     monto: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
@@ -399,7 +399,7 @@ class PropietarioVehiculo(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     propietario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("auth.usuario.id", ondelete="CASCADE"), nullable=False)
     vehiculo_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"), nullable=False)
-    porcentaje_participacion: Mapped[float] = mapped_column(DECIMAL(5,2), default=100)
+    porcentaje_participacion: Mapped[float] = mapped_column(Numeric(5,2), default=100)
     fecha_inicio: Mapped[datetime] = mapped_column(Date, default=datetime.now)
     fecha_fin: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -446,8 +446,8 @@ class ContratoVehiculo(Base):
     permite_extension: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     hora_fin_extension: Mapped[Optional[datetime.time]] = mapped_column(Time, nullable=True)
     
-    porcentaje_chofer: Mapped[Optional[float]] = mapped_column(DECIMAL(5,2), nullable=True)
-    monto_diario: Mapped[Optional[float]] = mapped_column(DECIMAL(10,2), nullable=True)
+    porcentaje_chofer: Mapped[Optional[float]] = mapped_column(Numeric(5,2), nullable=True)
+    monto_diario: Mapped[Optional[float]] = mapped_column(Numeric(10,2), nullable=True)
     
     estado_contrato: Mapped[str] = mapped_column(String(30), default='PENDIENTE_CONFIGURACION')
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
@@ -455,9 +455,9 @@ class ContratoVehiculo(Base):
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
-    canon_diario: Mapped[Optional[float]] = mapped_column(DECIMAL(10,2), nullable=True)
-    km_incluidos_dia: Mapped[Optional[float]] = mapped_column(DECIMAL(10,2), nullable=True)
-    valor_km_excedente: Mapped[Optional[float]] = mapped_column(DECIMAL(10,2), nullable=True)
+    canon_diario: Mapped[Optional[float]] = mapped_column(Numeric(10,2), nullable=True)
+    km_incluidos_dia: Mapped[Optional[float]] = mapped_column(Numeric(10,2), nullable=True)
+    valor_km_excedente: Mapped[Optional[float]] = mapped_column(Numeric(10,2), nullable=True)
     modalidad_computo: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default='DIARIO')
     tratamiento_dia_no_trabajado: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, default='POR_DISPONIBILIDAD')
     dias_contractuales: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
@@ -496,7 +496,7 @@ class DocumentoVehiculo(Base):
         nullable=False
     )
     tipo_documento: Mapped[str] = mapped_column(String(50), nullable=False)
-    numero: Mapped[str] = mapped_column(String(50), nullable=False)
+    numero: Mapped[str] = mapped_column(String(100), nullable=False)
     fecha_emision: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     fecha_vencimiento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -610,7 +610,7 @@ class NeumaticoHistorialPosicion(Base):
     neumatico_vehiculo_id = Column(UUID(as_uuid=True), ForeignKey("fleet.neumatico_vehiculo.id"), nullable=False)
     vehiculo_id = Column(UUID(as_uuid=True), ForeignKey("fleet.vehiculo.id"), nullable=False)
     control_base_id = Column(UUID(as_uuid=True), ForeignKey("tenant.control_base.id"), nullable=False)
-    eje_posicion = Column(String(3), nullable=False)
+    eje_posicion = Column(String(5), nullable=False)
     km_montaje = Column(Integer, nullable=False)
     km_desmontaje = Column(Integer)
     fecha_montaje = Column(DateTime(timezone=True), nullable=False, default=now)
@@ -663,8 +663,8 @@ class NeumaticoOperacionDetalle(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     operacion_id = Column(UUID(as_uuid=True), ForeignKey("fleet.neumatico_operacion.id"), nullable=False)
     neumatico_vehiculo_id = Column(UUID(as_uuid=True), ForeignKey("fleet.neumatico_vehiculo.id"), nullable=False)
-    posicion_antes = Column(String(3))
-    posicion_despues = Column(String(3))
+    posicion_antes = Column(String(5))
+    posicion_despues = Column(String(5))
     km_neumatico_en_operacion = Column(Integer)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=now)
@@ -975,7 +975,7 @@ class IngresoTurno(Base):
         default="app",
         comment="app | taximetro | manual | corporativo"
     )
-    monto: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False)
+    monto: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     moneda: Mapped[str] = mapped_column(String(10), default="ARS", nullable=False)
     fecha_hora: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
     declarado_por: Mapped[Optional[uuid.UUID]] = mapped_column(

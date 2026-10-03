@@ -33,8 +33,8 @@ class GastoTurno(Base):
     
     # Campos existentes
     tipo_gasto = Column(String(30), nullable=False)  # Legacy
-    monto = Column(Numeric(10,2), nullable=False)
-    km_registro = Column(Numeric(10,2), nullable=True)
+    monto = Column(Numeric, nullable=False)
+    km_registro = Column(Numeric, nullable=True)
     url_comprobante = Column(String(500), nullable=True)
     
     created_at = Column(DateTime, default=datetime.now)
