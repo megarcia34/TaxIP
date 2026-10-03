@@ -5,7 +5,7 @@ Modelo de Turno/Jornada Laboral del Chofer
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Numeric, Text, CheckConstraint, Time, Integer
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Numeric, Text, Time, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
@@ -15,11 +15,7 @@ from app.database import Base
 class TurnoChofer(Base):
     __tablename__ = "turno_chofer"
     __table_args__ = (
-        CheckConstraint(
-            "EXTRACT(EPOCH FROM (fin_turno - inicio_turno))/3600 <= 24",
-            name="check_horas_turno"
-        ),
-        {"schema": "fleet"}
+        {"schema": "fleet"},
     )
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
