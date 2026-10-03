@@ -234,6 +234,16 @@ class PagoCorporativo(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
 
+    # ============================================================
+    # COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 1 columna faltante (D-0280). Con FK a corporate.movimiento_cuenta.
+    # ============================================================
+    movimiento_cc_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("corporate.movimiento_cuenta.id"),
+        nullable=True,
+    )
+
     # Relationships
     empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
     factura: Mapped["FacturaCorporativa"] = relationship("FacturaCorporativa", back_populates="pagos", lazy="selectin")
