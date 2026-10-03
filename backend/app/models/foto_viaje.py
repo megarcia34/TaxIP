@@ -36,4 +36,4 @@ class FotoViaje(Base):
     url: Mapped[str] = mapped_column(Text, nullable=False)
     thumbnail_url: Mapped[str] = mapped_column(Text, nullable=True)
     metadata_json: Mapped[str] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
