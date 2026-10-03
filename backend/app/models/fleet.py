@@ -10,7 +10,7 @@ from datetime import datetime, date
 from typing import Optional, List
 from sqlalchemy import (
     Column, String, Boolean, DateTime, ForeignKey, Integer, DECIMAL, 
-    Numeric, Text, Date, Index, text, UniqueConstraint, Time
+    Numeric, Text, Date, Index, text, UniqueConstraint, Time, func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -51,15 +51,62 @@ class Vehiculo(Base):
     equipamiento: Mapped[dict] = mapped_column(
         JSONB, nullable=False, server_default='[]'
     )
-    qr_uuid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
-    qr_activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    qr_uuid: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        default=uuid.uuid4,
+        unique=True,
+        comment="UUID único para generar QR fijo del vehículo"
+    )
+    qr_activo: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        comment="Permite desactivar QR sin eliminar vehículo"
+    )
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.now,
+        comment="Fecha y hora de creación del registro del vehículo"
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now,
-        onupdate=datetime.now
+        onupdate=datetime.now,
+        comment="Fecha y hora de la última actualización del registro del vehículo"
     )
+
+    # ============================================================
+    # COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 5 columnas de estado de neumaticos (D-0804 a D-0808).
+    # ============================================================
+    desgaste_manual: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        server_default="0",
+        comment="% ingresado por propietario",
+    )
+    desgaste_neumaticos: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        server_default="0",
+    )
+    fecha_ultimo_cambio_neumaticos: Mapped[Optional[date]] = mapped_column(
+        Date,
+        nullable=True,
+        comment="fecha del último cambio",
+    )
+    km_ultimo_cambio_neumaticos: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="km al último cambio",
+    )
+    parches_neumaticos: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        server_default="0",
+        comment="cantidad de parches",
+    )
+
 
     control_base: Mapped["ControlBase"] = relationship(
         "ControlBase",
@@ -358,6 +405,16 @@ class PropietarioVehiculo(Base):
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
+    # ============================================================
+    # COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 1 columna faltante (D-0766).
+    # ============================================================
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+        server_default=func.now(),
+    )
+
     propietario = relationship(
         "Usuario",
         foreign_keys=[propietario_id]
@@ -452,6 +509,27 @@ class DocumentoVehiculo(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
 
+    # ============================================================
+    # COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 16 columnas faltantes (D-0404 a D-0419).
+    # ============================================================
+    chasis: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    dominio: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    marca: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    modelo: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    motor: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    seguro_cobertura: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    seguro_compania: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    seguro_fecha_emision: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    seguro_fecha_vencimiento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    seguro_poliza: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    seguro_suma_asegurada: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    seguro_tomador: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    seguro_vehiculo: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    tipo_vehiculo: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    uso: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    vtv_fecha_vencimiento: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
     # Relaciones
     vehiculo = relationship("Vehiculo", foreign_keys=[vehiculo_id], lazy="selectin")
 
@@ -481,8 +559,20 @@ class DocumentoPropietario(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
 
-    # Relaciones
-    propietario = relationship("Usuario", foreign_keys=[propietario_id], lazy="selectin")
+  # ============================================================
+    # COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 1 columna faltante (D-0766).
+    # ============================================================
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+        server_default=func.now(),
+    )
+
+    propietario = relationship(
+        "Usuario",
+        foreign_keys=[propietario_id]
+    )
 
 
 # ============================================================
