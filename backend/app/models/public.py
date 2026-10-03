@@ -5,7 +5,8 @@ Tablas: comercio, escaneo_qr
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, DECIMAL
+from typing import Optional
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -26,8 +27,8 @@ class Comercio(Base):
     nombre: Mapped[str] = mapped_column(String(200), nullable=False)
     rubro: Mapped[str] = mapped_column(String(50), nullable=True)
     direccion: Mapped[str] = mapped_column(Text, nullable=False)
-    latitud: Mapped[float] = mapped_column(DECIMAL(10, 8), nullable=False)
-    longitud: Mapped[float] = mapped_column(DECIMAL(11, 8), nullable=False)
+    latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=False)
+    longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=False)
     codigo_qr: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     email_contacto: Mapped[str] = mapped_column(String(200), nullable=True)
     telefono: Mapped[str] = mapped_column(String(50), nullable=True)
@@ -36,9 +37,9 @@ class Comercio(Base):
         ForeignKey("tenant.control_base.id"),
         nullable=False
     )
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
 
     # Relationships
     control_base: Mapped["ControlBase"] = relationship("ControlBase", lazy="selectin")
@@ -82,9 +83,10 @@ class EscaneoQr(Base):
         ForeignKey("auth.autorizacion_inicio.id", ondelete="SET NULL"),
         nullable=True
     )
-    tipo_qr: Mapped[str] = mapped_column(
+    tipo_qr: Mapped[Optional[str]] = mapped_column(
         String(20),
         default="OPERATIVO",
+        nullable=True,
         comment="OPERATIVO | COMERCIO | VEHICULO | OTRO"
     )
     resultado: Mapped[str] = mapped_column(
@@ -95,7 +97,7 @@ class EscaneoQr(Base):
     motivo: Mapped[str] = mapped_column(Text, nullable=True)
     user_agent: Mapped[str] = mapped_column(Text, nullable=True)
     ip_address: Mapped[str] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     # Relationships
     comercio: Mapped["Comercio"] = relationship("Comercio", back_populates="escaneos", lazy="selectin")
