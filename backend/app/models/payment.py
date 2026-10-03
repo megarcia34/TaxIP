@@ -5,7 +5,7 @@ Tablas: metodo_pago, billetera, transaccion, configuracion_tarifa, configuracion
 import uuid
 from datetime import datetime, time
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date, Time
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Numeric, Integer, Date, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
