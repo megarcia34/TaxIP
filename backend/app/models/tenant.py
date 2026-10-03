@@ -98,19 +98,19 @@ class Empresa(Base):
         nullable=False
     )
     nombre: Mapped[str] = mapped_column(String(200), nullable=False)
-    tipo: Mapped[str] = mapped_column(String(50), default="hotel")
+    tipo: Mapped[str] = mapped_column(String(50), default="hotel", nullable=True)
     email_facturacion: Mapped[str] = mapped_column(String(200), nullable=True)
     telefono: Mapped[str] = mapped_column(String(50), nullable=True)
     direccion: Mapped[str] = mapped_column(Text, nullable=True)
-    latitud: Mapped[float] = mapped_column(DECIMAL(10, 8), nullable=True)
-    longitud: Mapped[float] = mapped_column(DECIMAL(11, 8), nullable=True)
-    tarifa_preferencial: Mapped[float] = mapped_column(DECIMAL(5, 2), default=0.0)
-    condiciones_pago: Mapped[str] = mapped_column(String(20), default="mensual")
-    limite_credito: Mapped[float] = mapped_column(DECIMAL(12, 2), default=0.0)
+    latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=True)
+    longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=True)
+    tarifa_preferencial: Mapped[float] = mapped_column(Numeric(5, 2), default=0.0)
+    condiciones_pago: Mapped[str] = mapped_column(String(20), default="mensual", nullable=True)
+    limite_credito: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0, nullable=True)
     contacto_nombre: Mapped[str] = mapped_column(String(200), nullable=True)
     contacto_telefono: Mapped[str] = mapped_column(String(50), nullable=True)
     contacto_email: Mapped[str] = mapped_column(String(200), nullable=True)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=True)
     fecha_suspension: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     motivo_suspension: Mapped[str] = mapped_column(Text, nullable=True)
     suspendido_por: Mapped[uuid.UUID] = mapped_column(
@@ -118,13 +118,13 @@ class Empresa(Base):
         ForeignKey("auth.usuario.id"),
         nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
 
     # Relationships
     control_base: Mapped["ControlBase"] = relationship("ControlBase", lazy="selectin")
 
-    # ============================================================
+# ============================================================
 # MODELO FACTURA - FACTURACIÓN DE TENANT
 # ============================================================
 
