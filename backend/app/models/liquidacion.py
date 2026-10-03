@@ -1,6 +1,6 @@
 # app/models/liquidacion.py
 """
-Modelos de Liquidación — Motor Base (D3) + D7 (Aprobación y Pagos)
+Modelos de Liquidación - Motor Base (D3) + D7 (Aprobación y Pagos)
 Tablas: liquidacion, liquidacion_detalle, liquidacion_estado_historial, liquidacion_ajuste
 """
 
@@ -38,11 +38,11 @@ class Liquidacion(Base):
     periodo_desde = Column(DateTime, nullable=False)
     periodo_hasta = Column(DateTime, nullable=False)
 
-    monto_bruto = Column(Numeric(12, 2), default=0)
-    total_gastos = Column(Numeric(12, 2), default=0)
-    comision_chofer = Column(Numeric(12, 2), default=0)
-    canon = Column(Numeric(12, 2), default=0)
-    
+    monto_bruto = Column(Numeric(12, 2), default=0, nullable=False)
+    total_gastos = Column(Numeric(12, 2), default=0, nullable=False)
+    comision_chofer = Column(Numeric(12, 2), default=0, nullable=False)
+    canon = Column(Numeric(12, 2), default=0, nullable=False)
+
     # ============================================
     # NUEVOS CAMPOS para ALQUILER
     # ============================================
@@ -50,16 +50,16 @@ class Liquidacion(Base):
     cargo_km_excedentes = Column(Numeric(12, 2), default=0, nullable=False)
     saldo_chofer = Column(Numeric(12, 2), default=0, nullable=False)
     saldo_propietario = Column(Numeric(12, 2), default=0, nullable=False)
-    
-    total_chofer = Column(Numeric(12, 2), default=0)
-    total_propietario = Column(Numeric(12, 2), default=0)
 
-    estado = Column(String(20), default='BORRADOR')
-    version = Column(Integer, default=1)
-    calculada_en = Column(DateTime, default=datetime.now)
+    total_chofer = Column(Numeric(12, 2), default=0, nullable=False)
+    total_propietario = Column(Numeric(12, 2), default=0, nullable=False)
 
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    estado = Column(String(20), default='BORRADOR', nullable=False)
+    version = Column(Integer, default=1, nullable=False)
+    calculada_en = Column(DateTime, default=datetime.now, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
 
     # ============================================
     # CAMPOS PARA D7 - APROBACIÓN Y PAGOS
@@ -80,7 +80,7 @@ class Liquidacion(Base):
     vehiculo = relationship("Vehiculo", lazy="selectin")
     chofer = relationship("Usuario", foreign_keys=[chofer_id], lazy="selectin")
     propietario = relationship("Usuario", foreign_keys=[propietario_id], lazy="selectin")
-    
+
     # D7 - Relaciones para aprobación y pagos
     usuario_aprobador = relationship("Usuario", foreign_keys=[aprobada_por], lazy="selectin")
     usuario_rechazador = relationship("Usuario", foreign_keys=[rechazada_por], lazy="selectin")
@@ -110,7 +110,7 @@ class LiquidacionDetalle(Base):
     signo = Column(String(5), nullable=False)
     meta_data = Column(JSONB, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
 
     liquidacion = relationship("Liquidacion", lazy="selectin")
 
@@ -131,7 +131,7 @@ class LiquidacionEstadoHistorial(Base):
     cambiado_por = Column(PGUUID(as_uuid=True), ForeignKey("auth.usuario.id", ondelete="SET NULL"), nullable=True)
     motivo = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
 
     liquidacion = relationship("Liquidacion", lazy="selectin")
     usuario = relationship("Usuario", foreign_keys=[cambiado_por], lazy="selectin")
@@ -153,7 +153,7 @@ class LiquidacionAjuste(Base):
     motivo = Column(Text, nullable=True)
     usuario_id = Column(PGUUID(as_uuid=True), ForeignKey("auth.usuario.id", ondelete="SET NULL"), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
 
     liquidacion = relationship("Liquidacion", lazy="selectin")
     usuario = relationship("Usuario", foreign_keys=[usuario_id], lazy="selectin")
