@@ -41,6 +41,34 @@ class CuentaCorriente(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
 
+    # ============================================================
+    # COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 10 columnas faltantes (D-0197 a D-0206).
+    # ============================================================
+    dia_cierre: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    estado: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    fecha_apertura: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+        server_default=func.now(),
+    )
+    fecha_proximo_vencimiento: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    fecha_ultimo_pago: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    periodo_facturacion: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    propietario_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    responsable_cobro: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    titular_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    titular_tipo: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
+    
+    
+
     # Relationships
     empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
     movimientos: Mapped[list["MovimientoCuenta"]] = relationship(
