@@ -9,7 +9,7 @@ from typing import Optional
 from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, Numeric, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, INET, JSONB
-from geoalchemy2 import Geography
+
 from app.database import Base
 
 
@@ -38,11 +38,6 @@ class LogGps(Base):
     )
     latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=False)
     longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=False)
-    ubicacion: Mapped[Geography] = mapped_column(
-        Geography(geometry_type='POINT', srid=4326),
-        nullable=True
-    )
-    velocidad_kmh: Mapped[float] = mapped_column(Numeric(6, 2), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
 
