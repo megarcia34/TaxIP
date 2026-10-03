@@ -158,6 +158,15 @@ class FacturaCorporativa(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
 
+    # ============================================================
+    # COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 4 columnas faltantes (D-0226 a D-0229).
+    # ============================================================
+    saldo_anterior: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    saldo_final: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    total_cargos: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    total_pagos: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+
     # Relationships
     empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
     pagos: Mapped[list["PagoCorporativo"]] = relationship(
