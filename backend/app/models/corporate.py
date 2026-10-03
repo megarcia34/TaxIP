@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 from decimal import Decimal
 
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date, Enum as SQLEnum
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Enum as SQLEnum, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
@@ -33,9 +33,9 @@ class CuentaCorriente(Base):
         nullable=False,
         unique=True
     )
-    saldo_actual: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), default=0, nullable=False)
-    saldo_disponible: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), default=0, nullable=False)
-    limite_credito: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), default=0, nullable=False)
+    saldo_actual: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    saldo_disponible: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    limite_credito: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     moneda: Mapped[str] = mapped_column(String(10), default="ARS", nullable=False)
     ultima_actualizacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
@@ -80,9 +80,9 @@ class MovimientoCuenta(Base):
         comment="credito | debito | ajuste"
     )
     concepto: Mapped[str] = mapped_column(String(200), nullable=False)
-    monto: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), nullable=False)
-    saldo_anterior: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), nullable=False)
-    saldo_nuevo: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), nullable=False)
+    monto: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    saldo_anterior: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    saldo_nuevo: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     referencia: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     meta_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
@@ -115,10 +115,10 @@ class FacturaCorporativa(Base):
     periodo_hasta: Mapped[datetime] = mapped_column(Date, nullable=False)
     fecha_emision: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     fecha_vencimiento: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    subtotal: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), nullable=False)
-    descuento: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), default=0)
-    iva: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), default=0)
-    total: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), nullable=False)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    descuento: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    iva: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     estado: Mapped[str] = mapped_column(
         String(20),
         default="pendiente",
@@ -162,7 +162,7 @@ class PagoCorporativo(Base):
         ForeignKey("corporate.factura_corporativa.id", ondelete="SET NULL"),
         nullable=True
     )
-    monto: Mapped[Decimal] = mapped_column(DECIMAL(12, 2), nullable=False)
+    monto: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     metodo_pago: Mapped[str] = mapped_column(String(50), nullable=False)
     referencia: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     comprobante_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
