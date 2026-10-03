@@ -135,6 +135,61 @@ CLASIF_MANUALES = {
 
 
 # ---------------------------------------------------------------------------
+# Mapeo de archivo ORM por (schema, tabla)
+# ---------------------------------------------------------------------------
+#
+# Mapeo por (schema, tabla) -> archivo del ORM.
+# Tiene prioridad sobre el mapeo por schema. Necesario porque algunas tablas
+# del mismo schema viven en archivos separados (ej: fleet.turno_chofer esta
+# en turno.py, no en fleet.py).
+#
+# Si aparece una tabla nueva en un archivo separado, agregar la entrada aca.
+
+MAPA_TABLA_A_ARCHIVO = {
+    # --- schema fleet ---
+    ("fleet", "turno_chofer"): "app/models/turno.py",
+    ("fleet", "gasto_turno"): "app/models/gasto_turno.py",
+    ("fleet", "liquidacion"): "app/models/liquidacion.py",
+    ("fleet", "liquidacion_ajuste"): "app/models/liquidacion.py",
+    ("fleet", "liquidacion_detalle"): "app/models/liquidacion.py",
+    ("fleet", "liquidacion_estado_historial"): "app/models/liquidacion.py",
+    # --- schema trip ---
+    ("trip", "foto_viaje"): "app/models/foto_viaje.py",
+}
+
+# Mapeo por schema (fallback). Se usa cuando la tabla no esta en el mapa
+# por tabla. Asume que todas las tablas del schema viven en un solo archivo.
+MAPA_SCHEMA_A_ARCHIVO = {
+    "trip": "app/models/trip.py",
+    "fleet": "app/models/fleet.py",
+    "auth": "app/models/auth.py",
+    "tenant": "app/models/tenant.py",
+    "payment": "app/models/payment.py",
+    "public": "app/models/public.py",
+    "corporate": "app/models/corporate.py",
+    "audit": "app/models/audit.py",
+    "geo": "app/models/geo.py",
+    "notification": "app/models/notification.py",
+    "comunicacion": "app/models/comunicacion.py",
+    "rentabilidad": "app/models/rentabilidad.py",
+}
+
+
+def archivo_orm(schema, tabla):
+    """
+    Devuelve la ruta del archivo del ORM que contiene la clase mapeada a
+    la tabla indicada.
+
+    Prioriza el mapeo por (schema, tabla). Si no esta, cae al mapeo por
+    schema. Si tampoco, asume app/models/{schema}.py.
+    """
+    key = (schema, tabla)
+    if key in MAPA_TABLA_A_ARCHIVO:
+        return MAPA_TABLA_A_ARCHIVO[key]
+    return MAPA_SCHEMA_A_ARCHIVO.get(schema, f"app/models/{schema}.py")
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -191,24 +246,6 @@ def filtrar_items(items, args):
     if args.filter_clasif:
         out = [x for x in out if x.get("clasificacion") == args.filter_clasif]
     return out
-
-
-def archivo_orm(schema, tabla):
-    mapa = {
-        "trip": "app/models/trip.py",
-        "fleet": "app/models/fleet.py",
-        "auth": "app/models/auth.py",
-        "tenant": "app/models/tenant.py",
-        "payment": "app/models/payment.py",
-        "public": "app/models/public.py",
-        "corporate": "app/models/corporate.py",
-        "audit": "app/models/audit.py",
-        "geo": "app/models/geo.py",
-        "notification": "app/models/notification.py",
-        "comunicacion": "app/models/comunicacion.py",
-        "rentabilidad": "app/models/rentabilidad.py",
-    }
-    return mapa.get(schema, f"app/models/{schema}.py")
 
 
 def agrupar_por_archivo(items):
