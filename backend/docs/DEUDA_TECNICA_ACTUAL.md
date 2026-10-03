@@ -546,4 +546,52 @@ correctamente.
 
 **Estado:** CERRADO en Fase 4b Paso 2. Se cambio a `String(30)`.
 
+### datos.turno_chofer_km_final_outlier — NUEVA 2026-10-03
+
+`fleet.turno_chofer.km_final` tiene un valor maximo de 1.523.999,00 km,
+irreal para un taxi urbano. Probablemente sea un dato mal cargado
+(un monto en un campo de km) o un dato de prueba olvidado.
+
+**Impacto:** bajo. No rompe nada, pero distorsiona reportes de km.
+
+**Accion:** revisar registros con km_final > 500000 en ronda de limpieza.
+
+**Tier 3.**
+
+### orm.turno_chofer_estado_truncado — CERRADA 2026-10-03 (Fase 4b Paso 2)
+
+`fleet.turno_chofer.estado` tenia un valor de 22 caracteres
+('PENDIENTE_CONFIRMACION') en la DB. El ORM lo declaraba como
+`String(20)`, por lo que SQLAlchemy no podia escribir ese valor
+correctamente.
+
+**Estado:** CERRADO. Se cambio a `String(30)` en Ronda 7 Fase 4b Paso 2.
+
+### orm.snapshot_desactualizado — NUEVA 2026-10-03
+
+Durante Ronda 7 Fase 4b se detecto que el `orm_snapshot.json` puede
+quedar desactualizado si se editan archivos del ORM sin regenerarlo.
+El snapshot previo al Paso 2 reportaba ~9 cambios de tipo (DECIMAL ->
+Numeric) que ya estaban aplicados en el archivo real.
+
+**Impacto:** el diff puede reportar items ya resueltos.
+
+**Accion:** regenerar snapshots (introspect_orm.py + diff.py) al inicio
+de cada paso.
+
+**Tier 2.**
+
+### orm.diff_falsos_positivos_tipo_cambio — NUEVA 2026-10-03
+
+Cuando se cambia el tipo o nullable de una columna, `diff.py` puede
+reportarla como `columna_falta` en el próximo diff (porque no re-matchea
+la columna). Tambien puede reportar `constraint_sobra` para FKs que
+no matchean por nombre.
+
+**Impacto:** bajo. Genera falsos positivos al aplicar cambios.
+
+**Accion:** investigar `diff.py`. Bug conocido. Postergado.
+
+**Tier 2.**
+
 **FIN DEL DOCUMENTO**
