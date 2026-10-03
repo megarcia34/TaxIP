@@ -525,4 +525,25 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 
 ---
 
+### datos.turno_chofer_km_final_outlier — NUEVA 2026-10-03
+
+`fleet.turno_chofer.km_final` tiene un valor maximo de 1.523.999,00 km,
+irreal para un taxi urbano. Probablemente sea un dato mal cargado
+(un monto en un campo de km) o un dato de prueba olvidado.
+
+**Impacto:** bajo. No rompe nada, pero distorsiona reportes de km.
+
+**Accion:** revisar registros con km_final > 500000 en ronda de limpieza.
+
+**Tier 3.**
+
+### orm.turno_chofer_estado_truncado — NUEVA 2026-10-03 (CERRADA)
+
+`fleet.turno_chofer.estado` tiene un valor de 22 caracteres
+('PENDIENTE_CONFIRMACION') en la DB. El ORM lo declaraba como
+`String(20)`, por lo que SQLAlchemy no podia escribir ese valor
+correctamente.
+
+**Estado:** CERRADO en Fase 4b Paso 2. Se cambio a `String(30)`.
+
 **FIN DEL DOCUMENTO**
