@@ -44,16 +44,16 @@ class Billetera(Base):
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
         unique=True,
-        nullable=False,
-        index=True
+        nullable=False
     )
-    saldo: Mapped[float] = mapped_column(DECIMAL(12, 2), default=0)
-    moneda: Mapped[str] = mapped_column(String(10), default="ARS")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(
+    saldo: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), default=0, nullable=True)
+    moneda: Mapped[Optional[str]] = mapped_column(String(10), default="ARS", nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         default=datetime.now,
-        onupdate=datetime.now
+        onupdate=datetime.now,
+        nullable=True
     )
 
     # Relationships
