@@ -4,8 +4,9 @@ Tablas: control_base, configuracion_tenant, empresa
 """
 
 import uuid
+from typing import Optional
 from datetime import datetime
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, DECIMAL, Text, Integer, Date
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, DECIMAL, Numeric, Text, Integer, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
