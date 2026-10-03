@@ -5,6 +5,7 @@ Tablas: notificacion
 
 import uuid
 from datetime import datetime
+from typing import Optional
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -27,14 +28,13 @@ class Notificacion(Base):
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
+        nullable=False
     )
     titulo: Mapped[str] = mapped_column(String(255), nullable=True)
     mensaje: Mapped[str] = mapped_column(Text, nullable=False)
     tipo: Mapped[str] = mapped_column(String(50), nullable=False)
-    leida: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+    leida: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     # Relationships
     # NOTA: Sin back_populates para evitar ciclo de mapeo con Usuario
