@@ -115,6 +115,20 @@ class MovimientoCuenta(Base):
     meta_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
+    # ============================================================
+    # COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 6 columnas faltantes (D-0256 a D-0261).
+    # ============================================================
+    created_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    estado: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    fecha_vencimiento: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    metodo_pago: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    referencia_pago: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    tipo: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
     # Relationships
     cuenta: Mapped["CuentaCorriente"] = relationship("CuentaCorriente", back_populates="movimientos")
     viaje: Mapped["ViajeSolicitado"] = relationship("ViajeSolicitado", lazy="selectin")
