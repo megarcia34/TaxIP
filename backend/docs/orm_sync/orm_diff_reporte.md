@@ -1,12 +1,12 @@
 # Reporte de Diff ORM vs DB
 
-**Fecha:** 2026-10-03T20:50:43.167183+00:00
+**Fecha:** 2026-10-03T20:52:30.287850+00:00
 
 ## Resumen ejecutivo
 
-- **1040 diferencias** en total.
+- **1038 diferencias** en total.
 - **Tier 1**: 167 items.
-- **Tier 2**: 753 items.
+- **Tier 2**: 751 items.
 - **Tier 3**: 119 items.
 - **Tier 4**: 1 items.
 - **22 items requieren decision manual.**
@@ -20,7 +20,7 @@
 | constraint_nombre_desalineado | 124 |
 | nullable_desalineado | 93 |
 | constraint_desalineada | 72 |
-| tipo_desalineado | 52 |
+| tipo_desalineado | 50 |
 | comment_desalineado | 29 |
 | constraint_sobra | 25 |
 | tabla_falta | 10 |
@@ -40,9 +40,9 @@
 - `D-0414` — medio_pago
 - `D-0415` — transaccion_id
 - `D-0702` — snapshot_dia_contractual
-- `D-0969` — latitud
-- `D-0970` — longitud
-- `D-1006` — solicitado_en
+- `D-0967` — latitud
+- `D-0968` — longitud
+- `D-1004` — solicitado_en
 
 ### constraint_desalineada (10)
 
@@ -51,11 +51,11 @@
 - `D-0416` — fleet.ingreso_turno
 - `D-0703` — fleet.turno_chofer
 - `D-0728` — fleet.vehiculo
-- `D-0872` — payment.transaccion
-- `D-0913` — tenant.control_base
-- `D-0948` — trip.calificacion
-- `D-0971` — trip.historial_estado_viaje
-- `D-1007` — trip.viaje_solicitado
+- `D-0870` — payment.transaccion
+- `D-0911` — tenant.control_base
+- `D-0946` — trip.calificacion
+- `D-0969` — trip.historial_estado_viaje
+- `D-1005` — trip.viaje_solicitado
 
 ### constraint_falta (58)
 
@@ -84,37 +84,37 @@
 - `D-0705` — fleet.turno_chofer
 - `D-0706` — fleet.turno_chofer
 - `D-0729` — fleet.vehiculo
+- `D-0871` — payment.transaccion
+- `D-0872` — payment.transaccion
 - `D-0873` — payment.transaccion
-- `D-0874` — payment.transaccion
-- `D-0875` — payment.transaccion
-- `D-0914` — tenant.control_base
-- `D-0915` — tenant.control_base
+- `D-0912` — tenant.control_base
+- `D-0913` — tenant.control_base
+- `D-0947` — trip.calificacion
+- `D-0948` — trip.calificacion
 - `D-0949` — trip.calificacion
-- `D-0950` — trip.calificacion
-- `D-0951` — trip.calificacion
-- `D-0972` — trip.historial_estado_viaje
+- `D-0970` — trip.historial_estado_viaje
+- `D-1010` — trip.viaje_solicitado
+- `D-1011` — trip.viaje_solicitado
 - `D-1012` — trip.viaje_solicitado
 - `D-1013` — trip.viaje_solicitado
 - `D-1014` — trip.viaje_solicitado
 - `D-1015` — trip.viaje_solicitado
 - `D-1016` — trip.viaje_solicitado
 - `D-1017` — trip.viaje_solicitado
-- `D-1018` — trip.viaje_solicitado
-- `D-1019` — trip.viaje_solicitado
 
 ### constraint_sobra (11)
 
 - `D-0715` — fleet.turno_chofer
 - `D-0731` — fleet.vehiculo
-- `D-0952` — trip.calificacion
+- `D-0950` — trip.calificacion
+- `D-1028` — trip.viaje_solicitado
+- `D-1029` — trip.viaje_solicitado
 - `D-1030` — trip.viaje_solicitado
 - `D-1031` — trip.viaje_solicitado
 - `D-1032` — trip.viaje_solicitado
 - `D-1033` — trip.viaje_solicitado
 - `D-1034` — trip.viaje_solicitado
 - `D-1035` — trip.viaje_solicitado
-- `D-1036` — trip.viaje_solicitado
-- `D-1037` — trip.viaje_solicitado
 
 ### indice_falta (18)
 
@@ -130,24 +130,24 @@
 - `D-0740` — fleet.vehiculo
 - `D-0741` — fleet.vehiculo
 - `D-0742` — fleet.vehiculo
-- `D-0877` — payment.transaccion
-- `D-0918` — tenant.control_base
-- `D-0919` — tenant.control_base
-- `D-0959` — trip.calificacion
-- `D-0974` — trip.historial_estado_viaje
-- `D-1038` — trip.viaje_solicitado
+- `D-0875` — payment.transaccion
+- `D-0916` — tenant.control_base
+- `D-0917` — tenant.control_base
+- `D-0957` — trip.calificacion
+- `D-0972` — trip.historial_estado_viaje
+- `D-1036` — trip.viaje_solicitado
 
 ### indice_nombre_desalineado (3)
 
 - `D-0156` — auth.usuario
 - `D-0743` — fleet.vehiculo
-- `D-1040` — trip.viaje_solicitado
+- `D-1038` — trip.viaje_solicitado
 
 ### indice_sobra (3)
 
 - `D-0285` — fleet.chofer_vehiculo
-- `D-0878` — payment.transaccion
-- `D-1039` — trip.viaje_solicitado
+- `D-0876` — payment.transaccion
+- `D-1037` — trip.viaje_solicitado
 
 ### nullable_desalineado (22)
 
@@ -171,8 +171,8 @@
 - `D-0725` — qr_activo
 - `D-0726` — qr_uuid
 - `D-0727` — updated_at
-- `D-0868` — billetera_id
-- `D-0869` — created_at
+- `D-0866` — billetera_id
+- `D-0867` — created_at
 
 ### tabla_falta (2)
 
@@ -183,14 +183,14 @@
 
 - `D-0144` — password_hash
 - `D-0272` — ubicacion
-- `D-0870` — monto
-- `D-0871` — saldo_despues
-- `D-1004` — destino
-- `D-1005` — origen
+- `D-0868` — monto
+- `D-0869` — saldo_despues
+- `D-1002` — destino
+- `D-1003` — origen
 
 ---
 
-## Tier 2 — 753 items
+## Tier 2 — 751 items
 
 ### columna_falta (3)
 
@@ -249,7 +249,7 @@
 - `D-0759` — notification.notificacion
 - `D-0766` — payment.billetera
 - `D-0805` — payment.configuracion_tarifa
-- `D-0819` — payment.configuracion_tarifa_vehiculo
+- `D-0817` — payment.configuracion_tarifa_vehiculo
 - ... y 12 mas (ver JSON)
 
 ### constraint_falta (369)
@@ -331,10 +331,10 @@
 - `D-0395` — fleet.gasto_turno
 - `D-0519` — fleet.marca
 - `D-0769` — payment.billetera
-- `D-0844` — payment.metodo_pago
-- `D-0882` — public.comercio
-- `D-0910` — tenant.configuracion_tenant
-- `D-0931` — tenant.factura
+- `D-0842` — payment.metodo_pago
+- `D-0880` — public.comercio
+- `D-0908` — tenant.configuracion_tenant
+- `D-0929` — tenant.factura
 
 ### indice_falta (175)
 
@@ -407,7 +407,7 @@
 
 - `D-0107` — auth.reset_token
 - `D-0816` — payment.configuracion_tarifa
-- `D-0993` — trip.panico
+- `D-0991` — trip.panico
 
 ### nullable_desalineado (71)
 
@@ -479,7 +479,7 @@
 - `D-0011` — payment.qr_cobro
 - `D-0012` — trip.broadcast_log
 
-### tipo_desalineado (46)
+### tipo_desalineado (44)
 
 - `D-0071` — latitud
 - `D-0072` — longitud
@@ -520,13 +520,11 @@
 - `D-0799` — tarifa_base
 - `D-0801` — velocidad_referencia_kmh
 - `D-0803` — velocidad_umbral_kmh
-- `D-0817` — factor_precio
-- `D-0818` — tipo_vehiculo_id
-- `D-0832` — descuento
-- `D-0835` — total
-- `D-0836` — total_final
-- `D-0851` — monto
-- `D-0986` — ubicacion
+- `D-0830` — descuento
+- `D-0833` — total
+- `D-0834` — total_final
+- `D-0849` — monto
+- `D-0984` — ubicacion
 
 ---
 
@@ -549,13 +547,13 @@
 - `D-0787` — precio_por_ficha
 - `D-0791` — precio_por_minuto_espera
 - `D-0793` — recargo_domingo
-- `D-0892` — resultado
-- `D-0893` — tipo_qr
-- `D-0985` — resuelto_en
-- `D-0987` — usuario_id
-- `D-0994` — distancia_por_ficha
-- `D-0995` — precio_por_ficha
-- `D-0996` — precio_por_minuto_espera
+- `D-0890` — resultado
+- `D-0891` — tipo_qr
+- `D-0983` — resuelto_en
+- `D-0985` — usuario_id
+- `D-0992` — distancia_por_ficha
+- `D-0993` — precio_por_ficha
+- `D-0994` — precio_por_minuto_espera
 
 ### constraint_nombre_desalineado (97)
 

@@ -290,12 +290,12 @@ class ConfiguracionTarifaVehiculo(Base):
         nullable=False
     )
     tipo_vehiculo_id: Mapped[str] = mapped_column(
-        String(50),
+        String,
         ForeignKey("trip.tipo_vehiculo.id", ondelete="CASCADE"),
         nullable=False
     )
     factor_precio: Mapped[float] = mapped_column(
-        DECIMAL(5, 2),
+        Numeric,
         default=1.0,
         nullable=False,
         doc="Multiplicador directo del precio (1.0 = sin cambio, 1.30 = +30%)"
