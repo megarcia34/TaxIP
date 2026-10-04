@@ -618,11 +618,11 @@ class NeumaticoHistorialPosicion(Base):
     eje_posicion = Column(String(5), nullable=False)
     km_montaje = Column(Integer, nullable=False)
     km_desmontaje = Column(Integer)
-    fecha_montaje = Column(DateTime(timezone=True), nullable=False, default=now)
-    fecha_desmontaje = Column(DateTime(timezone=True))
+    fecha_montaje = Column(DateTime(timezone=False), nullable=False, server_default=func.now())
+    fecha_desmontaje = Column(DateTime(timezone=False))
     operacion_id = Column(UUID(as_uuid=True), ForeignKey("fleet.neumatico_operacion.id"))
     activo = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=now)
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
 
 
 class NeumaticoMedicion(Base):
