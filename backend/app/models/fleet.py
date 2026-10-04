@@ -333,11 +333,11 @@ class GastoVehiculo(Base):
     tipo_gasto: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     
     monto: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    moneda: Mapped[str] = mapped_column(String(10), server_default="ARS")
+    moneda: Mapped[Optional[str]] = mapped_column(String(10), server_default="ARS", nullable=True)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     comprobante_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     fecha_gasto: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=text("now()"))
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, server_default=text("now()"), nullable=True)
 
     vehiculo = relationship(
         "Vehiculo",
@@ -365,10 +365,10 @@ class MantenimientoVehiculo(Base):
         primary_key=True,
         default=uuid.uuid4
     )
-    vehiculo_id: Mapped[uuid.UUID] = mapped_column(
+    vehiculo_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
     propietario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -405,11 +405,11 @@ class PropietarioVehiculo(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     propietario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("auth.usuario.id", ondelete="CASCADE"), nullable=False)
     vehiculo_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"), nullable=False)
-    porcentaje_participacion: Mapped[float] = mapped_column(Numeric(5,2), default=100)
+    porcentaje_participacion: Mapped[Optional[float]] = mapped_column(Numeric(5,2), default=100, nullable=True)
     fecha_inicio: Mapped[datetime] = mapped_column(Date, default=datetime.now)
     fecha_fin: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     # ============================================================
     # COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
@@ -455,11 +455,11 @@ class ContratoVehiculo(Base):
     porcentaje_chofer: Mapped[Optional[float]] = mapped_column(Numeric(5,2), nullable=True)
     monto_diario: Mapped[Optional[float]] = mapped_column(Numeric(10,2), nullable=True)
     
-    estado_contrato: Mapped[str] = mapped_column(String(30), default='PENDIENTE_CONFIGURACION')
+    estado_contrato: Mapped[Optional[str]] = mapped_column(String(30), default='PENDIENTE_CONFIGURACION', nullable=True)
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     fecha_fin: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     canon_diario: Mapped[Optional[float]] = mapped_column(Numeric(10,2), nullable=True)
     km_incluidos_dia: Mapped[Optional[float]] = mapped_column(Numeric(10,2), nullable=True)
@@ -512,8 +512,8 @@ class DocumentoVehiculo(Base):
     activo: Mapped[bool] = mapped_column(Boolean, server_default="true")
     notificar_dias: Mapped[int] = mapped_column(Integer, server_default="30")
     
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
 
     # ============================================================
     # COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
@@ -741,14 +741,14 @@ class ContratoQr(Base):
     )
     token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     fecha_expiracion: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="SET NULL"),
         nullable=True
     )
-    usos: Mapped[int] = mapped_column(Integer, default=0)
+    usos: Mapped[Optional[int]] = mapped_column(Integer, default=0, nullable=True)
 
     # Relationships
     contrato: Mapped["ContratoVehiculo"] = relationship("ContratoVehiculo", lazy="selectin")
@@ -820,14 +820,14 @@ class FotoVehiculo(Base):
     url: Mapped[str] = mapped_column(Text, nullable=False)
     public_id: Mapped[str] = mapped_column(Text, nullable=False)
     descripcion: Mapped[str] = mapped_column(Text, nullable=True)
-    orden: Mapped[int] = mapped_column(Integer, default=0)
-    es_principal: Mapped[bool] = mapped_column(Boolean, default=False)
+    orden: Mapped[Optional[int]] = mapped_column(Integer, default=0, nullable=True)
+    es_principal: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
     subida_por: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="SET NULL"),
         nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     # Relationships
     vehiculo: Mapped["Vehiculo"] = relationship("Vehiculo", lazy="selectin")
@@ -874,16 +874,16 @@ class NotificacionVencimiento(Base):
     )
     dias_restantes: Mapped[int] = mapped_column(Integer, nullable=False)
     fecha_vencimiento: Mapped[datetime] = mapped_column(Date, nullable=False)
-    email_enviado: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_enviado: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
     email_enviado_en: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    sms_enviado: Mapped[bool] = mapped_column(Boolean, default=False)
+    sms_enviado: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
     sms_enviado_en: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     # Relationships
     propietario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
 
-    # ============================================================
+# ============================================================
 # MODELOS MARCA Y MODELO - CATÃLOGO DE VEHÃCULOS
 # ============================================================
 
