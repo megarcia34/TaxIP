@@ -253,6 +253,8 @@ class DireccionFrecuente(Base):
     latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=True)
     longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=True)
     direccion_texto: Mapped[str] = mapped_column(Text, nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     usuario: Mapped["Usuario"] = relationship(back_populates="direcciones_frecuentes")
