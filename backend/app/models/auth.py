@@ -6,6 +6,7 @@ Tablas: tipo_usuario, usuario, perfil_general, direccion_frecuente, taxista_favo
 
 import uuid
 from datetime import datetime
+from typing import Optional
 from sqlalchemy import (
     String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date
 )
@@ -54,14 +55,14 @@ class Usuario(Base):
         ForeignKey("tenant.control_base.id", ondelete="SET NULL"),
         nullable=True
     )
-    tipo_usuario_id: Mapped[uuid.UUID] = mapped_column(
+    tipo_usuario_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("auth.tipo_usuario.id"),
-        nullable=False
+        nullable=True
     )
     email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
     fecha_suspension: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     motivo_suspension: Mapped[str] = mapped_column(Text, nullable=True)
     suspendido_por: Mapped[uuid.UUID] = mapped_column(
@@ -69,11 +70,12 @@ class Usuario(Base):
         ForeignKey("auth.usuario.id", ondelete="SET NULL"),
         nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         default=datetime.now,
-        onupdate=datetime.now
+        onupdate=datetime.now,
+        nullable=True
     )
 
     # Relationships
@@ -197,11 +199,11 @@ class PerfilGeneral(Base):
         primary_key=True,
         default=uuid.uuid4
     )
-    usuario_id: Mapped[uuid.UUID] = mapped_column(
+    usuario_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
         unique=True,
-        nullable=False
+        nullable=True
     )
     nombre: Mapped[str] = mapped_column(String(100), nullable=True)
     apellido: Mapped[str] = mapped_column(String(100), nullable=True)
@@ -218,12 +220,13 @@ class PerfilGeneral(Base):
     barrio: Mapped[str] = mapped_column(String(100), nullable=True)
     codigo_postal: Mapped[str] = mapped_column(String(20), nullable=True)
     tipo_conductor: Mapped[str] = mapped_column(String(50), nullable=True)
-    agencia: Mapped[str] = mapped_column(String(100), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(
+    agencia: Mapped[str] = mapped_column(String(100), nullable=True)    
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         default=datetime.now,
-        onupdate=datetime.now
+        onupdate=datetime.now,
+        nullable=True
     )
 
     # Relationships
@@ -250,7 +253,7 @@ class DireccionFrecuente(Base):
     latitud: Mapped[float] = mapped_column(DECIMAL(10, 8), nullable=True)
     longitud: Mapped[float] = mapped_column(DECIMAL(11, 8), nullable=True)
     direccion_texto: Mapped[str] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     usuario: Mapped["Usuario"] = relationship(back_populates="direcciones_frecuentes")
 
@@ -275,7 +278,7 @@ class TaxistaFavorito(Base):
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
         nullable=False
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     pasajero: Mapped["Usuario"] = relationship(
         foreign_keys=[pasajero_id],
@@ -304,8 +307,8 @@ class ResetToken(Base):
     )
     token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     expiracion: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    usado: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    usado: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     usuario: Mapped["Usuario"] = relationship(back_populates="reset_tokens")
 
@@ -363,8 +366,8 @@ class RefreshToken(Base):
     )
     token: Mapped[str] = mapped_column(String(500), nullable=False)
     expiracion: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    usado: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    usado: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
 
@@ -389,9 +392,9 @@ class UsuarioEmpresa(Base):
         ForeignKey("auth.usuario.id"),
         nullable=False
     )
-    rol: Mapped[str] = mapped_column(String(20), default="recepcionista")
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    rol: Mapped[Optional[str]] = mapped_column(String(20), default="recepcionista", nullable=True)
+    activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
     usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
@@ -431,7 +434,7 @@ class AutorizacionInicio(Base):
     tipo_contrato: Mapped[str] = mapped_column(String(20), nullable=True)
     turno_contractual: Mapped[str] = mapped_column(String(20), nullable=True)
     dia_contractual: Mapped[str] = mapped_column(String(20), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     used_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     qr_referencia: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=True)
@@ -479,10 +482,10 @@ class TurnoEmpleado(Base):
         default="ACTIVO",
         comment="ACTIVO (puede operar) o CERRADO (no puede operar)"
     )
-    viajes_gestionados: Mapped[int] = mapped_column(Integer, default=0, comment="Contador de viajes gestionados en el turno")
-    facturado_total: Mapped[float] = mapped_column(DECIMAL(12, 2), default=0.0, comment="Total facturado en el turno")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    viajes_gestionados: Mapped[Optional[int]] = mapped_column(Integer, default=0, nullable=True, comment="Contador de viajes gestionados en el turno")
+    facturado_total: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), default=0.0, nullable=True, comment="Total facturado en el turno")
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
 
     empleado: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[empleado_id], lazy="selectin")
     empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
@@ -499,11 +502,11 @@ class AuditoriaEmail(Base):
         default=uuid.uuid4
     )
     email: Mapped[str] = mapped_column(String, nullable=False)
-    valid: Mapped[bool] = mapped_column(Boolean, default=False)
+    valid: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
     reason: Mapped[str] = mapped_column(Text, nullable=True)
     domain: Mapped[str] = mapped_column(String, nullable=True)
     mx_records: Mapped[str] = mapped_column(Text, nullable=True)
     smtp_response: Mapped[str] = mapped_column(Text, nullable=True)
     ip_address: Mapped[str] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     user_agent: Mapped[str] = mapped_column(Text, nullable=True)
