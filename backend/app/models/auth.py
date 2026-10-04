@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date, Numeric, Index
+    String, Boolean, DateTime, ForeignKey, Text, Integer, Date, Numeric, Index
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -344,7 +344,7 @@ class UsuarioRol(Base):
         ForeignKey("auth.tipo_usuario.id"),
         nullable=False
     )
-    # ❌ ELIMINADO: control_base_id NO debe estar aquí
+    # ELIMINADO: control_base_id NO debe estar aquí
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     fecha_inicio: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
     fecha_fin: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
