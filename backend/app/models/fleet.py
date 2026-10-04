@@ -672,7 +672,7 @@ class NeumaticoOperacionDetalle(Base):
     posicion_despues = Column(String(5))
     km_neumatico_en_operacion = Column(Integer)
     activo = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=now)
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
 
 
 class NeumaticoSugerencia(Base):
