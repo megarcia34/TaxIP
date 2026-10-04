@@ -1,6 +1,6 @@
 {
   "meta": {
-    "capturado_en": "2026-10-04T21:04:41.925307+00:00",
+    "capturado_en": "2026-10-04T21:08:13.038371+00:00",
     "alembic_head": null,
     "schemas_incluidos": [
       "audit",
@@ -35,7 +35,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843CDC5E0>",
+              "default": "<function uuid4 at 0x000001C9F6FDC5E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -139,7 +139,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843CDC680>",
+              "default": "<function datetime.now at 0x000001C9F6FDC680>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -185,7 +185,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843CDD8A0>",
+              "default": "<function uuid4 at 0x000001C9F6FDD8A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -328,7 +328,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843CDD940>",
+              "default": "<function datetime.now at 0x000001C9F6FDD940>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -346,13 +346,13 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_log_acciones_control_base_id_control_base",
+                "name": "fk_log_acciones_usuario_id_usuario",
                 "columns": [
-                  "control_base_id"
+                  "usuario_id"
                 ],
                 "references": {
-                  "schema": "tenant",
-                  "table": "control_base",
+                  "schema": "auth",
+                  "table": "usuario",
                   "columns": [
                     "id"
                   ]
@@ -361,13 +361,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_log_acciones_usuario_id_usuario",
+                "name": "fk_log_acciones_control_base_id_control_base",
                 "columns": [
-                  "usuario_id"
+                  "control_base_id"
                 ],
                 "references": {
-                  "schema": "auth",
-                  "table": "usuario",
+                  "schema": "tenant",
+                  "table": "control_base",
                   "columns": [
                     "id"
                   ]
@@ -389,7 +389,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843CAF560>",
+              "default": "<function uuid4 at 0x000001C9F6FAF560>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -454,7 +454,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843CAF600>",
+              "default": "<function datetime.now at 0x000001C9F6FAF600>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -472,13 +472,13 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_log_gps_usuario_id_usuario",
+                "name": "fk_log_gps_viaje_id_viaje_solicitado",
                 "columns": [
-                  "usuario_id"
+                  "viaje_id"
                 ],
                 "references": {
-                  "schema": "auth",
-                  "table": "usuario",
+                  "schema": "trip",
+                  "table": "viaje_solicitado",
                   "columns": [
                     "id"
                   ]
@@ -487,13 +487,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_log_gps_viaje_id_viaje_solicitado",
+                "name": "fk_log_gps_usuario_id_usuario",
                 "columns": [
-                  "viaje_id"
+                  "usuario_id"
                 ],
                 "references": {
-                  "schema": "trip",
-                  "table": "viaje_solicitado",
+                  "schema": "auth",
+                  "table": "usuario",
                   "columns": [
                     "id"
                   ]
@@ -522,7 +522,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843BC3BA0>",
+              "default": "<function uuid4 at 0x000001C9F6EC3BA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -626,7 +626,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843BC3D80>",
+              "default": "<function datetime.now at 0x000001C9F6EC3D80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -661,13 +661,13 @@
           },
           "indexes": [
             {
-              "name": "idx_auditoria_email_created_at",
+              "name": "idx_auditoria_email_email",
               "unique": false,
               "primary": false,
               "method": "btree",
-              "definition": "CREATE INDEX idx_auditoria_email_created_at ON auth.auditoria_email USING btree (created_at)",
+              "definition": "CREATE INDEX idx_auditoria_email_email ON auth.auditoria_email USING btree (email)",
               "columns": [
-                "created_at"
+                "email"
               ]
             },
             {
@@ -681,13 +681,13 @@
               ]
             },
             {
-              "name": "idx_auditoria_email_email",
+              "name": "idx_auditoria_email_created_at",
               "unique": false,
               "primary": false,
               "method": "btree",
-              "definition": "CREATE INDEX idx_auditoria_email_email ON auth.auditoria_email USING btree (email)",
+              "definition": "CREATE INDEX idx_auditoria_email_created_at ON auth.auditoria_email USING btree (created_at)",
               "columns": [
-                "email"
+                "created_at"
               ]
             }
           ]
@@ -700,7 +700,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843BA3D80>",
+              "default": "<function uuid4 at 0x000001C9F6EA3D80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -817,7 +817,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843BA3E20>",
+              "default": "<function datetime.now at 0x000001C9F6EA3E20>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -887,9 +887,9 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_autorizacion_inicio_chofer_id_usuario",
+                "name": "fk_autorizacion_inicio_created_by_usuario",
                 "columns": [
-                  "chofer_id"
+                  "created_by"
                 ],
                 "references": {
                   "schema": "auth",
@@ -917,13 +917,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_autorizacion_inicio_control_base_id_control_base",
+                "name": "fk_autorizacion_inicio_vehiculo_id_vehiculo",
                 "columns": [
-                  "control_base_id"
+                  "vehiculo_id"
                 ],
                 "references": {
-                  "schema": "tenant",
-                  "table": "control_base",
+                  "schema": "fleet",
+                  "table": "vehiculo",
                   "columns": [
                     "id"
                   ]
@@ -932,9 +932,9 @@
                 "on_update": null
               },
               {
-                "name": "fk_autorizacion_inicio_created_by_usuario",
+                "name": "fk_autorizacion_inicio_chofer_id_usuario",
                 "columns": [
-                  "created_by"
+                  "chofer_id"
                 ],
                 "references": {
                   "schema": "auth",
@@ -947,13 +947,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_autorizacion_inicio_vehiculo_id_vehiculo",
+                "name": "fk_autorizacion_inicio_control_base_id_control_base",
                 "columns": [
-                  "vehiculo_id"
+                  "control_base_id"
                 ],
                 "references": {
-                  "schema": "fleet",
-                  "table": "vehiculo",
+                  "schema": "tenant",
+                  "table": "control_base",
                   "columns": [
                     "id"
                   ]
@@ -974,16 +974,6 @@
           },
           "indexes": [
             {
-              "name": "idx_autorizacion_inicio_chofer",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX idx_autorizacion_inicio_chofer ON auth.autorizacion_inicio USING btree (chofer_id)",
-              "columns": [
-                "chofer_id"
-              ]
-            },
-            {
               "name": "idx_autorizacion_inicio_expires",
               "unique": false,
               "primary": false,
@@ -1002,6 +992,16 @@
               "columns": [
                 "contrato_id"
               ]
+            },
+            {
+              "name": "idx_autorizacion_inicio_chofer",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX idx_autorizacion_inicio_chofer ON auth.autorizacion_inicio USING btree (chofer_id)",
+              "columns": [
+                "chofer_id"
+              ]
             }
           ]
         },
@@ -1013,7 +1013,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843B70900>",
+              "default": "<function uuid4 at 0x000001C9F6E70900>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1117,7 +1117,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843B70B80>",
+              "default": "<function datetime.now at 0x000001C9F6E70B80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1163,7 +1163,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843B42C00>",
+              "default": "<function uuid4 at 0x000001C9F6E42C00>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1345,7 +1345,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843B42F20>",
+              "default": "<function datetime.now at 0x000001C9F6E42F20>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1358,7 +1358,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843B431A0>",
+              "default": "<function datetime.now at 0x000001C9F6E431A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1376,21 +1376,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_perfil_general_ciudad_id_ciudad",
-                "columns": [
-                  "ciudad_id"
-                ],
-                "references": {
-                  "schema": "geo",
-                  "table": "ciudad",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
-              {
                 "name": "fk_perfil_general_usuario_id_usuario",
                 "columns": [
                   "usuario_id"
@@ -1403,6 +1388,21 @@
                   ]
                 },
                 "on_delete": "CASCADE",
+                "on_update": null
+              },
+              {
+                "name": "fk_perfil_general_ciudad_id_ciudad",
+                "columns": [
+                  "ciudad_id"
+                ],
+                "references": {
+                  "schema": "geo",
+                  "table": "ciudad",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
                 "on_update": null
               }
             ],
@@ -1426,7 +1426,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843BA18A0>",
+              "default": "<function uuid4 at 0x000001C9F6EA18A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1491,7 +1491,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843BA1BC0>",
+              "default": "<function datetime.now at 0x000001C9F6EA1BC0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1537,7 +1537,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843B72E80>",
+              "default": "<function uuid4 at 0x000001C9F6E72E80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1602,7 +1602,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843B731A0>",
+              "default": "<function datetime.now at 0x000001C9F6E731A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1655,7 +1655,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843B71B20>",
+              "default": "<function uuid4 at 0x000001C9F6E71B20>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1694,7 +1694,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843B71F80>",
+              "default": "<function datetime.now at 0x000001C9F6E71F80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1712,9 +1712,9 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_taxista_favorito_pasajero_id_usuario",
+                "name": "fk_taxista_favorito_chofer_id_usuario",
                 "columns": [
-                  "pasajero_id"
+                  "chofer_id"
                 ],
                 "references": {
                   "schema": "auth",
@@ -1727,9 +1727,9 @@
                 "on_update": null
               },
               {
-                "name": "fk_taxista_favorito_chofer_id_usuario",
+                "name": "fk_taxista_favorito_pasajero_id_usuario",
                 "columns": [
-                  "chofer_id"
+                  "pasajero_id"
                 ],
                 "references": {
                   "schema": "auth",
@@ -1755,7 +1755,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843B19760>",
+              "default": "<function uuid4 at 0x000001C9F6E19760>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1805,7 +1805,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843BC1F80>",
+              "default": "<function uuid4 at 0x000001C9F6EC1F80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1844,7 +1844,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843BC2020>",
+              "default": "<function datetime.now at 0x000001C9F6EC2020>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1909,7 +1909,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843BC2340>",
+              "default": "<function datetime.now at 0x000001C9F6EC2340>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1922,7 +1922,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843BC23E0>",
+              "default": "<function datetime.now at 0x000001C9F6EC23E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -1940,21 +1940,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_turno_empleado_empresa_id_empresa",
-                "columns": [
-                  "empresa_id"
-                ],
-                "references": {
-                  "schema": "tenant",
-                  "table": "empresa",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
-              {
                 "name": "fk_turno_empleado_empleado_id_usuario",
                 "columns": [
                   "empleado_id"
@@ -1968,22 +1953,27 @@
                 },
                 "on_delete": null,
                 "on_update": null
+              },
+              {
+                "name": "fk_turno_empleado_empresa_id_empresa",
+                "columns": [
+                  "empresa_id"
+                ],
+                "references": {
+                  "schema": "tenant",
+                  "table": "empresa",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
               }
             ],
             "unique": [],
             "check": []
           },
           "indexes": [
-            {
-              "name": "idx_turno_empleado_estado",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX idx_turno_empleado_estado ON auth.turno_empleado USING btree (estado)",
-              "columns": [
-                "estado"
-              ]
-            },
             {
               "name": "idx_turno_empleado_empleado_id",
               "unique": false,
@@ -1995,16 +1985,6 @@
               ]
             },
             {
-              "name": "idx_turno_empleado_fecha_inicio",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX idx_turno_empleado_fecha_inicio ON auth.turno_empleado USING btree (fecha_inicio)",
-              "columns": [
-                "fecha_inicio"
-              ]
-            },
-            {
               "name": "idx_turno_empleado_empresa_id",
               "unique": false,
               "primary": false,
@@ -2012,6 +1992,26 @@
               "definition": "CREATE INDEX idx_turno_empleado_empresa_id ON auth.turno_empleado USING btree (empresa_id)",
               "columns": [
                 "empresa_id"
+              ]
+            },
+            {
+              "name": "idx_turno_empleado_estado",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX idx_turno_empleado_estado ON auth.turno_empleado USING btree (estado)",
+              "columns": [
+                "estado"
+              ]
+            },
+            {
+              "name": "idx_turno_empleado_fecha_inicio",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX idx_turno_empleado_fecha_inicio ON auth.turno_empleado USING btree (fecha_inicio)",
+              "columns": [
+                "fecha_inicio"
               ]
             }
           ]
@@ -2024,7 +2024,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843B1A160>",
+              "default": "<function uuid4 at 0x000001C9F6E1A160>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2141,7 +2141,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843B1BCE0>",
+              "default": "<function datetime.now at 0x000001C9F6E1BCE0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2154,7 +2154,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843B1BEC0>",
+              "default": "<function datetime.now at 0x000001C9F6E1BEC0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2172,18 +2172,18 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_usuario_control_base_id_control_base",
+                "name": "fk_usuario_tipo_usuario_id_tipo_usuario",
                 "columns": [
-                  "control_base_id"
+                  "tipo_usuario_id"
                 ],
                 "references": {
-                  "schema": "tenant",
-                  "table": "control_base",
+                  "schema": "auth",
+                  "table": "tipo_usuario",
                   "columns": [
                     "id"
                   ]
                 },
-                "on_delete": "SET NULL",
+                "on_delete": null,
                 "on_update": null
               },
               {
@@ -2202,18 +2202,18 @@
                 "on_update": null
               },
               {
-                "name": "fk_usuario_tipo_usuario_id_tipo_usuario",
+                "name": "fk_usuario_control_base_id_control_base",
                 "columns": [
-                  "tipo_usuario_id"
+                  "control_base_id"
                 ],
                 "references": {
-                  "schema": "auth",
-                  "table": "tipo_usuario",
+                  "schema": "tenant",
+                  "table": "control_base",
                   "columns": [
                     "id"
                   ]
                 },
-                "on_delete": null,
+                "on_delete": "SET NULL",
                 "on_update": null
               }
             ],
@@ -2241,7 +2241,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843BA2980>",
+              "default": "<function uuid4 at 0x000001C9F6EA2980>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2306,7 +2306,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843BA2DE0>",
+              "default": "<function datetime.now at 0x000001C9F6EA2DE0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2367,7 +2367,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843B73EC0>",
+              "default": "<function uuid4 at 0x000001C9F6E73EC0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2419,7 +2419,7 @@
               "type": "date",
               "base_type": "Date",
               "nullable": false,
-              "default": "<function date.today at 0x000001D843BA0360>",
+              "default": "<function date.today at 0x000001C9F6EA0360>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2445,7 +2445,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843BA0400>",
+              "default": "<function datetime.now at 0x000001C9F6EA0400>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2458,7 +2458,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843BA04A0>",
+              "default": "<function datetime.now at 0x000001C9F6EA04A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2523,17 +2523,6 @@
               ]
             },
             {
-              "name": "idx_usuario_rol_tipo",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX idx_usuario_rol_tipo ON auth.usuario_rol USING btree (tipo_usuario_id, activo)",
-              "columns": [
-                "tipo_usuario_id",
-                "activo"
-              ]
-            },
-            {
               "name": "idx_usuario_rol_usuario",
               "unique": false,
               "primary": false,
@@ -2541,6 +2530,17 @@
               "definition": "CREATE INDEX idx_usuario_rol_usuario ON auth.usuario_rol USING btree (usuario_id, activo)",
               "columns": [
                 "usuario_id",
+                "activo"
+              ]
+            },
+            {
+              "name": "idx_usuario_rol_tipo",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX idx_usuario_rol_tipo ON auth.usuario_rol USING btree (tipo_usuario_id, activo)",
+              "columns": [
+                "tipo_usuario_id",
                 "activo"
               ]
             }
@@ -2561,7 +2561,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843C587C0>",
+              "default": "<function uuid4 at 0x000001C9F6F547C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2704,7 +2704,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843C58AE0>",
+              "default": "<function datetime.now at 0x000001C9F6F54AE0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2717,7 +2717,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843C58B80>",
+              "default": "<function datetime.now at 0x000001C9F6F54B80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2770,7 +2770,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843C5A020>",
+              "default": "<function uuid4 at 0x000001C9F6F56020>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2900,7 +2900,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843C5A0C0>",
+              "default": "<function datetime.now at 0x000001C9F6F560C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -2917,36 +2917,6 @@
               ]
             },
             "foreign_keys": [
-              {
-                "name": "fk_escaneo_qr_contrato_id_contrato_vehiculo",
-                "columns": [
-                  "contrato_id"
-                ],
-                "references": {
-                  "schema": "fleet",
-                  "table": "contrato_vehiculo",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
-              },
-              {
-                "name": "fk_escaneo_qr_comercio_id_comercio",
-                "columns": [
-                  "comercio_id"
-                ],
-                "references": {
-                  "schema": "public",
-                  "table": "comercio",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
               {
                 "name": "fk_escaneo_qr_autorizacion_id_autorizacion_inicio",
                 "columns": [
@@ -2976,6 +2946,36 @@
                 },
                 "on_delete": null,
                 "on_update": null
+              },
+              {
+                "name": "fk_escaneo_qr_contrato_id_contrato_vehiculo",
+                "columns": [
+                  "contrato_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "contrato_vehiculo",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
+              },
+              {
+                "name": "fk_escaneo_qr_comercio_id_comercio",
+                "columns": [
+                  "comercio_id"
+                ],
+                "references": {
+                  "schema": "public",
+                  "table": "comercio",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
               }
             ],
             "unique": [],
@@ -2998,7 +2998,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843BED120>",
+              "default": "<function uuid4 at 0x000001C9F6EE9120>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3076,7 +3076,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843BED440>",
+              "default": "<function datetime.now at 0x000001C9F6EE9440>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3089,7 +3089,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843BED580>",
+              "default": "<function datetime.now at 0x000001C9F6EE9580>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3102,7 +3102,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843BED620>",
+              "default": "<function datetime.now at 0x000001C9F6EE9620>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3285,7 +3285,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843C24B80>",
+              "default": "<function uuid4 at 0x000001C9F6F24B80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3350,7 +3350,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843C24C20>",
+              "default": "<function datetime.now at 0x000001C9F6F24C20>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3467,7 +3467,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843C24EA0>",
+              "default": "<function datetime.now at 0x000001C9F6F24EA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3480,7 +3480,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843C24F40>",
+              "default": "<function datetime.now at 0x000001C9F6F24F40>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3585,7 +3585,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843BEF060>",
+              "default": "<function uuid4 at 0x000001C9F6EEB060>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3715,7 +3715,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843BEF420>",
+              "default": "<function datetime.now at 0x000001C9F6EEB420>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3811,21 +3811,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_movimiento_cuenta_viaje_id_viaje_solicitado",
-                "columns": [
-                  "viaje_id"
-                ],
-                "references": {
-                  "schema": "trip",
-                  "table": "viaje_solicitado",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
-              },
-              {
                 "name": "fk_movimiento_cuenta_cuenta_id_cuenta_corriente",
                 "columns": [
                   "cuenta_id"
@@ -3838,6 +3823,21 @@
                   ]
                 },
                 "on_delete": "CASCADE",
+                "on_update": null
+              },
+              {
+                "name": "fk_movimiento_cuenta_viaje_id_viaje_solicitado",
+                "columns": [
+                  "viaje_id"
+                ],
+                "references": {
+                  "schema": "trip",
+                  "table": "viaje_solicitado",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
                 "on_update": null
               }
             ],
@@ -3854,7 +3854,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843C26840>",
+              "default": "<function uuid4 at 0x000001C9F6F26840>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -3958,7 +3958,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843C268E0>",
+              "default": "<function datetime.now at 0x000001C9F6F268E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4010,7 +4010,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843C26C00>",
+              "default": "<function datetime.now at 0x000001C9F6F26C00>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4023,7 +4023,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843C26DE0>",
+              "default": "<function datetime.now at 0x000001C9F6F26DE0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4054,6 +4054,36 @@
             },
             "foreign_keys": [
               {
+                "name": "fk_pago_corporativo_confirmado_por_usuario",
+                "columns": [
+                  "confirmado_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
+              },
+              {
+                "name": "fk_pago_corporativo_factura_id_factura_corporativa",
+                "columns": [
+                  "factura_id"
+                ],
+                "references": {
+                  "schema": "corporate",
+                  "table": "factura_corporativa",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
+              },
+              {
                 "name": "fk_pago_corporativo_empresa_id_empresa",
                 "columns": [
                   "empresa_id"
@@ -4082,36 +4112,6 @@
                 },
                 "on_delete": null,
                 "on_update": null
-              },
-              {
-                "name": "fk_pago_corporativo_factura_id_factura_corporativa",
-                "columns": [
-                  "factura_id"
-                ],
-                "references": {
-                  "schema": "corporate",
-                  "table": "factura_corporativa",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
-              },
-              {
-                "name": "fk_pago_corporativo_confirmado_por_usuario",
-                "columns": [
-                  "confirmado_por"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
               }
             ],
             "unique": [],
@@ -4134,7 +4134,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D844FD45E0>",
+              "default": "<function uuid4 at 0x000001C9F82D05E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4305,7 +4305,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D844FA2160>",
+              "default": "<function uuid4 at 0x000001C9F82A2160>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4422,7 +4422,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D844FA2700>",
+              "default": "<function datetime.now at 0x000001C9F82A2700>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4500,7 +4500,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D844FA28E0>",
+              "default": "<function datetime.now at 0x000001C9F82A28E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4513,7 +4513,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D844FA2980>",
+              "default": "<function datetime.now at 0x000001C9F82A2980>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4610,7 +4610,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8450BADE0>",
+              "default": "<function uuid4 at 0x000001C9F83BAF20>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4675,7 +4675,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8450BB100>",
+              "default": "<function datetime.now at 0x000001C9F83BB240>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4719,21 +4719,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_contrato_qr_created_by_usuario",
-                "columns": [
-                  "created_by"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
-              },
-              {
                 "name": "fk_contrato_qr_contrato_id_contrato_vehiculo",
                 "columns": [
                   "contrato_id"
@@ -4746,6 +4731,21 @@
                   ]
                 },
                 "on_delete": "CASCADE",
+                "on_update": null
+              },
+              {
+                "name": "fk_contrato_qr_created_by_usuario",
+                "columns": [
+                  "created_by"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
                 "on_update": null
               }
             ],
@@ -4769,7 +4769,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D844FFA5C0>",
+              "default": "<function uuid4 at 0x000001C9F82F65C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4951,7 +4951,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D844FFACA0>",
+              "default": "<function datetime.now at 0x000001C9F82F6CA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -4990,7 +4990,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D844FFAE80>",
+              "default": "<function datetime.now at 0x000001C9F82F6E80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5125,36 +5125,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_contrato_vehiculo_vehiculo_id_vehiculo",
-                "columns": [
-                  "vehiculo_id"
-                ],
-                "references": {
-                  "schema": "fleet",
-                  "table": "vehiculo",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "CASCADE",
-                "on_update": null
-              },
-              {
-                "name": "fk_contrato_vehiculo_propietario_id_usuario",
-                "columns": [
-                  "propietario_id"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "CASCADE",
-                "on_update": null
-              },
-              {
                 "name": "fk_contrato_vehiculo_control_base_id_control_base",
                 "columns": [
                   "control_base_id"
@@ -5183,6 +5153,36 @@
                 },
                 "on_delete": "CASCADE",
                 "on_update": null
+              },
+              {
+                "name": "fk_contrato_vehiculo_vehiculo_id_vehiculo",
+                "columns": [
+                  "vehiculo_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "vehiculo",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": null
+              },
+              {
+                "name": "fk_contrato_vehiculo_propietario_id_usuario",
+                "columns": [
+                  "propietario_id"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": null
               }
             ],
             "unique": [],
@@ -5198,7 +5198,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84502F100>",
+              "default": "<function uuid4 at 0x000001C9F832B100>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5302,7 +5302,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84502F1A0>",
+              "default": "<function datetime.now at 0x000001C9F832B1A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5361,7 +5361,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84502D080>",
+              "default": "<function uuid4 at 0x000001C9F8329080>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5491,7 +5491,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84502D120>",
+              "default": "<function datetime.now at 0x000001C9F8329120>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5504,7 +5504,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84502D4E0>",
+              "default": "<function datetime.now at 0x000001C9F83294E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5758,7 +5758,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8450D8400>",
+              "default": "<function uuid4 at 0x000001C9F83D8540>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5810,7 +5810,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8450D84A0>",
+              "default": "<function datetime.now at 0x000001C9F83D85E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5895,7 +5895,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8450D9620>",
+              "default": "<function uuid4 at 0x000001C9F83D9760>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -5999,7 +5999,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8450D9940>",
+              "default": "<function datetime.now at 0x000001C9F83D9A80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -6060,7 +6060,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8452F4680>",
+              "default": "<function uuid4 at 0x000001C9F85F47C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -6164,7 +6164,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8452F4900>",
+              "default": "<function datetime.now at 0x000001C9F85F4A40>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -6230,7 +6230,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D844FD5D00>",
+              "default": "<function uuid4 at 0x000001C9F82D1D00>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -6404,6 +6404,21 @@
             },
             "foreign_keys": [
               {
+                "name": "fk_gasto_vehiculo_categoria_id_categoria_gasto",
+                "columns": [
+                  "categoria_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "categoria_gasto",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
+              },
+              {
                 "name": "fk_gasto_vehiculo_propietario_id_usuario",
                 "columns": [
                   "propietario_id"
@@ -6432,21 +6447,6 @@
                 },
                 "on_delete": "CASCADE",
                 "on_update": null
-              },
-              {
-                "name": "fk_gasto_vehiculo_categoria_id_categoria_gasto",
-                "columns": [
-                  "categoria_id"
-                ],
-                "references": {
-                  "schema": "fleet",
-                  "table": "categoria_gasto",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
               }
             ],
             "unique": [],
@@ -6462,7 +6462,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84510D580>",
+              "default": "<function uuid4 at 0x000001C9F840D6C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -6566,7 +6566,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84510E0C0>",
+              "default": "<function datetime.now at 0x000001C9F840E200>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -6644,7 +6644,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84510E3E0>",
+              "default": "<function datetime.now at 0x000001C9F840E520>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -6657,7 +6657,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84510E700>",
+              "default": "<function datetime.now at 0x000001C9F840E840>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -6674,6 +6674,21 @@
               ]
             },
             "foreign_keys": [
+              {
+                "name": "fk_ingreso_turno_viaje_id_viaje_solicitado",
+                "columns": [
+                  "viaje_id"
+                ],
+                "references": {
+                  "schema": "trip",
+                  "table": "viaje_solicitado",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
+              },
               {
                 "name": "fk_ingreso_turno_declarado_por_usuario",
                 "columns": [
@@ -6718,21 +6733,6 @@
                 },
                 "on_delete": "SET NULL",
                 "on_update": null
-              },
-              {
-                "name": "fk_ingreso_turno_viaje_id_viaje_solicitado",
-                "columns": [
-                  "viaje_id"
-                ],
-                "references": {
-                  "schema": "trip",
-                  "table": "viaje_solicitado",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
               }
             ],
             "unique": [],
@@ -6748,7 +6748,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845279C60>",
+              "default": "<function uuid4 at 0x000001C9F8579DA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7034,7 +7034,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84527A480>",
+              "default": "<function datetime.now at 0x000001C9F857A5C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7047,7 +7047,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84527A520>",
+              "default": "<function datetime.now at 0x000001C9F857A660>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7060,7 +7060,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84527A5C0>",
+              "default": "<function datetime.now at 0x000001C9F857A700>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7195,51 +7195,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_liquidacion_propietario_id_usuario",
-                "columns": [
-                  "propietario_id"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "CASCADE",
-                "on_update": null
-              },
-              {
-                "name": "fk_liquidacion_rechazada_por_usuario",
-                "columns": [
-                  "rechazada_por"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
-              },
-              {
-                "name": "fk_liquidacion_contrato_id_contrato_vehiculo",
-                "columns": [
-                  "contrato_id"
-                ],
-                "references": {
-                  "schema": "fleet",
-                  "table": "contrato_vehiculo",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "CASCADE",
-                "on_update": null
-              },
-              {
                 "name": "fk_liquidacion_chofer_id_usuario",
                 "columns": [
                   "chofer_id"
@@ -7328,32 +7283,57 @@
                 },
                 "on_delete": "SET NULL",
                 "on_update": null
+              },
+              {
+                "name": "fk_liquidacion_propietario_id_usuario",
+                "columns": [
+                  "propietario_id"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": null
+              },
+              {
+                "name": "fk_liquidacion_rechazada_por_usuario",
+                "columns": [
+                  "rechazada_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
+              },
+              {
+                "name": "fk_liquidacion_contrato_id_contrato_vehiculo",
+                "columns": [
+                  "contrato_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "contrato_vehiculo",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": null
               }
             ],
             "unique": [],
             "check": []
           },
           "indexes": [
-            {
-              "name": "ix_liquidacion_vehiculo_id",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX ix_liquidacion_vehiculo_id ON fleet.liquidacion USING btree (vehiculo_id)",
-              "columns": [
-                "vehiculo_id"
-              ]
-            },
-            {
-              "name": "ix_liquidacion_chofer_id",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX ix_liquidacion_chofer_id ON fleet.liquidacion USING btree (chofer_id)",
-              "columns": [
-                "chofer_id"
-              ]
-            },
             {
               "name": "ix_liquidacion_propietario_id",
               "unique": false,
@@ -7375,13 +7355,13 @@
               ]
             },
             {
-              "name": "ix_liquidacion_contrato_id",
+              "name": "ix_liquidacion_vehiculo_id",
               "unique": false,
               "primary": false,
               "method": "btree",
-              "definition": "CREATE INDEX ix_liquidacion_contrato_id ON fleet.liquidacion USING btree (contrato_id)",
+              "definition": "CREATE INDEX ix_liquidacion_vehiculo_id ON fleet.liquidacion USING btree (vehiculo_id)",
               "columns": [
-                "contrato_id"
+                "vehiculo_id"
               ]
             },
             {
@@ -7392,6 +7372,26 @@
               "definition": "CREATE INDEX ix_liquidacion_turno_id ON fleet.liquidacion USING btree (turno_id)",
               "columns": [
                 "turno_id"
+              ]
+            },
+            {
+              "name": "ix_liquidacion_chofer_id",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_liquidacion_chofer_id ON fleet.liquidacion USING btree (chofer_id)",
+              "columns": [
+                "chofer_id"
+              ]
+            },
+            {
+              "name": "ix_liquidacion_contrato_id",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_liquidacion_contrato_id ON fleet.liquidacion USING btree (contrato_id)",
+              "columns": [
+                "contrato_id"
               ]
             }
           ]
@@ -7404,7 +7404,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8452C4900>",
+              "default": "<function uuid4 at 0x000001C9F85C4A40>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7495,7 +7495,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D8452C4D60>",
+              "default": "<function datetime.now at 0x000001C9F85C4EA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7512,6 +7512,21 @@
               ]
             },
             "foreign_keys": [
+              {
+                "name": "fk_liquidacion_ajuste_control_base_id_control_base",
+                "columns": [
+                  "control_base_id"
+                ],
+                "references": {
+                  "schema": "tenant",
+                  "table": "control_base",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": null
+              },
               {
                 "name": "fk_liquidacion_ajuste_usuario_id_usuario",
                 "columns": [
@@ -7535,21 +7550,6 @@
                 "references": {
                   "schema": "fleet",
                   "table": "liquidacion",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "CASCADE",
-                "on_update": null
-              },
-              {
-                "name": "fk_liquidacion_ajuste_control_base_id_control_base",
-                "columns": [
-                  "control_base_id"
-                ],
-                "references": {
-                  "schema": "tenant",
-                  "table": "control_base",
                   "columns": [
                     "id"
                   ]
@@ -7582,7 +7582,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8452A9EE0>",
+              "default": "<function uuid4 at 0x000001C9F85AA020>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7699,7 +7699,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D8452AA0C0>",
+              "default": "<function datetime.now at 0x000001C9F85AA200>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7737,16 +7737,6 @@
           },
           "indexes": [
             {
-              "name": "ix_liquidacion_detalle_fuente_id",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX ix_liquidacion_detalle_fuente_id ON fleet.liquidacion_detalle USING btree (fuente_id)",
-              "columns": [
-                "fuente_id"
-              ]
-            },
-            {
               "name": "ix_liquidacion_detalle_liquidacion_id",
               "unique": false,
               "primary": false,
@@ -7754,6 +7744,16 @@
               "definition": "CREATE INDEX ix_liquidacion_detalle_liquidacion_id ON fleet.liquidacion_detalle USING btree (liquidacion_id)",
               "columns": [
                 "liquidacion_id"
+              ]
+            },
+            {
+              "name": "ix_liquidacion_detalle_fuente_id",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_liquidacion_detalle_fuente_id ON fleet.liquidacion_detalle USING btree (fuente_id)",
+              "columns": [
+                "fuente_id"
               ]
             }
           ]
@@ -7766,7 +7766,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8452AB240>",
+              "default": "<function uuid4 at 0x000001C9F85AB380>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7857,7 +7857,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D8452AB6A0>",
+              "default": "<function datetime.now at 0x000001C9F85AB7E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -7944,7 +7944,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D844FD77E0>",
+              "default": "<function uuid4 at 0x000001C9F82D37E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8074,7 +8074,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D844FD7880>",
+              "default": "<function datetime.now at 0x000001C9F82D3880>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8135,7 +8135,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84510C360>",
+              "default": "<function uuid4 at 0x000001C9F840C4A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8161,7 +8161,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84510C400>",
+              "default": "<function datetime.now at 0x000001C9F840C540>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8198,7 +8198,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84510C5E0>",
+              "default": "<function uuid4 at 0x000001C9F840C720>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8237,7 +8237,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84510D1C0>",
+              "default": "<function datetime.now at 0x000001C9F840D300>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8283,7 +8283,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845061DA0>",
+              "default": "<function uuid4 at 0x000001C9F8361DA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8517,7 +8517,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8450B93A0>",
+              "default": "<function uuid4 at 0x000001C9F83B9120>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8717,36 +8717,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_neumatico_imagen_subido_por_usuario",
-                "columns": [
-                  "subido_por"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
-              {
-                "name": "fk_neumatico_imagen_neumatico_vehiculo_id_neumatico_vehiculo",
-                "columns": [
-                  "neumatico_vehiculo_id"
-                ],
-                "references": {
-                  "schema": "fleet",
-                  "table": "neumatico_vehiculo",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
-              {
                 "name": "fk_neumatico_imagen_operacion_id_neumatico_operacion",
                 "columns": [
                   "operacion_id"
@@ -8775,6 +8745,36 @@
                 },
                 "on_delete": null,
                 "on_update": null
+              },
+              {
+                "name": "fk_neumatico_imagen_subido_por_usuario",
+                "columns": [
+                  "subido_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
+              },
+              {
+                "name": "fk_neumatico_imagen_neumatico_vehiculo_id_neumatico_vehiculo",
+                "columns": [
+                  "neumatico_vehiculo_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "neumatico_vehiculo",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
               }
             ],
             "unique": [],
@@ -8790,7 +8790,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845063600>",
+              "default": "<function uuid4 at 0x000001C9F8363600>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -8970,7 +8970,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845080AE0>",
+              "default": "<function uuid4 at 0x000001C9F837CAE0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9045,11 +9045,11 @@
             },
             "fecha_operacion": {
               "ordinal": 7,
-              "type": "timestamp with time zone",
+              "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D845080E00>",
-              "server_default": null,
+              "default": null,
+              "server_default": "now()",
               "comment": null,
               "character_maximum_length": null,
               "numeric_precision": null,
@@ -9136,11 +9136,11 @@
             },
             "created_at": {
               "ordinal": 14,
-              "type": "timestamp with time zone",
+              "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845081120>",
-              "server_default": null,
+              "default": null,
+              "server_default": "now()",
               "comment": null,
               "character_maximum_length": null,
               "numeric_precision": null,
@@ -9149,11 +9149,11 @@
             },
             "updated_at": {
               "ordinal": 15,
-              "type": "timestamp with time zone",
+              "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8450811C0>",
-              "server_default": null,
+              "default": null,
+              "server_default": "now()",
               "comment": null,
               "character_maximum_length": null,
               "numeric_precision": null,
@@ -9170,13 +9170,13 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_neumatico_operacion_control_base_id_control_base",
+                "name": "fk_neumatico_operacion_creado_por_usuario",
                 "columns": [
-                  "control_base_id"
+                  "creado_por"
                 ],
                 "references": {
-                  "schema": "tenant",
-                  "table": "control_base",
+                  "schema": "auth",
+                  "table": "usuario",
                   "columns": [
                     "id"
                   ]
@@ -9200,13 +9200,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_neumatico_operacion_creado_por_usuario",
+                "name": "fk_neumatico_operacion_control_base_id_control_base",
                 "columns": [
-                  "creado_por"
+                  "control_base_id"
                 ],
                 "references": {
-                  "schema": "auth",
-                  "table": "usuario",
+                  "schema": "tenant",
+                  "table": "control_base",
                   "columns": [
                     "id"
                   ]
@@ -9228,7 +9228,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8450825C0>",
+              "default": "<function uuid4 at 0x000001C9F837E340>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9380,7 +9380,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8450837E0>",
+              "default": "<function uuid4 at 0x000001C9F837F560>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9510,7 +9510,7 @@
               "type": "timestamp with time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845083C40>",
+              "default": "<function datetime.now at 0x000001C9F837F9C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9549,7 +9549,7 @@
               "type": "timestamp with time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845083E20>",
+              "default": "<function datetime.now at 0x000001C9F837FBA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9562,7 +9562,7 @@
               "type": "timestamp with time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845083EC0>",
+              "default": "<function datetime.now at 0x000001C9F837FC40>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9579,6 +9579,21 @@
               ]
             },
             "foreign_keys": [
+              {
+                "name": "fk_neumatico_sugerencia_vehiculo_id_vehiculo",
+                "columns": [
+                  "vehiculo_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "vehiculo",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
+              },
               {
                 "name": "fk_neumatico_sugerencia_atendida_por_usuario",
                 "columns": [
@@ -9623,21 +9638,6 @@
                 },
                 "on_delete": null,
                 "on_update": null
-              },
-              {
-                "name": "fk_neumatico_sugerencia_vehiculo_id_vehiculo",
-                "columns": [
-                  "vehiculo_id"
-                ],
-                "references": {
-                  "schema": "fleet",
-                  "table": "vehiculo",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
               }
             ],
             "unique": [],
@@ -9653,7 +9653,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845060360>",
+              "default": "<function uuid4 at 0x000001C9F8360360>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9796,7 +9796,7 @@
               "type": "timestamp with time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845060680>",
+              "default": "<function datetime.now at 0x000001C9F8360680>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9848,7 +9848,7 @@
               "type": "timestamp with time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845060860>",
+              "default": "<function datetime.now at 0x000001C9F8360860>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9861,7 +9861,7 @@
               "type": "timestamp with time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845060900>",
+              "default": "<function datetime.now at 0x000001C9F8360900>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -9879,13 +9879,13 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_neumatico_vehiculo_control_base_id_control_base",
+                "name": "fk_neumatico_vehiculo_vehiculo_id_vehiculo",
                 "columns": [
-                  "control_base_id"
+                  "vehiculo_id"
                 ],
                 "references": {
-                  "schema": "tenant",
-                  "table": "control_base",
+                  "schema": "fleet",
+                  "table": "vehiculo",
                   "columns": [
                     "id"
                   ]
@@ -9894,13 +9894,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_neumatico_vehiculo_vehiculo_id_vehiculo",
+                "name": "fk_neumatico_vehiculo_control_base_id_control_base",
                 "columns": [
-                  "vehiculo_id"
+                  "control_base_id"
                 ],
                 "references": {
-                  "schema": "fleet",
-                  "table": "vehiculo",
+                  "schema": "tenant",
+                  "table": "control_base",
                   "columns": [
                     "id"
                   ]
@@ -9922,7 +9922,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8450DAC00>",
+              "default": "<function uuid4 at 0x000001C9F83DAD40>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10091,7 +10091,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8450DB060>",
+              "default": "<function datetime.now at 0x000001C9F83DB1A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10137,7 +10137,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D844FF8E00>",
+              "default": "<function uuid4 at 0x000001C9F82F4E00>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10189,7 +10189,7 @@
               "type": "date",
               "base_type": "Date",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D844FF8EA0>",
+              "default": "<function datetime.now at 0x000001C9F82F4EA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10228,7 +10228,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D844FF93A0>",
+              "default": "<function datetime.now at 0x000001C9F82F53A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10259,13 +10259,13 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_propietario_vehiculo_propietario_id_usuario",
+                "name": "fk_propietario_vehiculo_vehiculo_id_vehiculo",
                 "columns": [
-                  "propietario_id"
+                  "vehiculo_id"
                 ],
                 "references": {
-                  "schema": "auth",
-                  "table": "usuario",
+                  "schema": "fleet",
+                  "table": "vehiculo",
                   "columns": [
                     "id"
                   ]
@@ -10274,13 +10274,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_propietario_vehiculo_vehiculo_id_vehiculo",
+                "name": "fk_propietario_vehiculo_propietario_id_usuario",
                 "columns": [
-                  "vehiculo_id"
+                  "propietario_id"
                 ],
                 "references": {
-                  "schema": "fleet",
-                  "table": "vehiculo",
+                  "schema": "auth",
+                  "table": "usuario",
                   "columns": [
                     "id"
                   ]
@@ -10314,7 +10314,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8452C5F80>",
+              "default": "<function uuid4 at 0x000001C9F85C60C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10509,7 +10509,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D8452C6520>",
+              "default": "<function datetime.now at 0x000001C9F85C6660>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10535,7 +10535,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8452C65C0>",
+              "default": "<function datetime.now at 0x000001C9F85C6700>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10548,7 +10548,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8452C6660>",
+              "default": "<function datetime.now at 0x000001C9F85C67A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10566,13 +10566,13 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_turno_chofer_chofer_id_usuario",
+                "name": "fk_turno_chofer_vehiculo_id_vehiculo",
                 "columns": [
-                  "chofer_id"
+                  "vehiculo_id"
                 ],
                 "references": {
-                  "schema": "auth",
-                  "table": "usuario",
+                  "schema": "fleet",
+                  "table": "vehiculo",
                   "columns": [
                     "id"
                   ]
@@ -10581,13 +10581,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_turno_chofer_vehiculo_id_vehiculo",
+                "name": "fk_turno_chofer_chofer_id_usuario",
                 "columns": [
-                  "vehiculo_id"
+                  "chofer_id"
                 ],
                 "references": {
-                  "schema": "fleet",
-                  "table": "vehiculo",
+                  "schema": "auth",
+                  "table": "usuario",
                   "columns": [
                     "id"
                   ]
@@ -10624,7 +10624,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D844F81080>",
+              "default": "<function uuid4 at 0x000001C9F8281080>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -10767,7 +10767,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": true,
-              "default": "<function uuid4 at 0x000001D844F81120>",
+              "default": "<function uuid4 at 0x000001C9F8281120>",
               "server_default": null,
               "comment": "UUID único para generar QR fijo del vehículo",
               "character_maximum_length": null,
@@ -10806,7 +10806,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D844F83EC0>",
+              "default": "<function datetime.now at 0x000001C9F8283EC0>",
               "server_default": null,
               "comment": "Fecha y hora de creación del registro del vehículo",
               "character_maximum_length": null,
@@ -10819,7 +10819,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D844F83F60>",
+              "default": "<function datetime.now at 0x000001C9F8283F60>",
               "server_default": null,
               "comment": "Fecha y hora de la última actualización del registro del vehículo",
               "character_maximum_length": null,
@@ -10955,7 +10955,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8451293A0>",
+              "default": "<function uuid4 at 0x000001C9F84294E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11007,7 +11007,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84512A0C0>",
+              "default": "<function datetime.now at 0x000001C9F842A200>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11053,7 +11053,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8451282C0>",
+              "default": "<function uuid4 at 0x000001C9F8428400>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11092,7 +11092,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845128360>",
+              "default": "<function datetime.now at 0x000001C9F84284A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11122,7 +11122,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845128540>",
+              "default": "<function uuid4 at 0x000001C9F8428680>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11161,7 +11161,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845129080>",
+              "default": "<function datetime.now at 0x000001C9F84291C0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11214,7 +11214,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84512A3E0>",
+              "default": "<function uuid4 at 0x000001C9F842A520>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11292,7 +11292,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84512B420>",
+              "default": "<function datetime.now at 0x000001C9F842B560>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11345,7 +11345,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8451604A0>",
+              "default": "<function uuid4 at 0x000001C9F84605E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11397,7 +11397,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845161120>",
+              "default": "<function datetime.now at 0x000001C9F8461260>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11410,7 +11410,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845161300>",
+              "default": "<function datetime.now at 0x000001C9F8461440>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11463,7 +11463,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845163C40>",
+              "default": "<function uuid4 at 0x000001C9F8463D80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11697,7 +11697,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845163F60>",
+              "default": "<function datetime.now at 0x000001C9F84840E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11710,7 +11710,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845188040>",
+              "default": "<function datetime.now at 0x000001C9F8484180>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11834,7 +11834,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845189C60>",
+              "default": "<function uuid4 at 0x000001C9F8485DA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11899,7 +11899,7 @@
               "type": "timestamp with time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84518A0C0>",
+              "default": "<function datetime.now at 0x000001C9F8486200>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -11960,7 +11960,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84518B100>",
+              "default": "<function uuid4 at 0x000001C9F8487240>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12064,7 +12064,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84518B1A0>",
+              "default": "<function datetime.now at 0x000001C9F84872E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12123,7 +12123,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8451602C0>",
+              "default": "<function uuid4 at 0x000001C9F8460400>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12173,7 +12173,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8451BC4A0>",
+              "default": "<function uuid4 at 0x000001C9F84BC5E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12290,7 +12290,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8451BC540>",
+              "default": "<function datetime.now at 0x000001C9F84BC680>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12329,7 +12329,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8451BC860>",
+              "default": "<function datetime.now at 0x000001C9F84BC9A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12342,7 +12342,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8451BCA40>",
+              "default": "<function datetime.now at 0x000001C9F84BCB80>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12359,6 +12359,21 @@
               ]
             },
             "foreign_keys": [
+              {
+                "name": "fk_pago_empresa_empresa_id_empresa",
+                "columns": [
+                  "empresa_id"
+                ],
+                "references": {
+                  "schema": "tenant",
+                  "table": "empresa",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": null
+              },
               {
                 "name": "fk_pago_empresa_confirmado_por_usuario",
                 "columns": [
@@ -12388,21 +12403,6 @@
                 },
                 "on_delete": null,
                 "on_update": null
-              },
-              {
-                "name": "fk_pago_empresa_empresa_id_empresa",
-                "columns": [
-                  "empresa_id"
-                ],
-                "references": {
-                  "schema": "tenant",
-                  "table": "empresa",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "CASCADE",
-                "on_update": null
               }
             ],
             "unique": [],
@@ -12418,7 +12418,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845162340>",
+              "default": "<function uuid4 at 0x000001C9F8462480>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12548,7 +12548,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8451623E0>",
+              "default": "<function datetime.now at 0x000001C9F8462520>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12565,6 +12565,21 @@
               ]
             },
             "foreign_keys": [
+              {
+                "name": "fk_transaccion_metodo_pago_id_metodo_pago",
+                "columns": [
+                  "metodo_pago_id"
+                ],
+                "references": {
+                  "schema": "payment",
+                  "table": "metodo_pago",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
+              },
               {
                 "name": "fk_transaccion_billetera_id_billetera",
                 "columns": [
@@ -12594,21 +12609,6 @@
                 },
                 "on_delete": "SET NULL",
                 "on_update": null
-              },
-              {
-                "name": "fk_transaccion_metodo_pago_id_metodo_pago",
-                "columns": [
-                  "metodo_pago_id"
-                ],
-                "references": {
-                  "schema": "payment",
-                  "table": "metodo_pago",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
               }
             ],
             "unique": [],
@@ -12631,7 +12631,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843C85760>",
+              "default": "<function uuid4 at 0x000001C9F6F85760>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12722,7 +12722,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843C85BC0>",
+              "default": "<function datetime.now at 0x000001C9F6F85BC0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -12735,7 +12735,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843C85C60>",
+              "default": "<function datetime.now at 0x000001C9F6F85C60>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13087,7 +13087,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843C5BCE0>",
+              "default": "<function uuid4 at 0x000001C9F6F57CE0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13243,7 +13243,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843C84040>",
+              "default": "<function datetime.now at 0x000001C9F6F84040>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13256,7 +13256,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843C84220>",
+              "default": "<function datetime.now at 0x000001C9F6F84220>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13274,21 +13274,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_control_base_suspendido_por_usuario",
-                "columns": [
-                  "suspendido_por"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
-              {
                 "name": "fk_control_base_ciudad_id_ciudad",
                 "columns": [
                   "ciudad_id"
@@ -13301,6 +13286,21 @@
                   ]
                 },
                 "on_delete": "SET NULL",
+                "on_update": null
+              },
+              {
+                "name": "fk_control_base_suspendido_por_usuario",
+                "columns": [
+                  "suspendido_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
                 "on_update": null
               }
             ],
@@ -13317,7 +13317,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843C87BA0>",
+              "default": "<function uuid4 at 0x000001C9F6F87BA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13564,7 +13564,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843C87EC0>",
+              "default": "<function datetime.now at 0x000001C9F6F87EC0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13577,7 +13577,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D843CAC0E0>",
+              "default": "<function datetime.now at 0x000001C9F6FAC0E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13638,7 +13638,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D843CAD940>",
+              "default": "<function uuid4 at 0x000001C9F6FAD940>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13742,7 +13742,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843CAD9E0>",
+              "default": "<function datetime.now at 0x000001C9F6FAD9E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13820,7 +13820,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843CADBC0>",
+              "default": "<function datetime.now at 0x000001C9F6FADBC0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13833,7 +13833,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D843CADDA0>",
+              "default": "<function datetime.now at 0x000001C9F6FADDA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13851,13 +13851,13 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_factura_control_base_id_control_base",
+                "name": "fk_factura_pagada_por_usuario",
                 "columns": [
-                  "control_base_id"
+                  "pagada_por"
                 ],
                 "references": {
-                  "schema": "tenant",
-                  "table": "control_base",
+                  "schema": "auth",
+                  "table": "usuario",
                   "columns": [
                     "id"
                   ]
@@ -13866,13 +13866,13 @@
                 "on_update": null
               },
               {
-                "name": "fk_factura_pagada_por_usuario",
+                "name": "fk_factura_control_base_id_control_base",
                 "columns": [
-                  "pagada_por"
+                  "control_base_id"
                 ],
                 "references": {
-                  "schema": "auth",
-                  "table": "usuario",
+                  "schema": "tenant",
+                  "table": "control_base",
                   "columns": [
                     "id"
                   ]
@@ -13908,7 +13908,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8452271A0>",
+              "default": "<function uuid4 at 0x000001C9F85272E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -13986,7 +13986,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845227240>",
+              "default": "<function datetime.now at 0x000001C9F8527380>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14003,21 +14003,6 @@
               ]
             },
             "foreign_keys": [
-              {
-                "name": "fk_calificacion_calificado_id_usuario",
-                "columns": [
-                  "calificado_id"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "CASCADE",
-                "on_update": null
-              },
               {
                 "name": "fk_calificacion_viaje_id_viaje_solicitado",
                 "columns": [
@@ -14037,6 +14022,21 @@
                 "name": "fk_calificacion_calificador_id_usuario",
                 "columns": [
                   "calificador_id"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": null
+              },
+              {
+                "name": "fk_calificacion_calificado_id_usuario",
+                "columns": [
+                  "calificado_id"
                 ],
                 "references": {
                   "schema": "auth",
@@ -14069,7 +14069,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8452F5A80>",
+              "default": "<function uuid4 at 0x000001C9F85F5BC0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14147,7 +14147,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8452F5B20>",
+              "default": "<function datetime.now at 0x000001C9F85F5C60>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14208,7 +14208,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845224C20>",
+              "default": "<function uuid4 at 0x000001C9F8524D60>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14286,7 +14286,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D845224CC0>",
+              "default": "<function datetime.now at 0x000001C9F8524E00>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14332,7 +14332,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84524C900>",
+              "default": "<function uuid4 at 0x000001C9F854CA40>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14423,7 +14423,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84524C9A0>",
+              "default": "<function datetime.now at 0x000001C9F854CAE0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14440,6 +14440,21 @@
               ]
             },
             "foreign_keys": [
+              {
+                "name": "fk_objeto_olvidado_viaje_id_viaje_solicitado",
+                "columns": [
+                  "viaje_id"
+                ],
+                "references": {
+                  "schema": "trip",
+                  "table": "viaje_solicitado",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": null
+              },
               {
                 "name": "fk_objeto_olvidado_chofer_id_usuario",
                 "columns": [
@@ -14469,21 +14484,6 @@
                 },
                 "on_delete": "CASCADE",
                 "on_update": null
-              },
-              {
-                "name": "fk_objeto_olvidado_viaje_id_viaje_solicitado",
-                "columns": [
-                  "viaje_id"
-                ],
-                "references": {
-                  "schema": "trip",
-                  "table": "viaje_solicitado",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "CASCADE",
-                "on_update": null
               }
             ],
             "unique": [],
@@ -14499,7 +14499,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D845225C60>",
+              "default": "<function uuid4 at 0x000001C9F8525DA0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14577,7 +14577,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8452260C0>",
+              "default": "<function datetime.now at 0x000001C9F8526200>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -14649,7 +14649,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D84524F240>",
+              "default": "<function uuid4 at 0x000001C9F854F380>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -15000,7 +15000,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84524F7E0>",
+              "default": "<function datetime.now at 0x000001C9F854F920>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -15013,7 +15013,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": false,
-              "default": "<function datetime.now at 0x000001D84524F9C0>",
+              "default": "<function datetime.now at 0x000001C9F854FB00>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -15030,36 +15030,6 @@
               ]
             },
             "foreign_keys": [
-              {
-                "name": "fk_reserva_turno_id_turno_empleado",
-                "columns": [
-                  "turno_id"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "turno_empleado",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
-              {
-                "name": "fk_reserva_empresa_id_empresa",
-                "columns": [
-                  "empresa_id"
-                ],
-                "references": {
-                  "schema": "tenant",
-                  "table": "empresa",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
               {
                 "name": "fk_reserva_empleado_id_usuario",
                 "columns": [
@@ -15083,6 +15053,36 @@
                 "references": {
                   "schema": "auth",
                   "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
+              },
+              {
+                "name": "fk_reserva_turno_id_turno_empleado",
+                "columns": [
+                  "turno_id"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "turno_empleado",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
+              },
+              {
+                "name": "fk_reserva_empresa_id_empresa",
+                "columns": [
+                  "empresa_id"
+                ],
+                "references": {
+                  "schema": "tenant",
+                  "table": "empresa",
                   "columns": [
                     "id"
                   ]
@@ -15221,7 +15221,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D84524E160>",
+              "default": "<function datetime.now at 0x000001C9F854E2A0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -15290,7 +15290,7 @@
               "type": "uuid",
               "base_type": "UUID",
               "nullable": false,
-              "default": "<function uuid4 at 0x000001D8451BE2A0>",
+              "default": "<function uuid4 at 0x000001C9F84BE3E0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -15537,7 +15537,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8451BE480>",
+              "default": "<function datetime.now at 0x000001C9F84BE5C0>",
               "server_default": null,
               "comment": "Fecha y hora en que se solicito el viaje (snapshot del momento de la solicitud)",
               "character_maximum_length": null,
@@ -15667,7 +15667,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8451BEE80>",
+              "default": "<function datetime.now at 0x000001C9F84BEFC0>",
               "server_default": null,
               "comment": null,
               "character_maximum_length": null,
@@ -15680,7 +15680,7 @@
               "type": "timestamp without time zone",
               "base_type": "DateTime",
               "nullable": true,
-              "default": "<function datetime.now at 0x000001D8451BEF20>",
+              "default": "<function datetime.now at 0x000001C9F84BF060>",
               "server_default": null,
               "comment": "Fecha y hora de la última actualización del viaje",
               "character_maximum_length": null,
@@ -16153,66 +16153,6 @@
             },
             "foreign_keys": [
               {
-                "name": "fk_viaje_solicitado_empresa_id_empresa",
-                "columns": [
-                  "empresa_id"
-                ],
-                "references": {
-                  "schema": "tenant",
-                  "table": "empresa",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": null,
-                "on_update": null
-              },
-              {
-                "name": "fk_viaje_solicitado_chofer_vehiculo_id_chofer_vehiculo",
-                "columns": [
-                  "chofer_vehiculo_id"
-                ],
-                "references": {
-                  "schema": "fleet",
-                  "table": "chofer_vehiculo",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
-              },
-              {
-                "name": "fk_viaje_solicitado_turno_id_turno_chofer",
-                "columns": [
-                  "turno_id"
-                ],
-                "references": {
-                  "schema": "fleet",
-                  "table": "turno_chofer",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
-              },
-              {
-                "name": "fk_viaje_solicitado_chofer_id_usuario",
-                "columns": [
-                  "chofer_id"
-                ],
-                "references": {
-                  "schema": "auth",
-                  "table": "usuario",
-                  "columns": [
-                    "id"
-                  ]
-                },
-                "on_delete": "SET NULL",
-                "on_update": null
-              },
-              {
                 "name": "fk_viaje_solicitado_vehiculo_id_vehiculo",
                 "columns": [
                   "vehiculo_id"
@@ -16271,113 +16211,113 @@
                 },
                 "on_delete": null,
                 "on_update": null
+              },
+              {
+                "name": "fk_viaje_solicitado_empresa_id_empresa",
+                "columns": [
+                  "empresa_id"
+                ],
+                "references": {
+                  "schema": "tenant",
+                  "table": "empresa",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": null,
+                "on_update": null
+              },
+              {
+                "name": "fk_viaje_solicitado_turno_id_turno_chofer",
+                "columns": [
+                  "turno_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "turno_chofer",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
+              },
+              {
+                "name": "fk_viaje_solicitado_chofer_vehiculo_id_chofer_vehiculo",
+                "columns": [
+                  "chofer_vehiculo_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "chofer_vehiculo",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
+              },
+              {
+                "name": "fk_viaje_solicitado_chofer_id_usuario",
+                "columns": [
+                  "chofer_id"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "SET NULL",
+                "on_update": null
               }
             ],
             "unique": [],
             "check": [
               {
-                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_responsable_cobro",
-                "definition": "((responsable_cobro IS NULL) OR ((responsable_cobro)::text = ANY ((ARRAY['chofer'::character varying, 'propietario'::character varying, 'tenant'::character varying, 'comercio'::character varying, 'empresa'::character varying])::text[])))"
-              },
-              {
-                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_subestado_despacho",
-                "definition": "((subestado_despacho IS NULL) OR ((subestado_despacho)::text = ANY ((ARRAY['reservado'::character varying, 'despachado'::character varying, 'vehiculo_llego'::character varying, 'pasajero_a_bordo'::character varying, 'completado'::character varying])::text[])))"
-              },
-              {
-                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_calidad_min",
-                "definition": "((calidad_minima_vehiculo IS NULL) OR ((calidad_minima_vehiculo)::text = ANY ((ARRAY['regular'::character varying, 'bueno'::character varying, 'excelente'::character varying])::text[])))"
+                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_origen_tipo",
+                "definition": "((origen_tipo IS NULL) OR ((origen_tipo)::text = ANY ((ARRAY['plataforma'::character varying, 'via_publica'::character varying, 'qr_comercio'::character varying, 'corporativo'::character varying, 'despacho_manual'::character varying])::text[])))"
               },
               {
                 "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_cc_obligatoria",
                 "definition": "((cargado_a_cuenta = false) OR (cuenta_corriente_id IS NOT NULL))"
               },
               {
-                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_origen_tipo",
-                "definition": "((origen_tipo IS NULL) OR ((origen_tipo)::text = ANY ((ARRAY['plataforma'::character varying, 'via_publica'::character varying, 'qr_comercio'::character varying, 'corporativo'::character varying, 'despacho_manual'::character varying])::text[])))"
-              },
-              {
-                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_estado_cobro",
-                "definition": "((estado_cobro IS NULL) OR ((estado_cobro)::text = ANY ((ARRAY['pendiente'::character varying, 'cobrado'::character varying, 'facturado'::character varying, 'pagado'::character varying])::text[])))"
-              },
-              {
                 "name": "ck_viaje_solicitado_ck_viaje_solicitado_metodo_pago",
                 "definition": "((metodo_pago IS NULL) OR ((metodo_pago)::text = ANY ((ARRAY['efectivo'::character varying, 'tarjeta_debito'::character varying, 'qr'::character varying, 'transferencia'::character varying])::text[])))"
               },
               {
+                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_calidad_min",
+                "definition": "((calidad_minima_vehiculo IS NULL) OR ((calidad_minima_vehiculo)::text = ANY ((ARRAY['regular'::character varying, 'bueno'::character varying, 'excelente'::character varying])::text[])))"
+              },
+              {
+                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_responsable_cobro",
+                "definition": "((responsable_cobro IS NULL) OR ((responsable_cobro)::text = ANY ((ARRAY['chofer'::character varying, 'propietario'::character varying, 'tenant'::character varying, 'comercio'::character varying, 'empresa'::character varying])::text[])))"
+              },
+              {
                 "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_centro_costo_despacho",
                 "definition": "((origen_tipo IS NULL) OR ((origen_tipo)::text <> 'despacho_manual'::text) OR (centro_costo IS NOT NULL))"
+              },
+              {
+                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_subestado_despacho",
+                "definition": "((subestado_despacho IS NULL) OR ((subestado_despacho)::text = ANY ((ARRAY['reservado'::character varying, 'despachado'::character varying, 'vehiculo_llego'::character varying, 'pasajero_a_bordo'::character varying, 'completado'::character varying])::text[])))"
+              },
+              {
+                "name": "ck_viaje_solicitado_ck_viaje_solicitado_ck_viaje_estado_cobro",
+                "definition": "((estado_cobro IS NULL) OR ((estado_cobro)::text = ANY ((ARRAY['pendiente'::character varying, 'cobrado'::character varying, 'facturado'::character varying, 'pagado'::character varying])::text[])))"
               }
             ]
           },
           "indexes": [
             {
-              "name": "ix_viaje_cuenta_corriente_id",
+              "name": "idx_viaje_chofer",
               "unique": false,
               "primary": false,
               "method": "btree",
-              "definition": "CREATE INDEX ix_viaje_cuenta_corriente_id ON trip.viaje_solicitado USING btree (cuenta_corriente_id)",
+              "definition": "CREATE INDEX idx_viaje_chofer ON trip.viaje_solicitado USING btree (chofer_id)",
               "columns": [
-                "cuenta_corriente_id"
-              ]
-            },
-            {
-              "name": "ix_viaje_fecha_expiracion_publicado",
-              "unique": false,
-              "primary": false,
-              "method": false,
-              "definition": "CREATE INDEX ix_viaje_fecha_expiracion_publicado ON trip.viaje_solicitado USING False (fecha_expiracion)",
-              "columns": [
-                "fecha_expiracion"
-              ]
-            },
-            {
-              "name": "ix_viaje_empleado_id",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX ix_viaje_empleado_id ON trip.viaje_solicitado USING btree (empleado_id)",
-              "columns": [
-                "empleado_id"
-              ]
-            },
-            {
-              "name": "ix_viaje_empresa_id",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX ix_viaje_empresa_id ON trip.viaje_solicitado USING btree (empresa_id)",
-              "columns": [
-                "empresa_id"
-              ]
-            },
-            {
-              "name": "ix_viaje_estado",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX ix_viaje_estado ON trip.viaje_solicitado USING btree (estado)",
-              "columns": [
-                "estado"
-              ]
-            },
-            {
-              "name": "ix_viaje_qr_cobro_token",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX ix_viaje_qr_cobro_token ON trip.viaje_solicitado USING btree (qr_cobro_token)",
-              "columns": [
-                "qr_cobro_token"
-              ]
-            },
-            {
-              "name": "ix_viaje_solicitado_turno_id",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX ix_viaje_solicitado_turno_id ON trip.viaje_solicitado USING btree (turno_id)",
-              "columns": [
-                "turno_id"
+                "chofer_id"
               ]
             },
             {
@@ -16388,16 +16328,6 @@
               "definition": "CREATE INDEX idx_viaje_aceptado ON trip.viaje_solicitado USING False (aceptado_en)",
               "columns": [
                 "aceptado_en"
-              ]
-            },
-            {
-              "name": "idx_viaje_chofer",
-              "unique": false,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE INDEX idx_viaje_chofer ON trip.viaje_solicitado USING btree (chofer_id)",
-              "columns": [
-                "chofer_id"
               ]
             },
             {
@@ -16509,6 +16439,76 @@
               "definition": "CREATE INDEX ix_viaje_centro_costo ON trip.viaje_solicitado USING btree (centro_costo)",
               "columns": [
                 "centro_costo"
+              ]
+            },
+            {
+              "name": "ix_viaje_cuenta_corriente_id",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_viaje_cuenta_corriente_id ON trip.viaje_solicitado USING btree (cuenta_corriente_id)",
+              "columns": [
+                "cuenta_corriente_id"
+              ]
+            },
+            {
+              "name": "ix_viaje_fecha_expiracion_publicado",
+              "unique": false,
+              "primary": false,
+              "method": false,
+              "definition": "CREATE INDEX ix_viaje_fecha_expiracion_publicado ON trip.viaje_solicitado USING False (fecha_expiracion)",
+              "columns": [
+                "fecha_expiracion"
+              ]
+            },
+            {
+              "name": "ix_viaje_empleado_id",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_viaje_empleado_id ON trip.viaje_solicitado USING btree (empleado_id)",
+              "columns": [
+                "empleado_id"
+              ]
+            },
+            {
+              "name": "ix_viaje_empresa_id",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_viaje_empresa_id ON trip.viaje_solicitado USING btree (empresa_id)",
+              "columns": [
+                "empresa_id"
+              ]
+            },
+            {
+              "name": "ix_viaje_estado",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_viaje_estado ON trip.viaje_solicitado USING btree (estado)",
+              "columns": [
+                "estado"
+              ]
+            },
+            {
+              "name": "ix_viaje_qr_cobro_token",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_viaje_qr_cobro_token ON trip.viaje_solicitado USING btree (qr_cobro_token)",
+              "columns": [
+                "qr_cobro_token"
+              ]
+            },
+            {
+              "name": "ix_viaje_solicitado_turno_id",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_viaje_solicitado_turno_id ON trip.viaje_solicitado USING btree (turno_id)",
+              "columns": [
+                "turno_id"
               ]
             }
           ]

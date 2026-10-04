@@ -650,15 +650,15 @@ class NeumaticoOperacion(Base):
     tipo_operacion = Column(String(30), nullable=False)
     descripcion = Column(Text)
     km_vehiculo_actual = Column(Integer, nullable=False)
-    fecha_operacion = Column(DateTime(timezone=True), nullable=False, default=now)
+    fecha_operacion = Column(DateTime(timezone=False), nullable=False, server_default=func.now())
     costo = Column(Numeric(10, 2))
     moneda = Column(String(3), default="ARS")
     proveedor = Column(String(100))
     observaciones = Column(Text)
     creado_por = Column(UUID(as_uuid=True), ForeignKey("auth.usuario.id"))
     activo = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=now)
-    updated_at = Column(DateTime(timezone=True), default=now, onupdate=now)
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
+    updated_at = Column(DateTime(timezone=False), server_default=func.now(), onupdate=func.now())
 
 
 class NeumaticoOperacionDetalle(Base):
