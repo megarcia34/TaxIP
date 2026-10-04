@@ -455,7 +455,12 @@ class ContratoVehiculo(Base):
     porcentaje_chofer: Mapped[Optional[float]] = mapped_column(Numeric(5,2), nullable=True)
     monto_diario: Mapped[Optional[float]] = mapped_column(Numeric(10,2), nullable=True)
     
-    estado_contrato: Mapped[Optional[str]] = mapped_column(String(30), default='PENDIENTE_CONFIGURACION', nullable=True)
+    estado_contrato: Mapped[Optional[str]] = mapped_column(
+        String(30),
+        default='PENDIENTE_CONFIGURACION', 
+        nullable=True,
+        comment="PENDIENTE_CONFIGURACION | ACTIVO | INACTIVO | RECHAZADO"
+    )
     fecha_inicio: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     fecha_fin: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -972,7 +977,7 @@ class IngresoTurno(Base):
     medio_pago: Mapped[str] = mapped_column(
         String(30),
         nullable=True,
-        comment="efectivo | debito | qr | transferencia "
+        comment="efectivo | debito | credito | qr | transferencia | billetera"
     )
     origen: Mapped[str] = mapped_column(
         String(30),
