@@ -188,7 +188,7 @@ class ChoferVehiculo(Base):
     latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=True)
     longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=True)
     ubicacion: Mapped[Geography] = mapped_column(
-        Geography(geometry_type='POINT', srid=4326),
+        Geography(geometry_type='Point', srid=4326),
         nullable=True,
         index=True
     )
@@ -329,7 +329,7 @@ class GastoVehiculo(Base):
         nullable=True
     )
     subcategoria: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    km_registro: Mapped[Optional[float]] = mapped_column(Numeric, nullable=True)
+    km_registro: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
     tipo_gasto: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     
     monto: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
