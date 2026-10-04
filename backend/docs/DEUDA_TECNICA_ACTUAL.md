@@ -1,7 +1,7 @@
 # DEUDA TECNICA ACTUAL — TaxIP 2.0
 
 **Ultima actualizacion:** 2026-10-03 (Ronda 7, Fase 4b)
-**Total items pendientes:** 56
+**Total items pendientes:** 57
 **Total criticos:** 1 (orm.db_desalineados)
 
 ---
@@ -631,10 +631,9 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
   orm.diff_falsos_positivos_tipo_cambio, orm.diff_check_constraints_duplicados,
   orm.diff_check_nombres_no_matchean, orm.naming_convention_check_divergente,
   orm.paso4_check_constraints_bloqueado, orm.alembic_check_ruidoso.
-- Balance neto: -1 cerrada + 7 nuevas = +6. De 53 a 59.
+- Balance neto: -2 cerradas + 6 nuevas = +4. De 53 a 57.
 
-**Nota:** el total del encabezado (55) excluye items que fueron reclasificados
-o absorbidos en otros; el detalle por categoria es la fuente de verdad.
+
 
 ---
 
