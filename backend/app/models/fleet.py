@@ -557,12 +557,11 @@ class DocumentoPropietario(Base):
     url_archivo: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
-
-  # ============================================================
-    # COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
-    # 1 columna faltante (D-0766).
-    # ============================================================
+    
+# ============================================================
+# COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
+# 1 columna faltante (D-0766).
+# ============================================================
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=False),
         nullable=True,
@@ -711,7 +710,7 @@ class NeumaticoImagen(Base):
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=now)
 
-    # ============================================================
+# ============================================================
 # MODELO CONTRATO_QR - AGREGADO PARA COMPLETAR EL ESQUEMA FLEET
 # ============================================================
 
@@ -722,7 +721,7 @@ class ContratoQr(Base):
     Tabla: fleet.contrato_qr
     """
     __tablename__ = "contrato_qr"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = ({"schema": "fleet"},)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
