@@ -590,5 +590,52 @@ Cada entrada debe incluir:
   decida agregar credito o billetera.
 
 ---
+---
 
+## Decisiones tomadas en Fase 4b (Ronda 7)
+
+### D-013: Saltear Paso 4 (CHECKs) por conflicto de naming convention
+
+- **Item:** Paso 4 del plan Fase 4b (CHECKs reales).
+- **Clasificacion:** n/a (decision operativa).
+- **Decision (2026-10-04):** saltear el Paso 4. Documentar el bloqueo
+  como deuda (`orm.naming_convention_check_divergente`) y avanzar con
+  el Paso 7 (D-012: timestamps naive en neumatico_*).
+- **Justificacion:**
+  - La convention `ck_%(table_name)s_%(constraint_name)s` en
+    `app/database.py` agrega el prefijo `ck_<tabla>_` a todos los
+    CHECKs declarados en el ORM.
+  - La DB tiene CHECKs con nombres que NO siguen esa convention.
+  - `diff.py` matchea CHECKs por nombre exacto, asi que los ~13 CHECKs
+    "sin convention" nunca van a matchear.
+  - Se probo overridear con `quoted_name(..., quote=True)` (SQLAlchemy
+    2.0). NO funciona: la convention se aplica antes del `name` final.
+  - De los ~23 CHECKs reales, solo ~8 (trip.viaje_solicitado) se
+    alinean solos con la convention actual.
+  - El esfuerzo de arreglar `diff.py` o la convention global excede
+    el scope de un sub-paso. Mejor diferir y priorizar D-012 (19
+    timestamps naive, bug activo).
+- **Accion:** documentar en DEUDA_TECNICA_ACTUAL.md. Arrancar Paso 7
+  (D-012) inmediatamente despues.
+- **Estado:** APROBADA.
+
+### Confirmacion D-012 (Paso 7)
+
+- **Item:** 19 timestamps en 7 tablas `neumatico_*`.
+- **Estado:** en ejecucion a partir de 2026-10-04 (Fase 4b, Paso 7).
+- **Confirmacion empirica:** `now = datetime.now` (linea 21 de
+  `fleet.py`) es Python-side. Los `default=now` en columnas
+  `DateTime(timezone=True)` generan timestamps naive insertados en
+  columnas tz-aware. Bug activo.
+- **Cambio por columna:**
+  - `DateTime(timezone=True)` -> `DateTime(timezone=False)`.
+  - `default=now` -> `server_default=func.now()`.
+  - `onupdate=now` -> `onupdate=func.now()`.
+- **Clases afectadas (7):** NeumaticoVehiculo, NeumaticoHistorialPosicion,
+  NeumaticoMedicion, NeumaticoOperacion, NeumaticoOperacionDetalle,
+  NeumaticoSugerencia, NeumaticoImagen.
+- **Total columnas:** 19.
+- **Estrategia:** 1 commit por clase (7 commits), verificacion de import
+  entre cada uno (N16).
+  
 **FIN DEL DOCUMENTO**

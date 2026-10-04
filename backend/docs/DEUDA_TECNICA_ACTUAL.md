@@ -328,6 +328,46 @@ de proveedor (MercadoPago, Uala Bis, AstroPay).
 
 ---
 
+### orm.naming_convention_check_divergente — NUEVA 2026-10-04
+
+La naming convention de `app/database.py` para CHECKs es
+`ck_%(table_name)s_%(constraint_name)s`. Esto significa que cualquier
+`CheckConstraint` declarado en el ORM recibe automaticamente el prefijo
+`ck_<tabla>_`. La DB, en cambio, tiene CHECKs con nombres que NO siguen
+esa convention (`gasto_turno_monto_check`, `check_estado_turno`,
+`chk_escaneo_qr_tipo`, `pago_empresa_monto_check`, etc.).
+
+Consecuencia: `diff.py` matchea CHECKs por nombre exacto, y los CHECKs
+"sin convention" nunca matchean. Se reportan como `constraint_falta`
+(falsos positivos, ~13 items del diff actual).
+
+Se intento overridear con `sqlalchemy.sql.elements.quoted_name(..., quote=True)`.
+NO funciona en SQLAlchemy 2.0: la naming convention se aplica en la
+construccion del Constraint, no en el nombre final.
+
+**Impacto:** ~13 falsos positivos permanentes en `constraint_falta`.
+**Tier 2.**
+**Accion:** reclasificar en `diff.py` (matchear CHECKs por definicion
+normalizada, no por nombre) o cambiar la convention global (riesgo alto:
+rompe CHECKs existentes que SI siguen la convention).
+
+**Relacionado:** `orm.diff_check_constraints_duplicados`,
+`orm.diff_check_nombres_no_matchean`.
+
+### orm.paso4_check_constraints_bloqueado — NUEVA 2026-10-04
+
+El Paso 4 del plan de Fase 4b (aplicar CHECKs reales del ORM) quedo
+bloqueado por `orm.naming_convention_check_divergente`. De los ~23
+CHECKs reales detectados, solo ~8 (los de `trip.viaje_solicitado`) se
+pueden alinear declarandolos con nombre corto (la convention agrega el
+prefijo correcto). Los ~13 restantes quedan como ruido conocido hasta
+resolver la convention o arreglar `diff.py`.
+
+**Tier 2.**
+**Accion:** postergado. Retomar cuando se decida politica de naming
+de CHECKs (Fase 5 o ronda especifica).
+
+
 ## MEDIA PRIORIDAD
 
 ### F5 — ViajeSolicitado.origen_lat/lng vs ViajeActivo.origen
