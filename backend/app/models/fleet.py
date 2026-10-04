@@ -599,8 +599,8 @@ class NeumaticoVehiculo(Base):
     fecha_fabricacion = Column(Date)
     estado = Column(String(20), nullable=False, default="ACTIVO")
     km_totales_acumulados = Column(Integer, default=0)
-    fecha_alta = Column(DateTime(timezone=True), default=now)
-    fecha_baja = Column(DateTime(timezone=True))
+    fecha_alta = Column(DateTime(timezone=False), server_default=func.now())
+    fecha_baja = Column(DateTime(timezone=False))
     observaciones = Column(Text)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=False), server_default=func.now())
@@ -692,8 +692,9 @@ class NeumaticoSugerencia(Base):
     fecha_generacion = Column(DateTime(timezone=False), server_default=func.now())
     fecha_atendida = Column(DateTime(timezone=False))
     atendida_por = Column(UUID(as_uuid=True), ForeignKey("auth.usuario.id"))
-    created_at = Column(DateTime(timezone=True), default=now)
-    updated_at = Column(DateTime(timezone=True), default=now, onupdate=now)
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
+    updated_at = Column(DateTime(timezone=False), server_default=func.now(), onupdate=func.now())
+
 
 
 class NeumaticoImagen(Base):
