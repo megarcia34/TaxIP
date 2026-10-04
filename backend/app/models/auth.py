@@ -5,10 +5,10 @@ Tablas: tipo_usuario, usuario, perfil_general, direccion_frecuente, taxista_favo
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date
+    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date, Numeric
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -61,7 +61,7 @@ class Usuario(Base):
         nullable=True
     )
     email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
     fecha_suspension: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     motivo_suspension: Mapped[str] = mapped_column(Text, nullable=True)
@@ -250,8 +250,8 @@ class DireccionFrecuente(Base):
         nullable=False
     )
     nombre: Mapped[str] = mapped_column(String(50), nullable=True)
-    latitud: Mapped[float] = mapped_column(DECIMAL(10, 8), nullable=True)
-    longitud: Mapped[float] = mapped_column(DECIMAL(11, 8), nullable=True)
+    latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=True)
+    longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=True)
     direccion_texto: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
@@ -339,8 +339,8 @@ class UsuarioRol(Base):
     )
     # ❌ ELIMINADO: control_base_id NO debe estar aquí
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    fecha_inicio: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
-    fecha_fin: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    fecha_inicio: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
+    fecha_fin: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
 
@@ -483,7 +483,7 @@ class TurnoEmpleado(Base):
         comment="ACTIVO (puede operar) o CERRADO (no puede operar)"
     )
     viajes_gestionados: Mapped[Optional[int]] = mapped_column(Integer, default=0, nullable=True, comment="Contador de viajes gestionados en el turno")
-    facturado_total: Mapped[Optional[float]] = mapped_column(DECIMAL(12, 2), default=0.0, nullable=True, comment="Total facturado en el turno")
+    facturado_total: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), default=0.0, nullable=True, comment="Total facturado en el turno")
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
 
