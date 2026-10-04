@@ -233,14 +233,6 @@ irreal para un taxi urbano. Probablemente sea un dato mal cargado
 
 **Tier 3.**
 
-### orm.turno_chofer_estado_truncado — CERRADA 2026-10-03 (Fase 4b Paso 2)
-
-`fleet.turno_chofer.estado` tenia un valor de 22 caracteres
-('PENDIENTE_CONFIRMACION') en la DB. El ORM lo declaraba como
-`String(20)`, por lo que SQLAlchemy no podia escribir ese valor
-correctamente.
-
-**Estado:** CERRADO. Se cambio a `String(30)` en Ronda 7 Fase 4b Paso 2.
 
 ### orm.snapshot_desactualizado — NUEVA 2026-10-03
 
@@ -621,23 +613,28 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 | Critico | 1 |
 | Nuevos Ronda 5 | 6 |
 | Nuevos Ronda 6 (Fase 2) | 4 |
-| Nuevos Ronda 7 (Fase 4b) | 4 |
+| Nuevos Ronda 7 (Fase 4b) | 7 |
 | Alta prioridad | 4 |
 | Media prioridad | 15 |
 | Baja prioridad | 21 |
 | Expo-router / EAS | 3 |
-| **TOTAL PENDIENTES** | **56** |
+| **TOTAL PENDIENTES** | **57** |
 
 **Notas sobre el recuento:**
 - Cerradas en Ronda 6: J9 (falso positivo), metodo_pago.catalogo (absorbido
   en D-005).
 - Nuevas en Ronda 6: metodo_pago.catalogo_sucio, metodo_pago.fk_catalogo,
   metodo_pago.ingreso_turno, metodo_pago.frontend_e2.
-- Cerrada en Ronda 7 (Fase 4b): orm.turno_chofer_estado_truncado.
+- Cerradas en Ronda 7 (Fase 4b): orm.turno_chofer_estado_truncado (Paso 2),
+  D-012 (Paso 7).
 - Nuevas en Ronda 7 (Fase 4b): orm.snapshot_desactualizado,
   orm.diff_falsos_positivos_tipo_cambio, orm.diff_check_constraints_duplicados,
-  orm.diff_check_nombres_no_matchean.
-- Balance neto: -1 cerrada + 4 nuevas = +3. De 53 a 56.
+  orm.diff_check_nombres_no_matchean, orm.naming_convention_check_divergente,
+  orm.paso4_check_constraints_bloqueado, orm.alembic_check_ruidoso.
+- Balance neto: -1 cerrada + 7 nuevas = +6. De 53 a 59.
+
+**Nota:** el total del encabezado (55) excluye items que fueron reclasificados
+o absorbidos en otros; el detalle por categoria es la fuente de verdad.
 
 ---
 

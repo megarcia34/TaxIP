@@ -6,7 +6,7 @@
 **Tag baseline:** ronda5-baseline-pre
 **Backup DB:** docs/backups/taxip_db_2026-09-30.dump (546 KB)
 **Responsable:** megarcia34
-**Ultima actualizacion:** 2026-10-01 (Ronda 6, Fase 2, Sesion 1)
+**Ultima actualizacion:** 2026-10-04 (Ronda 7, Fase 4b, Paso 7)
 
 ## Proposito
 
@@ -243,8 +243,10 @@ Cada entrada debe incluir:
 - **Archivos ORM a tocar en Fase 4:** app/models/auth.py (agregar ambas clases).
 - **Accion adicional:** marcar J9 en DEUDA_TECNICA_ACTUAL.md como FALSO
   POSITIVO (resuelto).
-- **Fecha:** 2026-09-30 (actualizado 2026-10-01)
-- **Estado:** APROBADA.
+- **Fecha:** 2026-10-01 (actualizado 2026-10-04)
+- **Estado:** CERRADA 2026-10-04 (Fase 4b, Paso 7). 19 timestamps migrados
+  en 7 clases Neumatico* de `app/models/fleet.py`. Commits d00dec7..56570fa.
+  Diff: 906 -> 887.
 
 ### D-012: Timestamps naive en fleet.neumatico_* (grupo A, 19 items)
 
@@ -619,23 +621,6 @@ Cada entrada debe incluir:
   (D-012) inmediatamente despues.
 - **Estado:** APROBADA.
 
-### Confirmacion D-012 (Paso 7)
 
-- **Item:** 19 timestamps en 7 tablas `neumatico_*`.
-- **Estado:** en ejecucion a partir de 2026-10-04 (Fase 4b, Paso 7).
-- **Confirmacion empirica:** `now = datetime.now` (linea 21 de
-  `fleet.py`) es Python-side. Los `default=now` en columnas
-  `DateTime(timezone=True)` generan timestamps naive insertados en
-  columnas tz-aware. Bug activo.
-- **Cambio por columna:**
-  - `DateTime(timezone=True)` -> `DateTime(timezone=False)`.
-  - `default=now` -> `server_default=func.now()`.
-  - `onupdate=now` -> `onupdate=func.now()`.
-- **Clases afectadas (7):** NeumaticoVehiculo, NeumaticoHistorialPosicion,
-  NeumaticoMedicion, NeumaticoOperacion, NeumaticoOperacionDetalle,
-  NeumaticoSugerencia, NeumaticoImagen.
-- **Total columnas:** 19.
-- **Estrategia:** 1 commit por clase (7 commits), verificacion de import
-  entre cada uno (N16).
   
 **FIN DEL DOCUMENTO**
