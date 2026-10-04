@@ -31,17 +31,17 @@ class Vehiculo(Base):
         primary_key=True,
         default=uuid.uuid4
     )
-    control_base_id: Mapped[uuid.UUID] = mapped_column(
+    control_base_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("tenant.control_base.id", ondelete="CASCADE"),
-        nullable=False
-    )
+        nullable=True
+    )    
     patente: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
     marca: Mapped[str] = mapped_column(String(100), nullable=True)
     modelo: Mapped[str] = mapped_column(String(100), nullable=True)
     anio: Mapped[int] = mapped_column(Integer, nullable=True)
     numero_licencia: Mapped[str] = mapped_column(String(50), nullable=True)
-    capacidad: Mapped[int] = mapped_column(Integer, default=4)
+    capacidad: Mapped[Optional[int]] = mapped_column(Integer, default=4, nullable=True)
     capacidad_baul: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default='sin_baul'
     )
@@ -51,27 +51,31 @@ class Vehiculo(Base):
     equipamiento: Mapped[dict] = mapped_column(
         JSONB, nullable=False, server_default='[]'
     )
-    qr_uuid: Mapped[uuid.UUID] = mapped_column(
+    qr_uuid: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         default=uuid.uuid4,
         unique=True,
+        nullable=True,
         comment="UUID único para generar QR fijo del vehículo"
     )
-    qr_activo: Mapped[bool] = mapped_column(
+    qr_activo: Mapped[Optional[bool]] = mapped_column(
         Boolean,
         default=True,
+        nullable=True,
         comment="Permite desactivar QR sin eliminar vehículo"
     )
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(
+    activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         default=datetime.now,
+        nullable=True,
         comment="Fecha y hora de creación del registro del vehículo"
     )
-    updated_at: Mapped[datetime] = mapped_column(
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         default=datetime.now,
         onupdate=datetime.now,
+        nullable=True,
         comment="Fecha y hora de la última actualización del registro del vehículo"
     )
 
@@ -171,10 +175,10 @@ class ChoferVehiculo(Base):
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
         nullable=False
     )
-    vehiculo_id: Mapped[uuid.UUID] = mapped_column(
+    vehiculo_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
     control_base_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -188,23 +192,24 @@ class ChoferVehiculo(Base):
         nullable=True,
         index=True
     )
-    estado_laboral: Mapped[str] = mapped_column(String(20), default='libre')
-    estado_panico: Mapped[bool] = mapped_column(Boolean, default=False)
-    ultima_conexion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    calificacion_promedio: Mapped[float] = mapped_column(Numeric(3, 2), default=5.0)
-    total_calificaciones: Mapped[int] = mapped_column(Integer, default=0)
+    estado_laboral: Mapped[Optional[str]] = mapped_column(String(20), default='libre', nullable=True)
+    estado_panico: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
+    ultima_conexion: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    calificacion_promedio: Mapped[Optional[float]] = mapped_column(Numeric(3, 2), default=5.0, nullable=True)
+    total_calificaciones: Mapped[Optional[int]] = mapped_column(Integer, default=0, nullable=True)
     estado_aprobacion: Mapped[str] = mapped_column(
         String(20), nullable=True, server_default='pendiente'
     )
     total_viajes: Mapped[int] = mapped_column(
         Integer, nullable=True, server_default='0'
     )
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(
+    activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
         default=datetime.now,
-        onupdate=datetime.now
+        onupdate=datetime.now,
+        nullable=True
     )
 
     control_base: Mapped["ControlBase"] = relationship(
@@ -273,10 +278,11 @@ class CategoriaGasto(Base):
     )
     activo: Mapped[bool] = mapped_column(Boolean, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=text("now()"))
-    updated_at: Mapped[datetime] = mapped_column(
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
-        server_default=text("now()"),
-        onupdate=text("now()")
+        default=datetime.now,
+        onupdate=datetime.now,
+        nullable=True
     )
 
     control_base: Mapped["ControlBase"] = relationship("ControlBase", lazy="selectin")
@@ -306,10 +312,10 @@ class GastoVehiculo(Base):
         primary_key=True,
         default=uuid.uuid4
     )
-    vehiculo_id: Mapped[uuid.UUID] = mapped_column(
+    vehiculo_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=True
     )
     propietario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
