@@ -611,4 +611,18 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 - **Backups:** `docs/backups/`
 - **Bitacoras:** `E:\Taxip\app chofer\BITACORA_M1.md`, `M2`, `M3`.
 
+### orm.alembic_check_ruidoso — NUEVA 2026-10-03
+
+`alembic check` reporta cientos de operaciones de upgrade pendientes
+porque el ORM y la DB estan desalineados (esperado en Fase 4b). NO es
+un gate util por paso. Usar el ciclo diff.py + apply.py.
+
+Ademas, hay inconsistencias entre `alembic check` y `diff.py` en la
+direccion de los nullable y en la clasificacion de indices:
+- diff dice "ORM=False, DB=True" para vehiculo.control_base_id.
+- alembic dice "existing=True, new=False".
+El diff es mas confiable (basado en snapshots).
+
+**Tier 2.** Investigar en Fase 5.
+
 **FIN DEL DOCUMENTO**
