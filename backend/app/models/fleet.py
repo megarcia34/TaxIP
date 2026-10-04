@@ -603,8 +603,8 @@ class NeumaticoVehiculo(Base):
     fecha_baja = Column(DateTime(timezone=True))
     observaciones = Column(Text)
     activo = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=now)
-    updated_at = Column(DateTime(timezone=True), default=now, onupdate=now)
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
+    updated_at = Column(DateTime(timezone=False), server_default=func.now(), onupdate=func.now())
 
 
 class NeumaticoHistorialPosicion(Base):
@@ -689,8 +689,8 @@ class NeumaticoSugerencia(Base):
     km_actual = Column(Integer)
     km_umbral = Column(Integer)
     estado = Column(String(20), default="PENDIENTE")
-    fecha_generacion = Column(DateTime(timezone=True), default=now)
-    fecha_atendida = Column(DateTime(timezone=True))
+    fecha_generacion = Column(DateTime(timezone=False), server_default=func.now())
+    fecha_atendida = Column(DateTime(timezone=False))
     atendida_por = Column(UUID(as_uuid=True), ForeignKey("auth.usuario.id"))
     created_at = Column(DateTime(timezone=True), default=now)
     updated_at = Column(DateTime(timezone=True), default=now, onupdate=now)
