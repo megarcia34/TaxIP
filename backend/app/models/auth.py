@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date, Numeric
+    String, Boolean, DateTime, ForeignKey, Text, DECIMAL, Integer, Date, Numeric, Index
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -307,7 +307,7 @@ class ResetToken(Base):
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
         nullable=False
     )
-    token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     expiracion: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     usado: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
@@ -322,7 +322,12 @@ class ResetToken(Base):
 class UsuarioRol(Base):
     """User roles (multiple roles per user)"""
     __tablename__ = "usuario_rol"
-    __table_args__ = {"schema": "auth"}
+    __table_args__ = (
+        Index("idx_usuario_rol_usuario", "usuario_id", "activo"),
+        Index("idx_usuario_rol_vigencia", "usuario_id", "fecha_inicio", "fecha_fin"),
+        Index("idx_usuario_rol_tipo", "tipo_usuario_id", "activo"),
+        {"schema": "auth"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -405,7 +410,12 @@ class UsuarioEmpresa(Base):
 class AutorizacionInicio(Base):
     """Driver shift authorization (QR-based)"""
     __tablename__ = "autorizacion_inicio"
-    __table_args__ = {"schema": "auth"}
+    __table_args__ = (
+        Index("idx_autorizacion_inicio_chofer", "chofer_id"),
+        Index("idx_autorizacion_inicio_contrato", "contrato_id"),
+        Index("idx_autorizacion_inicio_expires", "expires_at"),
+        {"schema": "auth"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -459,7 +469,13 @@ class AutorizacionInicio(Base):
 class TurnoEmpleado(Base):
     """Employee work shifts (corporate module)"""
     __tablename__ = "turno_empleado"
-    __table_args__ = {"schema": "auth"}
+    __table_args__ = (
+        Index("idx_turno_empleado_empleado_id", "empleado_id"),
+        Index("idx_turno_empleado_empresa_id", "empresa_id"),
+        Index("idx_turno_empleado_estado", "estado"),
+        Index("idx_turno_empleado_fecha_inicio", "fecha_inicio"),
+        {"schema": "auth"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -496,7 +512,12 @@ class TurnoEmpleado(Base):
 class AuditoriaEmail(Base):
     """Email validation audit"""
     __tablename__ = "auditoria_email"
-    __table_args__ = {"schema": "auth"}
+    __table_args__ = (
+        Index("idx_auditoria_email_created_at", "created_at"),
+        Index("idx_auditoria_email_email", "email"),
+        Index("idx_auditoria_email_valid", "valid"),
+        {"schema": "auth"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
