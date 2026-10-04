@@ -633,11 +633,11 @@ class NeumaticoMedicion(Base):
     historial_posicion_id = Column(UUID(as_uuid=True), ForeignKey("fleet.neumatico_historial_posicion.id"), nullable=False)
     control_base_id = Column(UUID(as_uuid=True), ForeignKey("tenant.control_base.id"), nullable=False)
     profundidad_mm = Column(Numeric(3, 1), nullable=False)
-    fecha_medicion = Column(DateTime(timezone=True), nullable=False, default=now)
+    fecha_medicion = Column(DateTime(timezone=False), nullable=False, server_default=func.now())
     medido_por = Column(UUID(as_uuid=True), ForeignKey("auth.usuario.id"))
     observaciones = Column(Text)
     activo = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=now)
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
 
 
 class NeumaticoOperacion(Base):
