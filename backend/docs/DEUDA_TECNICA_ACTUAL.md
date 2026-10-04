@@ -1,7 +1,7 @@
 # DEUDA TECNICA ACTUAL — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-01 (Ronda 6, Fase 2, Sesion 1)
-**Total items pendientes:** 53
+**Ultima actualizacion:** 2026-10-03 (Ronda 7, Fase 4b)
+**Total items pendientes:** 56
 **Total criticos:** 1 (orm.db_desalineados)
 
 ---
@@ -135,7 +135,6 @@ No deben considerarse parte del diff.
 ---
 
 ## NUEVOS — Ronda 6 (Fase 2, Sesion 1)
-## NUEVOS — Ronda 6 (Fase 2, Sesion 1)
 
 ### orm.reserva_modulo_activo — NUEVA 2026-10-02
 
@@ -217,6 +216,90 @@ frontend tambien.
 **Tier 3.** Resolver en Fase 4 si se decide ampliar vocabulario.
 
 **Ver:** docs/orm_sync/orm_decisiones.md (D-005).
+
+---
+
+## NUEVOS — Ronda 7 (Fase 4b)
+
+### datos.turno_chofer_km_final_outlier — NUEVA 2026-10-03
+
+`fleet.turno_chofer.km_final` tiene un valor maximo de 1.523.999,00 km,
+irreal para un taxi urbano. Probablemente sea un dato mal cargado
+(un monto en un campo de km) o un dato de prueba olvidado.
+
+**Impacto:** bajo. No rompe nada, pero distorsiona reportes de km.
+
+**Accion:** revisar registros con km_final > 500000 en ronda de limpieza.
+
+**Tier 3.**
+
+### orm.turno_chofer_estado_truncado — CERRADA 2026-10-03 (Fase 4b Paso 2)
+
+`fleet.turno_chofer.estado` tenia un valor de 22 caracteres
+('PENDIENTE_CONFIRMACION') en la DB. El ORM lo declaraba como
+`String(20)`, por lo que SQLAlchemy no podia escribir ese valor
+correctamente.
+
+**Estado:** CERRADO. Se cambio a `String(30)` en Ronda 7 Fase 4b Paso 2.
+
+### orm.snapshot_desactualizado — NUEVA 2026-10-03
+
+Practica preventiva: el `orm_snapshot.json` puede quedar desactualizado
+si se editan archivos del ORM sin regenerarlo. Durante Ronda 7 Fase 4b
+Paso 2 se observo un caso (9 cambios de tipo DECIMAL -> Numeric que ya
+estaban aplicados en el archivo real). En el Paso 3.13.0 se verifico que
+el snapshot estaba correcto (el diff no cambio tras regenerarlo), por lo
+que la deuda se mantiene como practica, no como bug reproducible.
+
+**Impacto:** el diff puede reportar items ya resueltos.
+
+**Accion:** regenerar snapshots (introspect_orm.py + diff.py) al inicio
+de cada paso.
+
+**Tier 2.**
+
+### orm.diff_falsos_positivos_tipo_cambio — NUEVA 2026-10-03
+
+Cuando se cambia el tipo o nullable de una columna, `diff.py` puede
+reportarla como `columna_falta` en el proximo diff (porque no re-matchea
+la columna). Tambien puede reportar `constraint_sobra` para FKs que
+no matchean por nombre.
+
+**Impacto:** bajo. Genera falsos positivos al aplicar cambios.
+
+**Accion:** investigar `diff.py`. Bug conocido. Postergado.
+
+**Tier 2.**
+
+### orm.diff_check_constraints_duplicados — NUEVA 2026-10-03
+
+`diff.py` compara CHECKs por nombre. Cuando el ORM declara un CHECK con
+`name="X"` y la DB lo tiene con `name="ck_<tabla>_X"` (autogenerado por
+Alembic), el diff los cuenta como 2 items distintos:
+- `constraint_falta` (DB tiene, ORM no).
+- `constraint_sobra` (ORM tiene, DB no).
+
+El ORM esta bien. El diff tiene un bug de comparacion.
+
+**Impacto:** genera falsos positivos en trip.py (8+8 items) y otros archivos.
+
+**Accion:** investigar diff.py. Bug conocido.
+
+**Tier 2.**
+
+### orm.diff_check_nombres_no_matchean — NUEVA 2026-10-03
+
+`diff.py` compara CHECKs por nombre. Los `*_not_null` autogenerados por
+Alembic no son declarados por el ORM como `CheckConstraint`. El diff los
+reporta como `falta` + `sobra`. Renombrar el CHECK en el ORM no resuelve
+el problema.
+
+**Impacto:** bajo. Genera ~400 falsos positivos en constraint_falta y
+~24 en constraint_sobra.
+
+**Accion:** investigar introspect_orm.py y diff.py. Bug conocido.
+
+**Tier 2.**
 
 ---
 
@@ -498,18 +581,23 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 | Critico | 1 |
 | Nuevos Ronda 5 | 6 |
 | Nuevos Ronda 6 (Fase 2) | 4 |
+| Nuevos Ronda 7 (Fase 4b) | 4 |
 | Alta prioridad | 4 |
 | Media prioridad | 15 |
 | Baja prioridad | 21 |
 | Expo-router / EAS | 3 |
-| **TOTAL PENDIENTES** | **53** |
+| **TOTAL PENDIENTES** | **56** |
 
 **Notas sobre el recuento:**
 - Cerradas en Ronda 6: J9 (falso positivo), metodo_pago.catalogo (absorbido
   en D-005).
 - Nuevas en Ronda 6: metodo_pago.catalogo_sucio, metodo_pago.fk_catalogo,
   metodo_pago.ingreso_turno, metodo_pago.frontend_e2.
-- Balance neto: -2 cerradas + 4 nuevas = +2 items. De 51 a 53.
+- Cerrada en Ronda 7 (Fase 4b): orm.turno_chofer_estado_truncado.
+- Nuevas en Ronda 7 (Fase 4b): orm.snapshot_desactualizado,
+  orm.diff_falsos_positivos_tipo_cambio, orm.diff_check_constraints_duplicados,
+  orm.diff_check_nombres_no_matchean.
+- Balance neto: -1 cerrada + 4 nuevas = +3. De 53 a 56.
 
 ---
 
@@ -522,76 +610,5 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 - **Baseline:** `docs/orm_sync/baseline_info.md`
 - **Backups:** `docs/backups/`
 - **Bitacoras:** `E:\Taxip\app chofer\BITACORA_M1.md`, `M2`, `M3`.
-
----
-
-### datos.turno_chofer_km_final_outlier — NUEVA 2026-10-03
-
-`fleet.turno_chofer.km_final` tiene un valor maximo de 1.523.999,00 km,
-irreal para un taxi urbano. Probablemente sea un dato mal cargado
-(un monto en un campo de km) o un dato de prueba olvidado.
-
-**Impacto:** bajo. No rompe nada, pero distorsiona reportes de km.
-
-**Accion:** revisar registros con km_final > 500000 en ronda de limpieza.
-
-**Tier 3.**
-
-### orm.turno_chofer_estado_truncado — NUEVA 2026-10-03 (CERRADA)
-
-`fleet.turno_chofer.estado` tiene un valor de 22 caracteres
-('PENDIENTE_CONFIRMACION') en la DB. El ORM lo declaraba como
-`String(20)`, por lo que SQLAlchemy no podia escribir ese valor
-correctamente.
-
-**Estado:** CERRADO en Fase 4b Paso 2. Se cambio a `String(30)`.
-
-### datos.turno_chofer_km_final_outlier — NUEVA 2026-10-03
-
-`fleet.turno_chofer.km_final` tiene un valor maximo de 1.523.999,00 km,
-irreal para un taxi urbano. Probablemente sea un dato mal cargado
-(un monto en un campo de km) o un dato de prueba olvidado.
-
-**Impacto:** bajo. No rompe nada, pero distorsiona reportes de km.
-
-**Accion:** revisar registros con km_final > 500000 en ronda de limpieza.
-
-**Tier 3.**
-
-### orm.turno_chofer_estado_truncado — CERRADA 2026-10-03 (Fase 4b Paso 2)
-
-`fleet.turno_chofer.estado` tenia un valor de 22 caracteres
-('PENDIENTE_CONFIRMACION') en la DB. El ORM lo declaraba como
-`String(20)`, por lo que SQLAlchemy no podia escribir ese valor
-correctamente.
-
-**Estado:** CERRADO. Se cambio a `String(30)` en Ronda 7 Fase 4b Paso 2.
-
-### orm.snapshot_desactualizado — NUEVA 2026-10-03
-
-Durante Ronda 7 Fase 4b se detecto que el `orm_snapshot.json` puede
-quedar desactualizado si se editan archivos del ORM sin regenerarlo.
-El snapshot previo al Paso 2 reportaba ~9 cambios de tipo (DECIMAL ->
-Numeric) que ya estaban aplicados en el archivo real.
-
-**Impacto:** el diff puede reportar items ya resueltos.
-
-**Accion:** regenerar snapshots (introspect_orm.py + diff.py) al inicio
-de cada paso.
-
-**Tier 2.**
-
-### orm.diff_falsos_positivos_tipo_cambio — NUEVA 2026-10-03
-
-Cuando se cambia el tipo o nullable de una columna, `diff.py` puede
-reportarla como `columna_falta` en el próximo diff (porque no re-matchea
-la columna). Tambien puede reportar `constraint_sobra` para FKs que
-no matchean por nombre.
-
-**Impacto:** bajo. Genera falsos positivos al aplicar cambios.
-
-**Accion:** investigar `diff.py`. Bug conocido. Postergado.
-
-**Tier 2.**
 
 **FIN DEL DOCUMENTO**
