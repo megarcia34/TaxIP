@@ -155,17 +155,20 @@ class ConfiguracionTarifa(Base):
     distancia_por_ficha: Mapped[Optional[float]] = mapped_column(
         Numeric,
         default=100,
-        doc="DEPRECATED - Usar metros_por_ficha"
+        doc="DEPRECATED - Usar metros_por_ficha",
+        comment="Distancia en metros por cada ficha (ej: 100m)"
     )
     precio_por_ficha: Mapped[Optional[float]] = mapped_column(
         Numeric,
         default=0,
-        doc="Precio por cada ficha"
+        doc="Precio por cada ficha",
+        comment="Precio por cada ficha"
     )
     precio_por_minuto_espera: Mapped[Optional[float]] = mapped_column(
         Numeric,
         default=0,
-        doc="DEPRECATED - Usar seg_por_ficha_espera"
+        doc="DEPRECATED - Usar seg_por_ficha_espera",
+        comment="Precio por minuto de espera"
     )
 
     # Recargos
@@ -182,17 +185,20 @@ class ConfiguracionTarifa(Base):
     recargo_domingo: Mapped[Optional[float]] = mapped_column(
         Numeric,
         default=1.0,
-        doc="Factor de recargo para domingos (1.0 = sin recargo)"
+        doc="Factor de recargo para domingos (1.0 = sin recargo)",
+        comment="Factor de recargo para domingos (1.0 = sin recargo)"
     )
     hora_inicio_nocturno: Mapped[Optional[time]] = mapped_column(
         Time,
         default=time(22, 0),
-        doc="Hora de inicio del recargo nocturno"
+        doc="Hora de inicio del recargo nocturno",
+        comment="Hora de inicio del recargo nocturno (ej: 22:00)"
     )
     hora_fin_nocturno: Mapped[Optional[time]] = mapped_column(
         Time,
         default=time(6, 0),
-        doc="Hora de fin del recargo nocturno"
+        doc="Hora de fin del recargo nocturno",
+        comment="Hora de fin del recargo nocturno (ej: 06:00)"
     )
 
     # Metadata
@@ -200,7 +206,8 @@ class ConfiguracionTarifa(Base):
     moneda: Mapped[Optional[str]] = mapped_column(
         String(3),
         default='ARS',
-        doc="Moneda de la tarifa"
+        doc="Moneda de la tarifa",
+        comment="Moneda de la tarifa (ARS, USD, etc.)"
     )
     descripcion: Mapped[Optional[str]] = mapped_column(
         Text,
