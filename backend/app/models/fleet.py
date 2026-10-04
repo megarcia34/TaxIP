@@ -280,8 +280,8 @@ class CategoriaGasto(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=text("now()"))
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,
-        default=datetime.now,
-        onupdate=datetime.now,
+        server_default=text("now()"),
+        onupdate=text("now()"),
         nullable=True
     )
 
@@ -382,7 +382,7 @@ class MantenimientoVehiculo(Base):
     kilometraje: Mapped[int] = mapped_column(Integer, nullable=True)
     observaciones: Mapped[str] = mapped_column(Text, nullable=True)
     fecha_servicio: Mapped[datetime] = mapped_column(Date, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     vehiculo = relationship(
         "Vehiculo",
@@ -562,7 +562,7 @@ class DocumentoPropietario(Base):
     observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     url_archivo: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     
     # ============================================================
     # COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
@@ -786,7 +786,7 @@ class DocumentosChofer(Base):
         nullable=False,
         comment="URL del documento almacenado (local, S3, etc)"
     )
-    subido_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    subido_en: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     fecha_vencimiento: Mapped[datetime] = mapped_column(Date, nullable=True)
     notificar_dias: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -901,7 +901,7 @@ class Marca(Base):
         default=uuid.uuid4
     )
     nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     # Relationships
     modelos: Mapped[list["Modelo"]] = relationship(
@@ -930,8 +930,7 @@ class Modelo(Base):
         nullable=False
     )
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     # Relationships
     marca: Mapped["Marca"] = relationship("Marca", back_populates="modelos", lazy="selectin")
 
