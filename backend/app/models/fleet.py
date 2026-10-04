@@ -712,9 +712,9 @@ class NeumaticoImagen(Base):
     peso_bytes = Column(Integer)
     dimensiones = Column(String(20))
     subido_por = Column(UUID(as_uuid=True), ForeignKey("auth.usuario.id"))
-    fecha_subida = Column(DateTime(timezone=True), default=now)
+    fecha_subida = Column(DateTime(timezone=False), server_default=func.now())
     activo = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=now)
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
 
     # ============================================================
     # MODELO CONTRATO_QR - AGREGADO PARA COMPLETAR EL ESQUEMA FLEET
