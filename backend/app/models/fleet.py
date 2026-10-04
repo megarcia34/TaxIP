@@ -75,10 +75,10 @@ class Vehiculo(Base):
         comment="Fecha y hora de la última actualización del registro del vehículo"
     )
 
-    # ============================================================
-    # COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
-    # 5 columnas de estado de neumaticos (D-0804 a D-0808).
-    # ============================================================
+# ============================================================
+# COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
+# 5 columnas de estado de neumaticos (D-0804 a D-0808).
+# ============================================================
     desgaste_manual: Mapped[Optional[int]] = mapped_column(
         Integer,
         nullable=True,
@@ -292,9 +292,9 @@ class CategoriaGasto(Base):
     )
 
 
-# ============================================================
-# GASTO VEHÃCULO
-# ============================================================
+    # ============================================================
+    # GASTO VEHÃCULO
+    # ============================================================
 
 class GastoVehiculo(Base):
     """Vehicle expenses. Coincide con fleet.gasto_vehiculo."""
@@ -476,9 +476,9 @@ class ContratoVehiculo(Base):
     chofer = relationship("Usuario", foreign_keys=[chofer_id])
     vehiculo = relationship("Vehiculo", foreign_keys=[vehiculo_id], back_populates="contratos")
 
-# ============================================================
-# DOCUMENTOS (Fase 7) - ALINEADOS CON LA BASE DE DATOS
-# ============================================================
+    # ============================================================
+    # DOCUMENTOS (Fase 7) - ALINEADOS CON LA BASE DE DATOS
+    # ============================================================
 
 class DocumentoVehiculo(Base):
     """Documentos del vehÃ­culo (seguro, VTV, patente, cÃ©dula, etc.)"""
@@ -558,10 +558,10 @@ class DocumentoPropietario(Base):
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     
-# ============================================================
-# COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
-# 1 columna faltante (D-0766).
-# ============================================================
+    # ============================================================
+    # COLUMNA AGREGADA EN FASE 4b (Ronda 7, reconciliacion ORM)
+    # 1 columna faltante (D-0766).
+    # ============================================================
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=False),
         nullable=True,
@@ -574,9 +574,9 @@ class DocumentoPropietario(Base):
     )
 
 
-# ============================================================
-# MODELOS DE NEUMÃTICOS (sin cambios)
-# ============================================================
+    # ============================================================
+    #  MODELOS DE NEUMÃTICOS (sin cambios)
+    # ============================================================
 
 class NeumaticoVehiculo(Base):
     __tablename__ = "neumatico_vehiculo"
@@ -710,9 +710,9 @@ class NeumaticoImagen(Base):
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=now)
 
-# ============================================================
-# MODELO CONTRATO_QR - AGREGADO PARA COMPLETAR EL ESQUEMA FLEET
-# ============================================================
+    # ============================================================
+    # MODELO CONTRATO_QR - AGREGADO PARA COMPLETAR EL ESQUEMA FLEET
+    # ============================================================
 
 class ContratoQr(Base):
     """
@@ -749,8 +749,8 @@ class ContratoQr(Base):
     creador: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
 
     # ============================================================
-# MODELO DOCUMENTOS_CHOFER
-# ============================================================
+    # MODELO DOCUMENTOS_CHOFER
+    # ============================================================
 
 class DocumentosChofer(Base):
     """
