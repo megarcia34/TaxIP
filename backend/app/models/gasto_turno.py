@@ -6,7 +6,7 @@ Coincide con fleet.gasto_turno
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Numeric, Text, CheckConstraint
+from sqlalchemy import Column, String, DateTime, ForeignKey, Numeric, Text, CheckConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
@@ -17,7 +17,9 @@ class GastoTurno(Base):
     __tablename__ = "gasto_turno"
     __table_args__ = (
         CheckConstraint("monto > 0", name="check_monto_positivo"),
-        {"schema": "fleet"}
+        Index("idx_gasto_turno_turno", "turno_id"),
+        Index("ix_gasto_turno_categoria_id", "categoria_id"),
+        {"schema": "fleet"},
     )
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
