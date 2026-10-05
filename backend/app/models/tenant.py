@@ -6,7 +6,7 @@ Tablas: control_base, configuracion_tenant, empresa
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, Text, Integer, Date
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, Text, Integer, Date, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -15,7 +15,10 @@ from app.database import Base
 class ControlBase(Base):
     """Operating company (tenant)"""
     __tablename__ = "control_base"
-    __table_args__ = {"schema": "tenant"}
+    __table_args__ = (
+        Index("idx_control_base_ciudad", "ciudad_id"),
+        {"schema": "tenant"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -255,7 +258,13 @@ class Factura(Base):
     Tabla: tenant.factura
     """
     __tablename__ = "factura"
-    __table_args__ = {"schema": "tenant"}
+    __table_args__ = (
+        Index("idx_factura_estado", "estado"),
+        Index("idx_factura_control_base_id", "control_base_id"),
+        Index("idx_factura_periodo", "periodo"),
+        Index("idx_factura_numero_factura", "numero_factura"),
+        {"schema": "tenant"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
