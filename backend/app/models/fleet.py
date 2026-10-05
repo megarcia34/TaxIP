@@ -591,7 +591,13 @@ class DocumentoPropietario(Base):
 
 class NeumaticoVehiculo(Base):
     __tablename__ = "neumatico_vehiculo"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_neumatico_vehiculo_codigo", "codigo_interno"),
+        Index("idx_neumatico_vehiculo_control_base", "control_base_id"),
+        Index("idx_neumatico_vehiculo_estado", "estado"),
+        Index("idx_neumatico_vehiculo_vehiculo", "vehiculo_id"),
+        {"schema": "fleet"},
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     vehiculo_id = Column(UUID(as_uuid=True), ForeignKey("fleet.vehiculo.id"), nullable=False)
@@ -614,7 +620,19 @@ class NeumaticoVehiculo(Base):
 
 class NeumaticoHistorialPosicion(Base):
     __tablename__ = "neumatico_historial_posicion"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_historial_pos_neumatico", "neumatico_vehiculo_id"),
+        Index(
+            "idx_historial_pos_activa_vehiculo",
+            "vehiculo_id",
+            "eje_posicion",
+            postgresql_where=text("(activo = true) AND (fecha_desmontaje IS NULL)"),
+        ),
+        Index("idx_historial_pos_control_base", "control_base_id"),
+        Index("idx_historial_pos_eje", "eje_posicion"),
+        Index("idx_historial_pos_vehiculo", "vehiculo_id"),
+        {"schema": "fleet"},
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     neumatico_vehiculo_id = Column(UUID(as_uuid=True), ForeignKey("fleet.neumatico_vehiculo.id"), nullable=False)
@@ -632,7 +650,12 @@ class NeumaticoHistorialPosicion(Base):
 
 class NeumaticoMedicion(Base):
     __tablename__ = "neumatico_medicion"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_medicion_fecha", "fecha_medicion"),
+        Index("idx_medicion_historial", "historial_posicion_id"),
+        Index("idx_medicion_control_base", "control_base_id"),
+        {"schema": "fleet"},
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     historial_posicion_id = Column(UUID(as_uuid=True), ForeignKey("fleet.neumatico_historial_posicion.id"), nullable=False)
@@ -647,7 +670,13 @@ class NeumaticoMedicion(Base):
 
 class NeumaticoOperacion(Base):
     __tablename__ = "neumatico_operacion"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_operacion_control_base", "control_base_id"),
+        Index("idx_operacion_tipo", "tipo_operacion"),
+        Index("idx_operacion_fecha", "fecha_operacion"),
+        Index("idx_operacion_vehiculo", "vehiculo_id"),
+        {"schema": "fleet"},
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     vehiculo_id = Column(UUID(as_uuid=True), ForeignKey("fleet.vehiculo.id"), nullable=False)
@@ -668,7 +697,11 @@ class NeumaticoOperacion(Base):
 
 class NeumaticoOperacionDetalle(Base):
     __tablename__ = "neumatico_operacion_detalle"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_operacion_detalle_neumatico", "neumatico_vehiculo_id"),
+        Index("idx_operacion_detalle_operacion", "operacion_id"),
+        {"schema": "fleet"},
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     operacion_id = Column(UUID(as_uuid=True), ForeignKey("fleet.neumatico_operacion.id"), nullable=False)
@@ -682,7 +715,18 @@ class NeumaticoOperacionDetalle(Base):
 
 class NeumaticoSugerencia(Base):
     __tablename__ = "neumatico_sugerencia"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index(
+            "idx_sugerencia_pendientes",
+            "vehiculo_id",
+            "prioridad",
+            postgresql_where=text("(estado)::text = 'PENDIENTE'::text"),
+        ),
+        Index("idx_sugerencia_control_base", "control_base_id"),
+        Index("idx_sugerencia_estado", "estado"),
+        Index("idx_sugerencia_vehiculo", "vehiculo_id"),
+        {"schema": "fleet"},
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     vehiculo_id = Column(UUID(as_uuid=True), ForeignKey("fleet.vehiculo.id"), nullable=False)
@@ -704,7 +748,13 @@ class NeumaticoSugerencia(Base):
 
 class NeumaticoImagen(Base):
     __tablename__ = "neumatico_imagen"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_neumatico_imagen_cloudinary", "cloudinary_public_id", unique=True),
+        Index("idx_neumatico_imagen_neumatico", "neumatico_vehiculo_id"),
+        Index("idx_neumatico_imagen_operacion", "operacion_id"),
+        Index("idx_neumatico_imagen_control_base", "control_base_id"),
+        {"schema": "fleet"},
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     control_base_id = Column(UUID(as_uuid=True), ForeignKey("tenant.control_base.id"), nullable=False)
