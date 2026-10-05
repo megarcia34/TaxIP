@@ -6,7 +6,7 @@ Tablas: log_gps, alerta_desvio, log_acciones (schema: audit)
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, Numeric, JSON
+from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, Numeric, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, INET, JSONB
 
@@ -19,8 +19,11 @@ class LogGps(Base):
     Used to replay routes on web dashboard
     """
     __tablename__ = "log_gps"
-    __table_args__ = {"schema": "audit"}
-
+    __table_args__ = (
+        Index("idx_log_gps_usuario_id", "usuario_id"),
+        Index("idx_log_gps_viaje_id", "viaje_id"),
+        {"schema": "audit"},
+    )
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -47,7 +50,11 @@ class AlertaDesvio(Base):
     Triggered when driver deviates from expected route
     """
     __tablename__ = "alerta_desvio"
-    __table_args__ = {"schema": "audit"}
+    __table_args__ = (
+        Index("idx_alerta_desvio_viaje_id", "viaje_id"),
+        Index("idx_alerta_desvio_created_at", "created_at"),
+        {"schema": "audit"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -78,7 +85,13 @@ class LogAcciones(Base):
     Critical for forensic roles and judicial requirements
     """
     __tablename__ = "log_acciones"
-    __table_args__ = {"schema": "audit"}
+    __table_args__ = (
+        Index("idx_log_acciones_usuario", "usuario_id"),
+        Index("idx_log_acciones_accion", "accion"),
+        Index("idx_log_acciones_created", "created_at"),
+         Index("idx_log_acciones_tenant", "control_base_id"),
+        {"schema": "audit"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
