@@ -5,7 +5,7 @@ Tablas: metodo_pago, billetera, transaccion, configuracion_tarifa, configuracion
 import uuid
 from datetime import datetime, time
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Time
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Time, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -376,7 +376,13 @@ class PagoEmpresa(Base):
     Tabla: payment.pago_empresa
     """
     __tablename__ = "pago_empresa"
-    __table_args__ = {"schema": "payment"}
+    __table_args__ = (
+        Index("idx_pago_empresa_estado", "estado"),
+        Index("idx_pago_empresa_fecha", "fecha_pago"),
+        Index("idx_pago_empresa_empresa", "empresa_id"),
+        Index("idx_pago_empresa_factura", "factura_id"),
+        {"schema": "payment"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
