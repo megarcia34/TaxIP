@@ -6,7 +6,7 @@ Tablas: pais, provincia, ciudad
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, DateTime, ForeignKey
+from sqlalchemy import String, DateTime, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -60,7 +60,10 @@ class Provincia(Base):
 class Ciudad(Base):
     """City"""
     __tablename__ = "ciudad"
-    __table_args__ = {"schema": "geo"}
+    __table_args__ = (
+        Index("idx_ciudad_codigo_postal", "codigo_postal"),
+        {"schema": "geo"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
