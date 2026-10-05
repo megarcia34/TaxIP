@@ -1,11 +1,11 @@
 # Reporte de Diff ORM vs DB
 
-**Fecha:** 2026-10-05T10:56:58.344741+00:00
+**Fecha:** 2026-10-05T11:23:36.757620+00:00
 
 ## Resumen ejecutivo
 
-- **515 diferencias** en total.
-- **Tier 1**: 97 items.
+- **498 diferencias** en total.
+- **Tier 1**: 80 items.
 - **Tier 2**: 306 items.
 - **Tier 3**: 111 items.
 - **Tier 4**: 1 items.
@@ -18,12 +18,12 @@
 | indice_falta | 180 |
 | constraint_nombre_desalineado | 124 |
 | constraint_desalineada | 72 |
-| constraint_falta | 69 |
-| constraint_sobra | 25 |
+| constraint_falta | 61 |
 | comment_desalineado | 20 |
+| constraint_sobra | 17 |
 | tabla_falta | 10 |
 | nullable_desalineado | 4 |
-| indice_nombre_desalineado | 4 |
+| indice_nombre_desalineado | 3 |
 | indice_sobra | 3 |
 | schema_falta | 2 |
 | tabla_sobra | 1 |
@@ -31,7 +31,7 @@
 
 ---
 
-## Tier 1 — 97 items
+## Tier 1 — 80 items
 
 ### comment_desalineado (6)
 
@@ -55,7 +55,7 @@
 - `D-0462` — trip.historial_estado_viaje
 - `D-0483` — trip.viaje_solicitado
 
-### constraint_falta (18)
+### constraint_falta (10)
 
 - `D-0074` — auth.usuario
 - `D-0126` — fleet.chofer_vehiculo
@@ -67,14 +67,6 @@
 - `D-0485` — trip.viaje_solicitado
 - `D-0486` — trip.viaje_solicitado
 - `D-0487` — trip.viaje_solicitado
-- `D-0496` — trip.viaje_solicitado
-- `D-0497` — trip.viaje_solicitado
-- `D-0498` — trip.viaje_solicitado
-- `D-0499` — trip.viaje_solicitado
-- `D-0500` — trip.viaje_solicitado
-- `D-0501` — trip.viaje_solicitado
-- `D-0502` — trip.viaje_solicitado
-- `D-0503` — trip.viaje_solicitado
 
 ### constraint_nombre_desalineado (27)
 
@@ -106,18 +98,10 @@
 - `D-0494` — trip.viaje_solicitado
 - `D-0495` — trip.viaje_solicitado
 
-### constraint_sobra (10)
+### constraint_sobra (2)
 
 - `D-0345` — fleet.vehiculo
 - `D-0452` — trip.calificacion
-- `D-0504` — trip.viaje_solicitado
-- `D-0505` — trip.viaje_solicitado
-- `D-0506` — trip.viaje_solicitado
-- `D-0507` — trip.viaje_solicitado
-- `D-0508` — trip.viaje_solicitado
-- `D-0509` — trip.viaje_solicitado
-- `D-0510` — trip.viaje_solicitado
-- `D-0511` — trip.viaje_solicitado
 
 ### indice_falta (18)
 
@@ -138,19 +122,18 @@
 - `D-0433` — tenant.control_base
 - `D-0454` — trip.calificacion
 - `D-0464` — trip.historial_estado_viaje
-- `D-0512` — trip.viaje_solicitado
+- `D-0496` — trip.viaje_solicitado
 
-### indice_nombre_desalineado (4)
+### indice_nombre_desalineado (3)
 
 - `D-0076` — auth.usuario
 - `D-0352` — fleet.vehiculo
-- `D-0514` — trip.viaje_solicitado
-- `D-0515` — trip.viaje_solicitado
+- `D-0498` — trip.viaje_solicitado
 
 ### indice_sobra (2)
 
 - `D-0128` — fleet.chofer_vehiculo
-- `D-0513` — trip.viaje_solicitado
+- `D-0497` — trip.viaje_solicitado
 
 ### tabla_falta (2)
 

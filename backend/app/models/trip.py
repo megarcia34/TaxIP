@@ -48,35 +48,35 @@ class ViajeSolicitado(Base):
     __table_args__ = (
         CheckConstraint(
             "((calidad_minima_vehiculo IS NULL) OR ((calidad_minima_vehiculo)::text = ANY ((ARRAY['regular'::character varying, 'bueno'::character varying, 'excelente'::character varying])::text[])))",
-            name="ck_viaje_solicitado_ck_viaje_calidad_min",
+            name="ck_viaje_calidad_min",
         ),
         CheckConstraint(
             "((cargado_a_cuenta = false) OR (cuenta_corriente_id IS NOT NULL))",
-            name="ck_viaje_solicitado_ck_viaje_cc_obligatoria",
+            name="ck_viaje_cc_obligatoria",
         ),
         CheckConstraint(
             "((origen_tipo IS NULL) OR ((origen_tipo)::text <> 'despacho_manual'::text) OR (centro_costo IS NOT NULL))",
-            name="ck_viaje_solicitado_ck_viaje_centro_costo_despacho",
+            name="ck_viaje_centro_costo_despacho",
         ),
         CheckConstraint(
             "((estado_cobro IS NULL) OR ((estado_cobro)::text = ANY ((ARRAY['pendiente'::character varying, 'cobrado'::character varying, 'facturado'::character varying, 'pagado'::character varying])::text[])))",
-            name="ck_viaje_solicitado_ck_viaje_estado_cobro",
+            name="ck_viaje_estado_cobro",
         ),
         CheckConstraint(
             "((origen_tipo IS NULL) OR ((origen_tipo)::text = ANY ((ARRAY['plataforma'::character varying, 'via_publica'::character varying, 'qr_comercio'::character varying, 'corporativo'::character varying, 'despacho_manual'::character varying])::text[])))",
-            name="ck_viaje_solicitado_ck_viaje_origen_tipo",
+            name="ck_viaje_origen_tipo",
         ),
         CheckConstraint(
             "((responsable_cobro IS NULL) OR ((responsable_cobro)::text = ANY ((ARRAY['chofer'::character varying, 'propietario'::character varying, 'tenant'::character varying, 'comercio'::character varying, 'empresa'::character varying])::text[])))",
-            name="ck_viaje_solicitado_ck_viaje_responsable_cobro",
+            name="ck_viaje_responsable_cobro",
         ),
         CheckConstraint(
             "((subestado_despacho IS NULL) OR ((subestado_despacho)::text = ANY ((ARRAY['reservado'::character varying, 'despachado'::character varying, 'vehiculo_llego'::character varying, 'pasajero_a_bordo'::character varying, 'completado'::character varying])::text[])))",
-            name="ck_viaje_solicitado_ck_viaje_subestado_despacho",
+            name="ck_viaje_subestado_despacho",
         ),
         CheckConstraint(
             "((metodo_pago IS NULL) OR ((metodo_pago)::text = ANY ((ARRAY['efectivo'::character varying, 'tarjeta_debito'::character varying, 'qr'::character varying, 'transferencia'::character varying])::text[])))",
-            name="ck_viaje_solicitado_metodo_pago",
+            name="metodo_pago",
         ),
         Index("idx_viaje_aceptado", "aceptado_en", postgresql_where=text("(estado)::text = 'aceptado'::text")),
         Index("idx_viaje_chofer", "chofer_id"),
