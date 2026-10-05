@@ -1,6 +1,6 @@
 # Reporte de Diff ORM vs DB
 
-**Fecha:** 2026-10-05T12:04:50.220979+00:00
+**Fecha:** 2026-10-05T12:39:45.647154+00:00
 
 ## Resumen ejecutivo
 

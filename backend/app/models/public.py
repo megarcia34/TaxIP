@@ -6,7 +6,7 @@ Tablas: comercio, escaneo_qr
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -18,7 +18,11 @@ class Comercio(Base):
     Un comercio adherido genera un QR para que los clientes pidan taxis sin app.
     """
     __tablename__ = "comercio"
+    __table_args__ = (
+        Index("idx_comercio_codigo_qr", "codigo_qr"),
+    )
 
+    
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -56,7 +60,15 @@ class EscaneoQr(Base):
     Registra cada escaneo de QR para trazabilidad, seguridad y estadísticas.
     """
     __tablename__ = "escaneo_qr"
+    __table_args__ = (
+        Index("idx_escaneo_created", "created_at"),
+        Index("idx_escaneo_qr_contrato", "contrato_id"),
+        Index("idx_escaneo_comercio", "comercio_id"),
+        Index("idx_escaneo_qr_tipo", "tipo_qr"),
+        Index("idx_escaneo_qr_autorizacion", "autorizacion_id"),
+    )
 
+    
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
