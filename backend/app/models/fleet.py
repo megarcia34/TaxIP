@@ -24,7 +24,12 @@ now = datetime.now
 class Vehiculo(Base):
     """Vehicle information with QR fijo"""
     __tablename__ = "vehiculo"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_vehiculo_qr", "qr_uuid"),
+        Index("ix_vehiculo_capacidad_baul", "capacidad_baul"),
+        Index("ix_vehiculo_estado_vehiculo", "estado_vehiculo"),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -305,7 +310,11 @@ class CategoriaGasto(Base):
 class GastoVehiculo(Base):
     """Vehicle expenses. Coincide con fleet.gasto_vehiculo."""
     __tablename__ = "gasto_vehiculo"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("ix_gasto_vehiculo_categoria_id", "categoria_id"),
+        Index("ix_gasto_vehiculo_km_registro", "km_registro"),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -509,7 +518,11 @@ class ContratoVehiculo(Base):
 class DocumentoVehiculo(Base):
     """Documentos del vehÃ­culo (seguro, VTV, patente, cÃ©dula, etc.)"""
     __tablename__ = "documento_vehiculo"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_documento_vehiculo_fecha_vencimiento", "fecha_vencimiento"),
+        Index("idx_documento_vehiculo_vehiculo_id", "vehiculo_id"),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -607,6 +620,7 @@ class DocumentoPropietario(Base):
 class NeumaticoVehiculo(Base):
     __tablename__ = "neumatico_vehiculo"
     __table_args__ = (
+        Index("uq_neumatico_codigo_interno", "control_base_id", "codigo_interno", unique=True),
         Index("idx_neumatico_vehiculo_codigo", "codigo_interno"),
         Index("idx_neumatico_vehiculo_control_base", "control_base_id"),
         Index("idx_neumatico_vehiculo_estado", "estado"),
@@ -844,7 +858,11 @@ class DocumentosChofer(Base):
     Tabla: fleet.documentos_chofer
     """
     __tablename__ = "documentos_chofer"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_documentos_chofer_usuario", "usuario_id"),
+        Index("idx_documentos_chofer_tipo", "tipo_documento"),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -885,7 +903,11 @@ class FotoVehiculo(Base):
     Tabla: fleet.foto_vehiculo
     """
     __tablename__ = "foto_vehiculo"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_foto_vehiculo_vehiculo", "vehiculo_id"),
+        Index("idx_foto_vehiculo_principal", "vehiculo_id", "es_principal"),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
