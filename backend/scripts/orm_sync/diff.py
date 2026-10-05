@@ -249,6 +249,36 @@ def diff_tables(db, orm, schemas_comunes):
     return diff
 
 
+
+
+
+def _types_equivalent(db_type, orm_type):
+    """
+    Compara tipos DB vs ORM normalizando casos conocidos.
+
+    - Geography/Geometry: GeoAlchemy2 normaliza a lowercase; la DB puede
+      tener 'Point'/'MultiPolygon' con mayuscula. Comparacion case-insensitive.
+    - Resto: comparacion exacta (no enmascarar diferencias reales).
+
+    Returns True si son equivalentes, False si hay divergencia real.
+    """
+    if db_type is None and orm_type is None:
+        return True
+    if db_type is None or orm_type is None:
+        return False
+
+    db_str = str(db_type).strip()
+    orm_str = str(orm_type).strip()
+
+    db_low = db_str.lower()
+    orm_low = orm_str.lower()
+
+    if db_low.startswith("geography") or db_low.startswith("geometry"):
+        return db_low == orm_low
+
+    return db_str == orm_str
+
+
 # ============================================================
 # Comparacion: columnas
 # ============================================================
@@ -285,7 +315,7 @@ def diff_columns(db_table, orm_table, schema, tabla):
         orm_col = orm_cols[col_name]
 
         # Tipo
-        if db_col.get("type") != orm_col.get("type"):
+        if not _types_equivalent(db_col.get("type"), orm_col.get("type")):
             diff.append({
                 "id": None,
                 "clasificacion": "tipo_desalineado",
