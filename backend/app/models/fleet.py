@@ -251,7 +251,8 @@ class CategoriaGasto(Base):
     __tablename__ = "categoria_gasto"
     __table_args__ = (
         UniqueConstraint('control_base_id', 'nombre', name='uq_categoria_gasto_tenant_nombre'),
-        {"schema": "fleet"}
+        Index("ix_categoria_gasto_control_base_id", "control_base_id"),
+        {"schema": "fleet"},
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -576,7 +577,10 @@ class DocumentoVehiculo(Base):
 class DocumentoPropietario(Base):
     """Documentos personales del propietario (DNI, Licencia, CUIT, etc.)"""
     __tablename__ = "documento_propietario"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("idx_documento_propietario_propietario_id", "propietario_id"),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -859,6 +863,12 @@ class DocumentosChofer(Base):
     """
     __tablename__ = "documentos_chofer"
     __table_args__ = (
+        Index(
+            "documentos_chofer_usuario_id_tipo_documento_key",
+            "usuario_id",
+            "tipo_documento",
+            unique=True,
+        ),
         Index("idx_documentos_chofer_usuario", "usuario_id"),
         Index("idx_documentos_chofer_tipo", "tipo_documento"),
         {"schema": "fleet"},
