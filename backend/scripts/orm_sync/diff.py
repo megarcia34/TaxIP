@@ -15,6 +15,7 @@ Uso:
 import argparse
 import csv
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -59,6 +60,12 @@ TIER_1_TABLES = {
 TIER_4_TABLES = {
     ("trip", "reserva"),
 }
+
+
+# Patron de nombres autogenerados por Alembic para NOT NULL.
+# Formato: <oid1>_<oid2>_<ordinal>_not_null
+# Estos CHECKs no son declarados por el ORM y no representan deuda real.
+RE_NOT_NULL_AUTOGEN = re.compile(r"^\d+_\d+_\d+_not_null$")
 
 
 # ============================================================
@@ -449,8 +456,19 @@ def diff_constraints(db_table, orm_table, schema, tabla):
         })
 
     # CHECKs - match por nombre (los CHECK no siempre tienen columnas)
-    db_cks = {c.get("name"): c for c in db_cons.get("check", [])}
-    orm_cks = {c.get("name"): c for c in orm_cons.get("check", [])}
+    # CHECKs - match por nombre (los CHECK no siempre tienen columnas).
+    # Excluye *_not_null autogenerados por Alembic: no son deuda real,
+    # son artefactos del ALTER TABLE ... SET NOT NULL.
+    db_cks = {
+        c.get("name"): c
+        for c in db_cons.get("check", [])
+        if not RE_NOT_NULL_AUTOGEN.match(c.get("name") or "")
+    }
+    orm_cks = {
+        c.get("name"): c
+        for c in orm_cons.get("check", [])
+        if not RE_NOT_NULL_AUTOGEN.match(c.get("name") or "")
+    }
 
     for name in db_cks.keys() - orm_cks.keys():
         diff.append({
