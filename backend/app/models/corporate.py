@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 from decimal import Decimal
 
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Enum as SQLEnum, func
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Enum as SQLEnum, func, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
@@ -85,7 +85,11 @@ class MovimientoCuenta(Base):
     Tabla: corporate.movimiento_cuenta
     """
     __tablename__ = "movimiento_cuenta"
-    __table_args__ = {"schema": "corporate"}
+    __table_args__ = (
+        Index("idx_movimiento_cuenta_cuenta", "cuenta_id"),
+        Index("idx_movimiento_cuenta_fecha", "created_at"),
+        {"schema": "corporate"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -140,7 +144,12 @@ class FacturaCorporativa(Base):
     Tabla: corporate.factura_corporativa
     """
     __tablename__ = "factura_corporativa"
-    __table_args__ = {"schema": "corporate"}
+    __table_args__ = (
+        Index("idx_factura_corporativa_empresa", "empresa_id"),
+        Index("idx_factura_corporativa_fecha", "fecha_emision"),
+        Index("idx_factura_corporativa_estado", "estado"),
+        {"schema": "corporate"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -196,7 +205,11 @@ class PagoCorporativo(Base):
     Tabla: corporate.pago_corporativo
     """
     __tablename__ = "pago_corporativo"
-    __table_args__ = {"schema": "corporate"}
+    __table_args__ = (
+        Index("idx_pago_corporativo_factura", "factura_id"),
+        Index("idx_pago_corporativo_fecha", "fecha_pago"),
+        {"schema": "corporate"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

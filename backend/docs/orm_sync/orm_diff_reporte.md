@@ -1,12 +1,12 @@
 # Reporte de Diff ORM vs DB
 
-**Fecha:** 2026-10-05T11:52:30.068080+00:00
+**Fecha:** 2026-10-05T12:00:15.365640+00:00
 
 ## Resumen ejecutivo
 
-- **490 diferencias** en total.
+- **483 diferencias** en total.
 - **Tier 1**: 80 items.
-- **Tier 2**: 298 items.
+- **Tier 2**: 291 items.
 - **Tier 3**: 111 items.
 - **Tier 4**: 1 items.
 - **2 items requieren decision manual.**
@@ -15,7 +15,7 @@
 
 | Clasificacion | Cantidad |
 |---|---|
-| indice_falta | 172 |
+| indice_falta | 165 |
 | constraint_nombre_desalineado | 124 |
 | constraint_desalineada | 72 |
 | constraint_falta | 61 |
@@ -35,105 +35,105 @@
 
 ### comment_desalineado (6)
 
-- `D-0188` — declarado_por
-- `D-0189` — transaccion_id
-- `D-0324` — snapshot_dia_contractual
-- `D-0452` — latitud
-- `D-0453` — longitud
-- `D-0474` — solicitado_en
+- `D-0181` — declarado_por
+- `D-0182` — transaccion_id
+- `D-0317` — snapshot_dia_contractual
+- `D-0445` — latitud
+- `D-0446` — longitud
+- `D-0467` — solicitado_en
 
 ### constraint_desalineada (10)
 
 - `D-0062` — auth.usuario
-- `D-0114` — fleet.chofer_vehiculo
-- `D-0190` — fleet.ingreso_turno
-- `D-0325` — fleet.turno_chofer
-- `D-0334` — fleet.vehiculo
-- `D-0391` — payment.transaccion
-- `D-0421` — tenant.control_base
-- `D-0440` — trip.calificacion
-- `D-0454` — trip.historial_estado_viaje
-- `D-0475` — trip.viaje_solicitado
+- `D-0107` — fleet.chofer_vehiculo
+- `D-0183` — fleet.ingreso_turno
+- `D-0318` — fleet.turno_chofer
+- `D-0327` — fleet.vehiculo
+- `D-0384` — payment.transaccion
+- `D-0414` — tenant.control_base
+- `D-0433` — trip.calificacion
+- `D-0447` — trip.historial_estado_viaje
+- `D-0468` — trip.viaje_solicitado
 
 ### constraint_falta (10)
 
 - `D-0066` — auth.usuario
-- `D-0118` — fleet.chofer_vehiculo
-- `D-0336` — fleet.vehiculo
-- `D-0338` — fleet.vehiculo
-- `D-0339` — fleet.vehiculo
-- `D-0445` — trip.calificacion
-- `D-0476` — trip.viaje_solicitado
-- `D-0477` — trip.viaje_solicitado
-- `D-0478` — trip.viaje_solicitado
-- `D-0479` — trip.viaje_solicitado
+- `D-0111` — fleet.chofer_vehiculo
+- `D-0329` — fleet.vehiculo
+- `D-0331` — fleet.vehiculo
+- `D-0332` — fleet.vehiculo
+- `D-0438` — trip.calificacion
+- `D-0469` — trip.viaje_solicitado
+- `D-0470` — trip.viaje_solicitado
+- `D-0471` — trip.viaje_solicitado
+- `D-0472` — trip.viaje_solicitado
 
 ### constraint_nombre_desalineado (27)
 
 - `D-0063` — auth.usuario
 - `D-0064` — auth.usuario
 - `D-0065` — auth.usuario
-- `D-0115` — fleet.chofer_vehiculo
-- `D-0116` — fleet.chofer_vehiculo
-- `D-0117` — fleet.chofer_vehiculo
-- `D-0326` — fleet.turno_chofer
-- `D-0327` — fleet.turno_chofer
-- `D-0328` — fleet.turno_chofer
-- `D-0335` — fleet.vehiculo
-- `D-0392` — payment.transaccion
-- `D-0393` — payment.transaccion
-- `D-0394` — payment.transaccion
-- `D-0422` — tenant.control_base
-- `D-0423` — tenant.control_base
-- `D-0441` — trip.calificacion
-- `D-0442` — trip.calificacion
-- `D-0443` — trip.calificacion
-- `D-0455` — trip.historial_estado_viaje
+- `D-0108` — fleet.chofer_vehiculo
+- `D-0109` — fleet.chofer_vehiculo
+- `D-0110` — fleet.chofer_vehiculo
+- `D-0319` — fleet.turno_chofer
+- `D-0320` — fleet.turno_chofer
+- `D-0321` — fleet.turno_chofer
+- `D-0328` — fleet.vehiculo
+- `D-0385` — payment.transaccion
+- `D-0386` — payment.transaccion
+- `D-0387` — payment.transaccion
+- `D-0415` — tenant.control_base
+- `D-0416` — tenant.control_base
+- `D-0434` — trip.calificacion
+- `D-0435` — trip.calificacion
+- `D-0436` — trip.calificacion
+- `D-0448` — trip.historial_estado_viaje
+- `D-0473` — trip.viaje_solicitado
+- `D-0474` — trip.viaje_solicitado
+- `D-0475` — trip.viaje_solicitado
+- `D-0476` — trip.viaje_solicitado
+- `D-0477` — trip.viaje_solicitado
+- `D-0478` — trip.viaje_solicitado
+- `D-0479` — trip.viaje_solicitado
 - `D-0480` — trip.viaje_solicitado
-- `D-0481` — trip.viaje_solicitado
-- `D-0482` — trip.viaje_solicitado
-- `D-0483` — trip.viaje_solicitado
-- `D-0484` — trip.viaje_solicitado
-- `D-0485` — trip.viaje_solicitado
-- `D-0486` — trip.viaje_solicitado
-- `D-0487` — trip.viaje_solicitado
 
 ### constraint_sobra (2)
 
-- `D-0337` — fleet.vehiculo
-- `D-0444` — trip.calificacion
+- `D-0330` — fleet.vehiculo
+- `D-0437` — trip.calificacion
 
 ### indice_falta (18)
 
 - `D-0067` — auth.usuario
-- `D-0119` — fleet.chofer_vehiculo
-- `D-0191` — fleet.ingreso_turno
-- `D-0329` — fleet.turno_chofer
-- `D-0330` — fleet.turno_chofer
-- `D-0331` — fleet.turno_chofer
-- `D-0332` — fleet.turno_chofer
-- `D-0333` — fleet.turno_chofer
-- `D-0340` — fleet.vehiculo
-- `D-0341` — fleet.vehiculo
-- `D-0342` — fleet.vehiculo
-- `D-0343` — fleet.vehiculo
-- `D-0395` — payment.transaccion
-- `D-0424` — tenant.control_base
-- `D-0425` — tenant.control_base
-- `D-0446` — trip.calificacion
-- `D-0456` — trip.historial_estado_viaje
-- `D-0488` — trip.viaje_solicitado
+- `D-0112` — fleet.chofer_vehiculo
+- `D-0184` — fleet.ingreso_turno
+- `D-0322` — fleet.turno_chofer
+- `D-0323` — fleet.turno_chofer
+- `D-0324` — fleet.turno_chofer
+- `D-0325` — fleet.turno_chofer
+- `D-0326` — fleet.turno_chofer
+- `D-0333` — fleet.vehiculo
+- `D-0334` — fleet.vehiculo
+- `D-0335` — fleet.vehiculo
+- `D-0336` — fleet.vehiculo
+- `D-0388` — payment.transaccion
+- `D-0417` — tenant.control_base
+- `D-0418` — tenant.control_base
+- `D-0439` — trip.calificacion
+- `D-0449` — trip.historial_estado_viaje
+- `D-0481` — trip.viaje_solicitado
 
 ### indice_nombre_desalineado (3)
 
 - `D-0068` — auth.usuario
-- `D-0344` — fleet.vehiculo
-- `D-0490` — trip.viaje_solicitado
+- `D-0337` — fleet.vehiculo
+- `D-0483` — trip.viaje_solicitado
 
 ### indice_sobra (2)
 
-- `D-0120` — fleet.chofer_vehiculo
-- `D-0489` — trip.viaje_solicitado
+- `D-0113` — fleet.chofer_vehiculo
+- `D-0482` — trip.viaje_solicitado
 
 ### tabla_falta (2)
 
@@ -142,7 +142,7 @@
 
 ---
 
-## Tier 2 — 298 items
+## Tier 2 — 291 items
 
 ### columna_falta (1)
 
@@ -166,40 +166,40 @@
 - `D-0074` — auth.usuario_rol
 - `D-0078` — corporate.cuenta_corriente
 - `D-0086` — corporate.factura_corporativa
-- `D-0095` — corporate.movimiento_cuenta
-- `D-0102` — corporate.pago_corporativo
-- `D-0107` — fleet.categoria_gasto
-- `D-0121` — fleet.contrato_qr
-- `D-0128` — fleet.contrato_vehiculo
-- `D-0151` — fleet.documento_propietario
-- `D-0156` — fleet.documento_vehiculo
-- `D-0161` — fleet.documentos_chofer
-- `D-0168` — fleet.foto_vehiculo
-- `D-0172` — fleet.gasto_turno
-- `D-0181` — fleet.gasto_vehiculo
-- `D-0192` — fleet.liquidacion
-- `D-0203` — fleet.liquidacion_ajuste
-- `D-0208` — fleet.liquidacion_detalle
-- `D-0211` — fleet.liquidacion_estado_historial
-- `D-0217` — fleet.mantenimiento_vehiculo
-- `D-0221` — fleet.marca
-- `D-0226` — fleet.modelo
-- `D-0231` — fleet.neumatico_historial_posicion
-- `D-0243` — fleet.neumatico_imagen
-- `D-0254` — fleet.neumatico_medicion
-- `D-0263` — fleet.neumatico_operacion
-- `D-0273` — fleet.neumatico_operacion_detalle
-- `D-0279` — fleet.neumatico_sugerencia
-- `D-0292` — fleet.neumatico_vehiculo
-- `D-0306` — fleet.notificacion_vencimiento
-- `D-0317` — fleet.propietario_vehiculo
-- `D-0345` — geo.ciudad
-- `D-0349` — geo.pais
-- `D-0351` — geo.provincia
-- `D-0354` — notification.notificacion
-- `D-0357` — payment.billetera
-- `D-0365` — payment.configuracion_tarifa
-- `D-0368` — payment.configuracion_tarifa_vehiculo
+- `D-0092` — corporate.movimiento_cuenta
+- `D-0097` — corporate.pago_corporativo
+- `D-0100` — fleet.categoria_gasto
+- `D-0114` — fleet.contrato_qr
+- `D-0121` — fleet.contrato_vehiculo
+- `D-0144` — fleet.documento_propietario
+- `D-0149` — fleet.documento_vehiculo
+- `D-0154` — fleet.documentos_chofer
+- `D-0161` — fleet.foto_vehiculo
+- `D-0165` — fleet.gasto_turno
+- `D-0174` — fleet.gasto_vehiculo
+- `D-0185` — fleet.liquidacion
+- `D-0196` — fleet.liquidacion_ajuste
+- `D-0201` — fleet.liquidacion_detalle
+- `D-0204` — fleet.liquidacion_estado_historial
+- `D-0210` — fleet.mantenimiento_vehiculo
+- `D-0214` — fleet.marca
+- `D-0219` — fleet.modelo
+- `D-0224` — fleet.neumatico_historial_posicion
+- `D-0236` — fleet.neumatico_imagen
+- `D-0247` — fleet.neumatico_medicion
+- `D-0256` — fleet.neumatico_operacion
+- `D-0266` — fleet.neumatico_operacion_detalle
+- `D-0272` — fleet.neumatico_sugerencia
+- `D-0285` — fleet.neumatico_vehiculo
+- `D-0299` — fleet.notificacion_vencimiento
+- `D-0310` — fleet.propietario_vehiculo
+- `D-0338` — geo.ciudad
+- `D-0342` — geo.pais
+- `D-0344` — geo.provincia
+- `D-0347` — notification.notificacion
+- `D-0350` — payment.billetera
+- `D-0358` — payment.configuracion_tarifa
+- `D-0361` — payment.configuracion_tarifa_vehiculo
 - ... y 12 mas (ver JSON)
 
 ### constraint_falta (51)
@@ -245,17 +245,17 @@
 - `D-0054` — auth.tipo_usuario
 - `D-0081` — corporate.cuenta_corriente
 - `D-0088` — corporate.factura_corporativa
-- `D-0110` — fleet.categoria_gasto
-- `D-0123` — fleet.contrato_qr
-- `D-0176` — fleet.gasto_turno
-- `D-0223` — fleet.marca
-- `D-0360` — payment.billetera
-- `D-0378` — payment.metodo_pago
-- `D-0399` — public.comercio
-- `D-0419` — tenant.configuracion_tenant
-- `D-0434` — tenant.factura
+- `D-0103` — fleet.categoria_gasto
+- `D-0116` — fleet.contrato_qr
+- `D-0169` — fleet.gasto_turno
+- `D-0216` — fleet.marca
+- `D-0353` — payment.billetera
+- `D-0371` — payment.metodo_pago
+- `D-0392` — public.comercio
+- `D-0412` — tenant.configuracion_tenant
+- `D-0427` — tenant.factura
 
-### indice_falta (154)
+### indice_falta (147)
 
 | Tabla | Cantidad |
 |---|---|
@@ -264,7 +264,6 @@
 | fleet.neumatico_historial_posicion | 6 |
 | fleet.neumatico_vehiculo | 6 |
 | public.escaneo_qr | 6 |
-| corporate.factura_corporativa | 5 |
 | fleet.neumatico_imagen | 5 |
 | fleet.neumatico_operacion | 5 |
 | fleet.neumatico_sugerencia | 5 |
@@ -273,8 +272,6 @@
 | fleet.contrato_qr | 4 |
 | fleet.documentos_chofer | 4 |
 | fleet.neumatico_medicion | 4 |
-| corporate.movimiento_cuenta | 3 |
-| corporate.pago_corporativo | 3 |
 | fleet.categoria_gasto | 3 |
 | fleet.documento_propietario | 3 |
 | fleet.documento_vehiculo | 3 |
@@ -288,6 +285,7 @@
 | auth.tipo_usuario | 2 |
 | auth.usuario_rol | 2 |
 | corporate.cuenta_corriente | 2 |
+| corporate.factura_corporativa | 2 |
 | fleet.marca | 2 |
 | fleet.modelo | 2 |
 | geo.ciudad | 2 |
@@ -305,6 +303,8 @@
 | auth.taxista_favorito | 1 |
 | auth.turno_empleado | 1 |
 | auth.usuario_empresa | 1 |
+| corporate.movimiento_cuenta | 1 |
+| corporate.pago_corporativo | 1 |
 | fleet.liquidacion | 1 |
 | fleet.liquidacion_ajuste | 1 |
 | fleet.liquidacion_detalle | 1 |
@@ -324,14 +324,14 @@
 
 ### indice_sobra (1)
 
-- `D-0468` — trip.panico
+- `D-0461` — trip.panico
 
 ### nullable_desalineado (4)
 
 - `D-0014` — viaje_id
-- `D-0106` — updated_at
-- `D-0180` — vehiculo_id
-- `D-0216` — vehiculo_id
+- `D-0099` — updated_at
+- `D-0173` — vehiculo_id
+- `D-0209` — vehiculo_id
 
 ### schema_falta (2)
 
@@ -356,19 +356,19 @@
 ### comment_desalineado (14)
 
 - `D-0085` — estado
-- `D-0094` — tipo_movimiento
-- `D-0101` — estado
-- `D-0304` — entidad_tipo
-- `D-0305` — nivel
-- `D-0363` — descripcion
-- `D-0364` — modo_calculo
-- `D-0402` — resultado
-- `D-0403` — tipo_qr
-- `D-0462` — resuelto_en
-- `D-0463` — usuario_id
-- `D-0469` — distancia_por_ficha
-- `D-0470` — precio_por_ficha
-- `D-0471` — precio_por_minuto_espera
+- `D-0091` — tipo_movimiento
+- `D-0096` — estado
+- `D-0297` — entidad_tipo
+- `D-0298` — nivel
+- `D-0356` — descripcion
+- `D-0357` — modo_calculo
+- `D-0395` — resultado
+- `D-0396` — tipo_qr
+- `D-0455` — resuelto_en
+- `D-0456` — usuario_id
+- `D-0462` — distancia_por_ficha
+- `D-0463` — precio_por_ficha
+- `D-0464` — precio_por_minuto_espera
 
 ### constraint_nombre_desalineado (97)
 
@@ -386,42 +386,42 @@
 - `D-0059` — auth.turno_empleado
 - `D-0070` — auth.usuario_empresa
 - `D-0071` — auth.usuario_empresa
-- `D-0108` — fleet.categoria_gasto
-- `D-0129` — fleet.contrato_vehiculo
-- `D-0130` — fleet.contrato_vehiculo
-- `D-0131` — fleet.contrato_vehiculo
-- `D-0132` — fleet.contrato_vehiculo
-- `D-0157` — fleet.documento_vehiculo
-- `D-0162` — fleet.documentos_chofer
-- `D-0173` — fleet.gasto_turno
-- `D-0174` — fleet.gasto_turno
-- `D-0182` — fleet.gasto_vehiculo
-- `D-0183` — fleet.gasto_vehiculo
-- `D-0184` — fleet.gasto_vehiculo
+- `D-0101` — fleet.categoria_gasto
+- `D-0122` — fleet.contrato_vehiculo
+- `D-0123` — fleet.contrato_vehiculo
+- `D-0124` — fleet.contrato_vehiculo
+- `D-0125` — fleet.contrato_vehiculo
+- `D-0150` — fleet.documento_vehiculo
+- `D-0155` — fleet.documentos_chofer
+- `D-0166` — fleet.gasto_turno
+- `D-0167` — fleet.gasto_turno
+- `D-0175` — fleet.gasto_vehiculo
+- `D-0176` — fleet.gasto_vehiculo
+- `D-0177` — fleet.gasto_vehiculo
+- `D-0186` — fleet.liquidacion
+- `D-0187` — fleet.liquidacion
+- `D-0188` — fleet.liquidacion
+- `D-0189` — fleet.liquidacion
+- `D-0190` — fleet.liquidacion
+- `D-0191` — fleet.liquidacion
+- `D-0192` — fleet.liquidacion
 - `D-0193` — fleet.liquidacion
 - `D-0194` — fleet.liquidacion
-- `D-0195` — fleet.liquidacion
-- `D-0196` — fleet.liquidacion
-- `D-0197` — fleet.liquidacion
-- `D-0198` — fleet.liquidacion
-- `D-0199` — fleet.liquidacion
-- `D-0200` — fleet.liquidacion
-- `D-0201` — fleet.liquidacion
-- `D-0204` — fleet.liquidacion_ajuste
-- `D-0205` — fleet.liquidacion_ajuste
-- `D-0206` — fleet.liquidacion_ajuste
-- `D-0209` — fleet.liquidacion_detalle
-- `D-0212` — fleet.liquidacion_estado_historial
-- `D-0213` — fleet.liquidacion_estado_historial
-- `D-0214` — fleet.liquidacion_estado_historial
-- `D-0218` — fleet.mantenimiento_vehiculo
-- `D-0219` — fleet.mantenimiento_vehiculo
-- `D-0227` — fleet.modelo
-- `D-0232` — fleet.neumatico_historial_posicion
-- `D-0233` — fleet.neumatico_historial_posicion
-- `D-0234` — fleet.neumatico_historial_posicion
-- `D-0235` — fleet.neumatico_historial_posicion
-- `D-0244` — fleet.neumatico_imagen
+- `D-0197` — fleet.liquidacion_ajuste
+- `D-0198` — fleet.liquidacion_ajuste
+- `D-0199` — fleet.liquidacion_ajuste
+- `D-0202` — fleet.liquidacion_detalle
+- `D-0205` — fleet.liquidacion_estado_historial
+- `D-0206` — fleet.liquidacion_estado_historial
+- `D-0207` — fleet.liquidacion_estado_historial
+- `D-0211` — fleet.mantenimiento_vehiculo
+- `D-0212` — fleet.mantenimiento_vehiculo
+- `D-0220` — fleet.modelo
+- `D-0225` — fleet.neumatico_historial_posicion
+- `D-0226` — fleet.neumatico_historial_posicion
+- `D-0227` — fleet.neumatico_historial_posicion
+- `D-0228` — fleet.neumatico_historial_posicion
+- `D-0237` — fleet.neumatico_imagen
 - ... y 47 mas (ver JSON)
 
 ---
