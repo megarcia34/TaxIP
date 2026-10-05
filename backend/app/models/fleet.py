@@ -1,4 +1,4 @@
-﻿"""
+"""
 Fleet and Driver Management Models (PostGIS enabled)
 Tablas: vehiculo, chofer_vehiculo, gasto_vehiculo, mantenimiento_vehiculo,
 propietario_vehiculo, contrato_vehiculo, turno_chofer, gasto_turno,
@@ -399,7 +399,9 @@ class PropietarioVehiculo(Base):
     __tablename__ = "propietario_vehiculo"
     __table_args__ = (
         Index("unique_propietario_vehiculo_activo", "propietario_id", "vehiculo_id"),
-        {"schema": "fleet"}
+        Index("idx_propietario_vehiculo_vehiculo", "vehiculo_id", "activo"),
+        Index("idx_propietario_vehiculo_propietario", "propietario_id", "activo"),
+        {"schema": "fleet"},
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -435,7 +437,20 @@ class PropietarioVehiculo(Base):
 
 class ContratoVehiculo(Base):
     __tablename__ = "contrato_vehiculo"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index("ix_contrato_vehiculo_estado_contrato", "estado_contrato"),
+        Index("ix_contrato_vehiculo_hora_inicio", "hora_inicio"),
+        Index("ix_contrato_vehiculo_hora_fin", "hora_fin"),
+        Index("idx_contrato_chofer_historial", "chofer_id", "fecha_inicio"),
+        Index("idx_contrato_vehiculo_historial", "vehiculo_id", "fecha_inicio"),
+        Index(
+            "idx_contrato_propietario_activo",
+            "propietario_id",
+            "activo",
+            postgresql_where=text("activo = true"),
+        ),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     control_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.control_base.id", ondelete="CASCADE"), nullable=False)
@@ -783,7 +798,16 @@ class ContratoQr(Base):
     Tabla: fleet.contrato_qr
     """
     __tablename__ = "contrato_qr"
-    __table_args__ = ({"schema": "fleet"},)
+    __table_args__ = (
+        Index("idx_contrato_qr_contrato", "contrato_id"),
+        Index(
+            "idx_contrato_qr_activos",
+            "contrato_id",
+            "fecha_expiracion",
+            postgresql_where=text("activo = true"),
+        ),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -900,7 +924,19 @@ class NotificacionVencimiento(Base):
     Tabla: fleet.notificacion_vencimiento
     """
     __tablename__ = "notificacion_vencimiento"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index(
+            "idx_notificacion_email_pendiente",
+            "email_enviado",
+            "fecha_vencimiento",
+            postgresql_where=text("email_enviado = false"),
+        ),
+        Index("idx_notificacion_nivel", "nivel"),
+        Index("idx_notificacion_propietario", "propietario_id"),
+        Index("idx_notificacion_documento", "documento_id"),
+        Index("idx_notificacion_fecha_vencimiento", "fecha_vencimiento"),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
