@@ -68,6 +68,13 @@ TIER_4_TABLES = {
 RE_NOT_NULL_AUTOGEN = re.compile(r"^\d+_\d+_\d+_not_null$")
 
 
+# Patron de nombres de indices de PRIMARY KEY.
+# Postgres los nombra <tabla>_pkey o pk_<tabla>; SQLAlchemy no los declara
+# como Index (van via primary_key=True). Excluirlos evita 72 falsos positivos
+# de indice_falta (deuda orm.indice_falta_incluye_pks).
+RE_PK_INDEX = re.compile(r"^(pk_.+|.+_pkey)$")
+
+
 # ============================================================
 # Logging
 # ============================================================
@@ -492,12 +499,35 @@ def diff_constraints(db_table, orm_table, schema, tabla):
 # Comparacion: indices
 # ============================================================
 
+def _is_pk_index(idx):
+    """True si el indice es la PK (pk_<tabla> o <tabla>_pkey).
+
+    SQLAlchemy declara la PK via primary_key=True, no como Index. El
+    introspector de DB si la incluye en indexes. Reportarla como
+    indice_falta es ruido (deuda orm.indice_falta_incluye_pks).
+    """
+    name = idx.get("name") or ""
+    return RE_PK_INDEX.match(name) is not None
+
+
 def diff_indexes(db_table, orm_table, schema, tabla):
-    """Compara indices de una tabla. Match por columnas."""
+    """Compara indices de una tabla. Match por columnas.
+
+    Excluye indices de PRIMARY KEY de ambos lados: no son declarables
+    como Index en el ORM.
+    """
     diff = []
 
-    db_idx = {tuple(i["columns"]): i for i in db_table.get("indexes", [])}
-    orm_idx = {tuple(i["columns"]): i for i in orm_table.get("indexes", [])}
+    db_idx = {
+        tuple(i["columns"]): i
+        for i in db_table.get("indexes", [])
+        if not _is_pk_index(i)
+    }
+    orm_idx = {
+        tuple(i["columns"]): i
+        for i in orm_table.get("indexes", [])
+        if not _is_pk_index(i)
+    }
 
     for key in db_idx.keys() - orm_idx.keys():
         diff.append({
