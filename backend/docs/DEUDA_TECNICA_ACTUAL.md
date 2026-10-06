@@ -1,8 +1,54 @@
 # DEUDA TECNICA ACTUAL — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-04 (Ronda 7, Fase 4b, Paso 7)
-**Total items pendientes:** 57
+**Ultima actualizacion:** 2026-10-06 (cierre Ronda 9)
+**Ronda activa:** 9 cerrada (`ronda9-fase9-completa`)
+**Total items pendientes:** ~67
 **Total criticos:** 1 (orm.db_desalineados)
+
+---
+
+## RESUMEN DE RONDA 9 (2026-10-06)
+
+**Objetivo:** fix de `diff.py` (PKs) + limpieza de `indice_sobra`.
+
+**Resultado:**
+- Diff total: 404 → **332** (−72, −17.8%).
+- Tier 1: 72 → **62** (−14%).
+- Tier 2: 220 → **158** (−28%).
+- `indice_falta`: 86 → **14** (los 14 son UNIQUE INDEX cosmeticos).
+- Se descubrio que GeoAlchemy2 auto-genera indices GIST sobre columnas Geography.
+
+**Fixes aplicados:**
+1. Paso 9.1 — Excluir PKs de `indice_falta` en `diff.py` (`1ac1294`).
+2. Paso 9.2 — Eliminar B-tree redundante en `fleet.chofer_vehiculo.ubicacion` (`158e594`).
+
+**Tag:** `ronda9-fase9-completa`.
+
+**Ver:** `docs/CONTEXTO_RONDA_9 a 10.md` (handoff), `docs/orm_sync/orm_decisiones.md` (D-022 a D-024).
+
+---
+
+## RESUMEN DE RONDA 8 (2026-10-05)
+
+**Objetivo:** fix de `diff.py` + Fase 6 (indices reales).
+
+**Resultado:**
+- Diff total: 877 → **404** (−473, −54%).
+- Tier 1: 141 → **72** (−49%).
+- Tier 2: 625 → **220** (−65%).
+- `fleet` schema 100% reconciliado.
+- No quedan `indice_falta` reales.
+
+**Fixes aplicados:**
+1. Fix 1 — Geography case-insensitive en `diff.py` (`6927f08`).
+2. Fix 2 — Exclusion de `*_not_null` autogenerados (`d3692f1`).
+3. Fix 3 — Doble prefijo `ck_` en `trip.py` (`b2edb4e`).
+4. Fase 6 — Todos los indices reales aplicados (~98).
+5. Docs + baseline (`39649ed`, `270a1e7`, `6fd1de4`).
+
+**Tag:** `ronda8-fase6-completa` en `c5bd634`.
+
+**Ver:** `docs/CONTEXTO_RONDA_8 a 9.md` (handoff), `docs/orm_sync/orm_decisiones.md` (D-014 a D-019).
 
 ---
 
@@ -10,66 +56,65 @@
 
 ### B5 — Modelo ViajeSolicitado desactualizado
 
-**Estado:** TECNICAMENTE DESBLOQUEADO (Ronda 5 produjo el diagnostico).
-**Detalle actualizado:**
-- ORM declara 37 columnas.
-- DB tiene 66 columnas.
-- **Faltan 29 columnas** (confirmado por diff.py, D-XXXX).
-- Los CHECK constraints de la DB incluyen 10 (ninguno en ORM).
+**Estado:** TECNICAMENTE DESBLOQUEADO. Fase 4a completada en R6.
+**Pendiente:** verificacion formal del cierre (Fase 5).
 
-**Razon original:** el ORM no refleja la DB en multiples tablas. Agregar 29
-columnas a un ORM roto era parche parcial.
-
-**Siguiente paso:** Fase 4 (aplicacion de Tier 1) cierra B5 formalmente.
-
-**Ver:**
-- docs/orm_sync/orm_diff_reporte.md (Tier 1).
-- docs/orm_sync/orm_decisiones.md (H-001, H-002).
+**Ver:** `docs/orm_sync/orm_diff_reporte.md`.
 
 ---
 
 ## CRITICO
 
-### orm.db_desalineados — ACTUALIZADO 2026-10-01
+### orm.db_desalineados — ACTUALIZADO 2026-10-06
 
-**Estado:** DECISIONES TOMADAS (Fase 2 completa). Pendiente de aplicacion.
+**Estado:** en progreso. R9 bajo el diff a 332 items (−17.8% adicional).
 
-**Datos reales (post Fase 1):**
+**Datos reales (post R9):**
 
-| Metrica | Diagnostico original | Real (diff.py) |
-|---|---|---|
-| Tablas faltantes | ~40 | 17 (mas 2 schemas completos) |
-| Columnas faltantes | ~150 | 227 |
-| Indices faltantes | ~80 | 251 |
-| Constraints faltantes | no mencionado | 541 |
-| Diferencias totales | ~500 | 1,280 |
+| Metrica | Original | R5 | R8 | R9 |
+|---|---|---|---|---|
+| Tablas faltantes | ~40 | 17 | ~16 | ~16 |
+| Columnas faltantes | ~150 | 227 | 1 | 1 |
+| Indices faltantes | ~80 | 251 | 86 | 14 (UNIQUE INDEX cosmeticos) |
+| Constraints faltantes | ? | 541 | 274 | 274 |
+| Diferencias totales | ~500 | 1,280 | 404 | **332** |
 
-**Clasificacion por Tier:**
-- Tier 1 (critico): 247
-- Tier 2 (importante): 912
-- Tier 3 (cosmetico): 120
+**Clasificacion por Tier (post R9):**
+- Tier 1 (critico): 62
+- Tier 2 (importante): 158
+- Tier 3 (cosmetico): 111
 - Tier 4 (muerte): 1
 
-**Items que requerian decision manual:** 24.
-**Items con decision tomada en Fase 2:** 24/24 (Ronda 6, Sesion 1).
+**Distribucion por clasificacion (top):**
+- `constraint_nombre_desalineado`: 124 (cosmetico)
+- `constraint_desalineada`: 72 (PKs con nombre distinto — manual)
+- `constraint_falta`: 61 (CHECKs reales + FKs + UNIQUEs)
+- `comment_desalineado`: 20
+- `constraint_sobra`: 17 (UNIQUEs fantasma)
+- `indice_falta`: 14 (UNIQUE INDEX cosmeticos)
+- `tabla_falta`: 10
+- Otros: ~14
 
-**Decisiones tomadas en Fase 2:**
-- D-005 (metodo_pago): vocabulario canonico acotado, sin migracion.
-- D-006 (J9 auth): falso positivo, declarar ambas tablas sin unificar.
-- D-007 (control_base): ORM String(50) -> Numeric (ya estaba).
-- D-012 (timestamps neumatico_*): ORM a naive (opcion a).
+**Deuda real estimada:** ~110 items (CHECKs + comments + tablas faltantes
++ Paso 9 + Paso 4 residual).
 
 **Riesgo:** cualquier `alembic revision --autogenerate` es DESTRUCTIVA.
 Verificado: ninguna migracion historica uso autogenerate.
 
 **Plan:** 5 fases (0 a 4). Fases 0 y 1 completas en Ronda 5.
 Fase 2 (decisiones) completa en Ronda 6, Sesion 1.
+Fase 3 (apply.py) completa en Ronda 6.
+Fase 4a (trip.py) completa en Ronda 6.
+Fase 4b (fleet.py) completa en Ronda 7.
+Fase 6 (indices reales) completa en Ronda 8.
+Paso 9.1 (fix PKs en diff.py) completo en Ronda 9.
+Paso 9.2 (limpieza B-tree redundante) completo en Ronda 9.
 
 **Ver:**
-- docs/orm_sync/orm_diff_reporte.md
-- docs/orm_sync/db_snapshot.json
-- docs/orm_sync/orm_snapshot.json
-- docs/orm_sync/orm_decisiones.md
+- `docs/orm_sync/orm_diff_reporte.md`
+- `docs/orm_sync/db_snapshot.json`
+- `docs/orm_sync/orm_snapshot.json`
+- `docs/orm_sync/orm_decisiones.md`
 
 ---
 
@@ -83,54 +128,35 @@ los INSERTs del ORM pueden fallar silenciosamente.
 
 **Tier 2.** Requiere revision en Fase 4.
 
-**Ver:** docs/orm_sync/orm_diff_reporte.md (H-017).
-
-### orm.schema_falta_comunicacion — 2026-10-01
-
-El schema `comunicacion` (3 tablas: conversacion, email_enviado, mensaje)
-existe en DB pero no en ORM.
-
-**Tier 2.** Crear modulo `app/models/comunicacion.py` en Fase 4.
-
-**Ver:** docs/orm_sync/orm_decisiones.md (H-012).
-
-### orm.schema_falta_rentabilidad — 2026-10-01
-
-El schema `rentabilidad` (3 tablas: analisis_medios_pago,
-rentabilidad_diaria_vehiculo, rentabilidad_mensual_vehiculo) existe en DB
-pero no en ORM.
-
-**Tier 2.** Crear modulo `app/models/rentabilidad.py` en Fase 4.
-
-**Ver:** docs/orm_sync/orm_decisiones.md (H-013).
+**Ver:** `docs/orm_sync/orm_diff_reporte.md` (H-017).
 
 ### orm.constraint_nombres_numericos — 2026-10-01
 
 2 constraints con nombres autogenerados por Alembic:
-- 63669_63825_1_not_null (trip.viaje_solicitado).
-- 63669_63825_38_not_null (trip.viaje_solicitado).
+- `63669_63825_1_not_null` (trip.viaje_solicitado).
+- `63669_63825_38_not_null` (trip.viaje_solicitado).
 
 **Tier 3.** Renombrar en Fase 4.
 
-**Ver:** docs/orm_sync/orm_decisiones.md (H-004).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (H-004).
 
 ### orm.indices_duplicados — 2026-10-01
 
 Indices duplicados funcionales:
-- idx_viaje_estado + ix_viaje_estado (trip.viaje_solicitado).
+- `idx_viaje_estado` + `ix_viaje_estado` (trip.viaje_solicitado).
 
 **Tier 3.** Eliminar uno en Fase 4.
 
-**Ver:** docs/orm_sync/orm_decisiones.md (H-005).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (H-005).
 
 ### orm.system_tables_whitelist — 2026-10-01
 
 `public.alembic_version` y `public.spatial_ref_sys` son tablas de sistema.
 No deben considerarse parte del diff.
 
-**Accion:** whitelist en diff.py (ya implementado).
+**Accion:** whitelist en `diff.py` (ya implementado).
 
-**Ver:** docs/orm_sync/orm_decisiones.md (H-014).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (H-014).
 
 ---
 
@@ -145,10 +171,9 @@ corporativas la usa activamente desde multiples lugares:
 - `app/routers/reservas.py` (CRUD completo: POST, GET, PATCH).
 - `app/routers/operativo.py` (queries SELECT FROM trip.reserva).
 - `app/main.py` (registra el router reservas.router en /api/reservas).
-- `app/schemas/reserva_schemas.py` (ReservaCreate, ReservaUpdate,
-  ReservaResponse, EstadoReservaEnum).
+- `app/schemas/reserva_schemas.py`.
 
-Los endpoints /api/reservas estan rotos actualmente (la tabla no existe).
+Los endpoints `/api/reservas` estan rotos actualmente (la tabla no existe).
 Requiere decision funcional: crear la tabla en DB o deprecar el modulo.
 
 **Origen:** D-004 decia "borrar modelo Reserva (huerfano)". En Fase 4a se
@@ -157,7 +182,7 @@ descubrio que el modulo esta previsto para uso posterior. NO es huerfano.
 **Tier 2.** Postergado a Fase 4d o ronda especifica. Requiere coordinar
 con frontend si el modulo esta en uso.
 
-**Ver:** docs/orm_sync/orm_decisiones.md (D-004).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (D-004).
 
 ### orm.foto_viaje_out_of_scope — NUEVA 2026-10-02
 
@@ -166,7 +191,6 @@ El item D-1125 (`foto_viaje.created_at` nullable desalineado) NO esta en
 asi que este item queda pendiente para Fase 4d.
 
 **Tier 2.** Resolver junto con el resto de `foto_viaje.py` en Fase 4d.
-
 
 ### metodo_pago.catalogo_sucio — NUEVA 2026-10-01
 
@@ -181,7 +205,7 @@ asi que este item queda pendiente para Fase 4d.
 **Tier 2.** Limpiar en Fase 4 (dedupe + renombre + decidir si mercadopago
 queda como pasarela separada).
 
-**Ver:** docs/orm_sync/orm_decisiones.md (D-005, H-026).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (D-005, H-026).
 
 ### metodo_pago.fk_catalogo — NUEVA 2026-10-01
 
@@ -192,7 +216,7 @@ Refactor estructural: evaluar FK por `metodo_pago_id` en
 
 **Tier 2.** Evaluar en Fase 4. NO en Fase 2.
 
-**Ver:** docs/orm_sync/orm_decisiones.md (D-005).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (D-005).
 
 ### metodo_pago.ingreso_turno — NUEVA 2026-10-01
 
@@ -205,7 +229,7 @@ Refactor estructural: evaluar FK por `metodo_pago_id` en
 **Tier 2.** Alinear comment del ORM con DB en Fase 4. Decidir si se agrega
 CHECK.
 
-**Ver:** docs/orm_sync/orm_decisiones.md (D-005, H-003).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (D-005, H-003).
 
 ### metodo_pago.frontend_e2 — NUEVA 2026-10-01
 
@@ -215,7 +239,7 @@ frontend tambien.
 
 **Tier 3.** Resolver en Fase 4 si se decide ampliar vocabulario.
 
-**Ver:** docs/orm_sync/orm_decisiones.md (D-005).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (D-005).
 
 ---
 
@@ -229,23 +253,18 @@ irreal para un taxi urbano. Probablemente sea un dato mal cargado
 
 **Impacto:** bajo. No rompe nada, pero distorsiona reportes de km.
 
-**Accion:** revisar registros con km_final > 500000 en ronda de limpieza.
+**Accion:** revisar registros con `km_final > 500000` en ronda de limpieza.
 
 **Tier 3.**
-
 
 ### orm.snapshot_desactualizado — NUEVA 2026-10-03
 
 Practica preventiva: el `orm_snapshot.json` puede quedar desactualizado
-si se editan archivos del ORM sin regenerarlo. Durante Ronda 7 Fase 4b
-Paso 2 se observo un caso (9 cambios de tipo DECIMAL -> Numeric que ya
-estaban aplicados en el archivo real). En el Paso 3.13.0 se verifico que
-el snapshot estaba correcto (el diff no cambio tras regenerarlo), por lo
-que la deuda se mantiene como practica, no como bug reproducible.
+si se editan archivos del ORM sin regenerarlo.
 
 **Impacto:** el diff puede reportar items ya resueltos.
 
-**Accion:** regenerar snapshots (introspect_orm.py + diff.py) al inicio
+**Accion:** regenerar snapshots (`introspect_orm.py` + `diff.py`) al inicio
 de cada paso.
 
 **Tier 2.**
@@ -259,39 +278,194 @@ no matchean por nombre.
 
 **Impacto:** bajo. Genera falsos positivos al aplicar cambios.
 
-**Accion:** investigar `diff.py`. Bug conocido. Postergado.
-
-**Tier 2.**
+**Tier 2.** Postergado.
 
 ### orm.diff_check_constraints_duplicados — NUEVA 2026-10-03
 
 `diff.py` compara CHECKs por nombre. Cuando el ORM declara un CHECK con
-`name="X"` y la DB lo tiene con `name="ck_<tabla>_X"` (autogenerado por
-Alembic), el diff los cuenta como 2 items distintos:
-- `constraint_falta` (DB tiene, ORM no).
-- `constraint_sobra` (ORM tiene, DB no).
+`name="X"` y la DB lo tiene con `name="ck_<tabla>_X"`, el diff los cuenta
+como 2 items distintos.
 
-El ORM esta bien. El diff tiene un bug de comparacion.
+**Impacto:** genera falsos positivos.
+**Tier 2.** Parcialmente mitigado por Fix 2 de R8.
 
-**Impacto:** genera falsos positivos en trip.py (8+8 items) y otros archivos.
+### orm.naming_convention_check_divergente — NUEVA 2026-10-04
 
-**Accion:** investigar diff.py. Bug conocido.
+La naming convention de `app/database.py` para CHECKs es
+`ck_%(table_name)s_%(constraint_name)s`. La DB, en cambio, tiene CHECKs
+con nombres que NO siguen esa convention.
 
+**Impacto:** ~13 falsos positivos permanentes en `constraint_falta`.
 **Tier 2.**
 
-### orm.diff_check_nombres_no_matchean — NUEVA 2026-10-03
+**Actualizacion 2026-10-05:** el fix de R8 (D-016, `b2edb4e`) resolvio
+los 8 CHECKs de `trip.viaje_solicitado`. Los ~13 CHECKs restantes con
+convention divergente siguen pendientes. Fix propuesto para R9: matchear
+CHECKs por definicion normalizada en `diff.py` (en vez de por nombre).
 
-`diff.py` compara CHECKs por nombre. Los `*_not_null` autogenerados por
-Alembic no son declarados por el ORM como `CheckConstraint`. El diff los
-reporta como `falta` + `sobra`. Renombrar el CHECK en el ORM no resuelve
-el problema.
+### orm.paso4_check_constraints_residual — ACTUALIZADO 2026-10-05
 
-**Impacto:** bajo. Genera ~400 falsos positivos en constraint_falta y
-~24 en constraint_sobra.
+El Paso 4 (CHECKs reales del ORM) esta **parcialmente desbloqueado** por
+el Fix 3 de R8. Los 8 CHECKs de `trip.viaje_solicitado` ya estan alineados.
 
-**Accion:** investigar introspect_orm.py y diff.py. Bug conocido.
+**Residual:** ~61 items de `constraint_falta`:
+- ~33 CHECKs reales en otros schemas.
+- ~20 items `other` (sin clasificar, requieren investigacion).
+- ~9 UNIQUEs faltantes.
+- ~7 FKs faltantes.
 
+**Tier 2.** Requiere decision sobre `orm.naming_convention_check_divergente`.
+Postergado a R10.
+
+**Ver:** `python scripts/orm_sync/filtrar_check.py --stats`.
+
+### orm.alembic_check_ruidoso — NUEVA 2026-10-03
+
+`alembic check` reporta cientos de operaciones de upgrade pendientes
+porque el ORM y la DB estan desalineados. NO es un gate util por paso.
+
+**Actualizacion 2026-10-05:** snapshot post-R8 guardado en
+`docs/orm_sync/alembic_check_cierre_r8_2026-10-05.txt`. Sigue ruidoso
+(~200 operaciones). El ruido bajo marginalmente respecto a R7.
+
+**Tier 2.** Investigar en Fase 5.
+
+---
+
+## NUEVOS — Ronda 8 (Fase 6 + fixes)
+
+### orm.unique_constraint_vs_unique_index — NUEVA 2026-10-05
+
+14 items en el diff (`indice_falta` con nombre `uq_*`/`unique_*`/`*_key`)
+donde el ORM declara `UniqueConstraint` y la DB tiene `CREATE UNIQUE INDEX`.
+Son funcionalmente equivalentes (el introspector de DB clasifica UNIQUE
+INDEX como indice, no como constraint).
+
+**Tablas afectadas:** `auth.autorizacion_inicio`, `auth.refresh_token`,
+`auth.tipo_usuario`, `auth.usuario_rol`, `corporate.cuenta_corriente`,
+`corporate.factura_corporativa`, `fleet.categoria_gasto`, `fleet.contrato_qr`,
+`fleet.marca`, `fleet.vehiculo`, `payment.billetera`, `payment.metodo_pago`,
+`public.comercio`, `tenant.configuracion_tenant`, `tenant.factura`,
+`trip.calificacion`.
+
+**Tier 3.** Cosmetico. Fix posible: cambiar `UniqueConstraint` por
+`Index(unique=True)` en masa (patron D-017). Bajo riesgo.
+
+### orm.indice_falta_incluye_pks — CERRADA en R9
+
+`diff.py` reportaba 72 PKs (`pk_*` / `*_pkey`) como `indice_falta`.
+Cerrada por Paso 9.1 (commit `1ac1294`).
+
+**Ver:** `## CERRADAS EN RONDA 9`.
+
+### orm.comercio_indice_redundante — NUEVA 2026-10-05
+
+`public.comercio.idx_comercio_codigo_qr` es redundante con el UNIQUE constraint
+`comercio_codigo_qr_key` (misma columna). Aplicado en ORM por fidelidad.
+
+**Tier 3.** Evaluar eliminacion en ronda de optimizacion.
+
+### orm.tabla_falta_ampliada — ACTUALIZADA 2026-10-05
+
+**Reemplaza y amplia** `orm.schema_falta_comunicacion` + `orm.schema_falta_rentabilidad`
++ `orm.tabla_falta_auth`. El `alembic check` de cierre R8 revelo que las
+tablas faltantes son ~16:
+
+**Schema comunicacion (3):**
+- `comunicacion.conversacion` (7 cols).
+- `comunicacion.email_enviado` (9 cols).
+- `comunicacion.mensaje` (8 cols).
+
+**Schema rentabilidad (3):**
+- `rentabilidad.analisis_medios_pago` (10 cols).
+- `rentabilidad.rentabilidad_diaria_vehiculo` (13 cols).
+- `rentabilidad.rentabilidad_mensual_vehiculo` (13 cols).
+
+**Schema auth (4):**
+- `auth.codigo_metadatos` (6 cols) — decision D-006 (R6).
+- `auth.codigo_verificacion` (9 cols) — decision D-006 (R6).
+- `auth.plantilla_viaje` (19 cols) — hallazgo nuevo.
+- `auth.prestadora_telefonica` (6 cols) — hallazgo nuevo.
+
+**Schema payment (2):**
+- `payment.qr_cobro` (10 cols) — hallazgo nuevo R8.
+- `payment.configuracion_pasarela` (7 cols) — hallazgo nuevo R8.
+
+**Schema audit (1):**
+- `audit.alertas_vencimiento` (8 cols).
+
+**Schema trip (1):**
+- `trip.broadcast_log` (11 cols).
+
+**Schema fleet (2):**
+- `fleet.historial_chofer_vehiculo` (6 cols).
+- `fleet.relacion_propietario_vehiculo` (7 cols).
+
+**Tier 2.** Ronda 4c extendida (crear modulos ORM). Prioridad media.
+**Ver:** `docs/orm_sync/alembic_check_cierre_r8_2026-10-05.txt`.
+
+### metodo_pago.pasarela — ACTUALIZADA 2026-10-05
+
+**Hallazgo R8:** las tablas `payment.qr_cobro` (10 cols) y
+`payment.configuracion_pasarela` (7 cols) **YA EXISTEN en la DB** pero no
+estan declaradas en el ORM.
+
+`payment.qr_cobro`: id, viaje_id, token, monto, pasarela, estado, url_pago,
+id_transaccion_externa, creado_en, expira_en, pagado_en, control_base_id.
+
+`payment.configuracion_pasarela`: id, control_base_id, pasarela, activa,
+credenciales (jsonb), comision_porcentaje, created_at.
+
+**Implicacion:** el trabajo de infraestructura para `/cobro-qr` ya esta hecho
+en DB. Falta:
+- Declarar las tablas en ORM (Fase 4c).
+- Implementar endpoints.
+- Decidir proveedor comercial (MercadoPago, Uala Bis, AstroPay).
+
+**Tier 2.** Actualizar al planificar `/cobro-qr` (M3 pendiente).
+
+---
+
+## NUEVOS — Ronda 9 (Paso 9)
+
+### orm.indice_sobra_ambiguo — NUEVA 2026-10-06
+
+`diff.py` clasifica como `indice_sobra` dos casos distintos que aparecen
+identicos en el reporte:
+1. Ruido real: B-tree sobre Geography (inutil, DB nunca lo tuvo).
+2. Indices GIST auto-generados por GeoAlchemy2, ausentes en DB.
+
+**Items actuales (3):**
+- `fleet.chofer_vehiculo` (D-0091) — GIST, util.
+- `trip.panico` (D-0312) — GIST, util.
+- `trip.viaje_solicitado` (D-0331) — GIST, util.
+
+**Tier 3.** Requiere analisis manual por item.
+
+### orm.geoalchemy2_indices_no_aplicados — NUEVA 2026-10-06
+
+GeoAlchemy2 agrega automaticamente un `Index GIST` sobre columnas
+`Geography` con `spatial_index=True` (default). El ORM los declara en
+runtime, pero la DB no los tiene aplicados.
+
+**Items (3):**
+- `fleet.chofer_vehiculo.idx_chofer_vehiculo_ubicacion` sobre `ubicacion`.
+- `trip.panico.idx_panico_ubicacion` sobre `ubicacion`.
+- `trip.viaje_solicitado.idx_viaje_solicitado_destino` sobre `destino`.
+
+**Impacto:** queries espaciales sin indice → full scan.
+**Accion:** crear migracion Alembic para crearlos en DB (R10).
 **Tier 2.**
+
+### orm.diff_indexes_colapsa_por_columnas — NUEVA 2026-10-06
+
+`diff.py` matchea indices por `tuple(columns)`, no por nombre. Si el ORM
+declara dos indices sobre la misma columna (ej: B-tree + GIST sobre
+`ubicacion`), el dict `orm_idx` colapsa a uno solo. El otro queda invisible.
+
+**Impacto:** enmascara fixes (el diff no bajo en Paso 9.2).
+**Tier 2.** Fix de tooling: matchear por `(nombre, columnas)` o nombre
+normalizado. R10.
 
 ---
 
@@ -312,53 +486,7 @@ negocio: auto-cancelar huerfanos con motivo, o boton "forzar cierre".
 La app en el celular apunta a 192.168.1.14:8081. Para pruebas en terreno:
 build preview o production apuntando al backend publico.
 
-### metodo_pago.pasarela — 2026-09-30
-
-Pasarela de pago: campo/tabla separada. No existe.
-Bloqueante de `/cobro-qr` (M3 pendiente). Requiere decision comercial
-de proveedor (MercadoPago, Uala Bis, AstroPay).
-
 ---
-
-### orm.naming_convention_check_divergente — NUEVA 2026-10-04
-
-La naming convention de `app/database.py` para CHECKs es
-`ck_%(table_name)s_%(constraint_name)s`. Esto significa que cualquier
-`CheckConstraint` declarado en el ORM recibe automaticamente el prefijo
-`ck_<tabla>_`. La DB, en cambio, tiene CHECKs con nombres que NO siguen
-esa convention (`gasto_turno_monto_check`, `check_estado_turno`,
-`chk_escaneo_qr_tipo`, `pago_empresa_monto_check`, etc.).
-
-Consecuencia: `diff.py` matchea CHECKs por nombre exacto, y los CHECKs
-"sin convention" nunca matchean. Se reportan como `constraint_falta`
-(falsos positivos, ~13 items del diff actual).
-
-Se intento overridear con `sqlalchemy.sql.elements.quoted_name(..., quote=True)`.
-NO funciona en SQLAlchemy 2.0: la naming convention se aplica en la
-construccion del Constraint, no en el nombre final.
-
-**Impacto:** ~13 falsos positivos permanentes en `constraint_falta`.
-**Tier 2.**
-**Accion:** reclasificar en `diff.py` (matchear CHECKs por definicion
-normalizada, no por nombre) o cambiar la convention global (riesgo alto:
-rompe CHECKs existentes que SI siguen la convention).
-
-**Relacionado:** `orm.diff_check_constraints_duplicados`,
-`orm.diff_check_nombres_no_matchean`.
-
-### orm.paso4_check_constraints_bloqueado — NUEVA 2026-10-04
-
-El Paso 4 del plan de Fase 4b (aplicar CHECKs reales del ORM) quedo
-bloqueado por `orm.naming_convention_check_divergente`. De los ~23
-CHECKs reales detectados, solo ~8 (los de `trip.viaje_solicitado`) se
-pueden alinear declarandolos con nombre corto (la convention agrega el
-prefijo correcto). Los ~13 restantes quedan como ruido conocido hasta
-resolver la convention o arreglar `diff.py`.
-
-**Tier 2.**
-**Accion:** postergado. Retomar cuando se decida politica de naming
-de CHECKs (Fase 5 o ronda especifica).
-
 
 ## MEDIA PRIORIDAD
 
@@ -371,8 +499,8 @@ Numeros sueltos vs Coordenada. Mapear en el store al conectar el WS.
 El INSERT en codigo_verificacion solo no alcanza. Documentar en flujo
 del propietario.
 
-**Nota Fase 2:** relacionado con D-006. Ver H-023. La tabla es satelite
-de codigo_verificacion, no alternativa.
+**Nota Fase 2:** relacionado con D-006. La tabla es satelite de
+codigo_verificacion, no alternativa.
 
 ### G68 — Job procesar_viajes_huerfanos corre cada 1h
 
@@ -401,13 +529,12 @@ Verificar LastWriteTime vs StartTime del proceso Python.
 ### G81 — DB y modelos ORM desincronizados silenciosamente
 
 Sintoma: INSERTs fallan por columna inexistente, sin error visible.
-**Relacionado con:** orm.db_desalineados (critico). Cuantificado
-como 158 items nullable_desalineado (H-017).
+**Relacionado con:** `orm.db_desalineados`.
 
 ### J15 — No hay deteccion de viaje activo al abrir la app
 
 Plan: endpoint GET /api/chofer/viaje-activo + chequeo en
-(app)/_layout.tsx.
+`(app)/_layout.tsx`.
 
 ### metodo_pago.flujo_propietario — 2026-09-30
 
@@ -430,15 +557,15 @@ Alinear cuando se toque ese modulo.
 ### flujo_caja.ingreso_turno — ACTUALIZADO 2026-10-01
 
 **Correccion:** el modelo IngresoTurno en `models/fleet.py` declara tabla
-`fleet.ingreso_turno` que SI existe en DB. Verificado via introspect_db.py.
+`fleet.ingreso_turno` que SI existe en DB.
 
 Comments de `tipo_ingreso`, `medio_pago`, `origen` mezclan vocabularios.
 `medio_pago` con espacio final en el comment.
 
-**Accion:** alinear comment del ORM con DB y canonizar vocabulario
-(conecta con metodo_pago.catalogo). Resuelto en D-005.
+**Accion:** alinear comment del ORM con DB y canonizar vocabulario.
+Resuelto en D-005.
 
-**Ver:** docs/orm_sync/orm_decisiones.md (D-005, H-003).
+**Ver:** `docs/orm_sync/orm_decisiones.md` (D-005, H-003).
 
 ### G82 — 2026-09-30
 
@@ -454,7 +581,7 @@ default apagado. No bloqueante.
 
 - **A1** — Modelo Reserva apunta a tabla dropeada (trip.reserva).
   **Confirmado 2026-10-01:** trip.reserva esta en ORM (29 columnas), no
-  en DB. Borrar modelo en Fase 4 (D-004).
+  en DB. **Reclasificado** (D-004): no borrar. Ver `orm.reserva_modulo_activo`.
 - **A2** — Schemas legacy snake_case mezclados en viajes/schemas.py.
 - **A5** — ~22 warnings Duplicate Operation ID en neumaticos OpenAPI.
 
@@ -463,12 +590,12 @@ default apagado. No bloqueante.
 - **D2** — tsconfig.json con ignoreDeprecations "6.0".
 - **D6** — splash.tsx "paso 2 veces la pantalla" (no reproducible).
 - **E2** — MetodoPago limitado a 4 valores.
-  **Conecta con D-005.** Ver metodo_pago.frontend_e2.
+  **Conecta con D-005.** Ver `metodo_pago.frontend_e2`.
 
 ### Endpoints faltantes
 
-- **F4** — /cobro-qr, webhooks de pasarela. Bloqueado por
-  `metodo_pago.pasarela`.
+- **F4** — /cobro-qr, webhooks de pasarela. Bloqueado parcialmente por
+  `metodo_pago.pasarela` (tablas existen, ORM no las declara).
 - **F8** — app/_layout.tsx limpia taxip-turno al arrancar (fragil).
 
 ### Proceso, encoding, metadata
@@ -495,9 +622,7 @@ default apagado. No bloqueante.
 ### ORM y funcional futuro
 
 - **J1** — pasajero_id nullable en DB pero NOT NULL en ORM.
-  **Confirmado en diff** (parte de los 158 nullable_desalineado).
 - **J2** — es_anonimo existe en DB pero no en ORM.
-  **Confirmado en diff** (columna faltante en trip.viaje_solicitado).
 - **J3** — origen_tipo, paradas_intermedias, metodo_pago en DB pero no
   en ORM. **Parcialmente cubierto por B5.**
 - **J4** — Extension de viaje (agregar destino a mitad de camino).
@@ -509,8 +634,6 @@ default apagado. No bloqueante.
 
 - **metodo_pago.config_credito** — `mix_credito`, `comision_credito` en
   `tenant.configuracion_tenant` sin uso cuando desaparece `credito`.
-  **Confirmado:** las columnas existen en DB pero no en ORM
-  (parte de las 19 faltantes de configuracion_tenant).
 - **metodo_pago.billetera_futuro** — Cuando se implemente la wallet TaxIP,
   agregar `billetera` al CHECK de `viaje_solicitado.metodo_pago`.
 - **logs.auth_prints** — `routers/auth.py:289` con
@@ -534,74 +657,79 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 
 ---
 
-## CERRADAS EN RONDA 4 (2026-09-30)
+## CERRADAS EN RONDA 9 (2026-10-06)
 
-- **G30** — CERRADO. print() -> logger.info() en main.py (12 prints).
-- **B9** — CERRADO. Semantica solicitado_en vs created_at documentada.
-- **B7** — CERRADO. Migracion m3_010 (CHECK + normalizacion metodo_pago)
-  + 3 ediciones de codigo en routes.py, viaje_schemas.py, medios_pago.py.
-- **Limpieza** — 4 tablas backup huerfanas dropeadas de auth (28 filas).
+### Fixes de tooling (diff.py)
 
----
+- **orm.indice_falta_incluye_pks** — CERRADA. `RE_PK_INDEX` + filtro en
+  `diff_indexes` excluye PKs (`pk_*` / `*_pkey`). −72 items (`1ac1294`).
 
-## CERRADAS EN RONDA 5 (2026-10-01)
+### Fixes del ORM
 
-### Fase 0 — Preparacion
-
-- Baseline reproducible (git tag `ronda5-baseline-pre`).
-- Backup DB pre-Fase 1: `docs/backups/taxip_db_2026-09-30.dump`.
-- Snapshot `alembic check`: `docs/orm_sync/alembic_check_baseline_2026-09-30.txt`.
-- `.gitattributes` configurado.
-
-### Fase 1 — Diagnostico estructurado
-
-- `scripts/orm_sync/introspect_db.py` + `db_snapshot.json`.
-- `scripts/orm_sync/introspect_orm.py` + `orm_snapshot.json`.
-- `scripts/orm_sync/diff.py` + `orm_diff.json` + reporte + CSV.
-- 22 hallazgos documentados (H-001 a H-022).
-
-### Items actualizados por Ronda 5
-
-- **B5:** desbloqueado tecnicamente, cuantificado (29 columnas).
-- **orm.db_desalineados:** cuantificado con datos reales (1,280 diferencias).
-- **J9:** confirmado en diff (D-0004, D-0005).
-- **J1, J2, J3:** confirmados en diff.
-- **flujo_caja.ingreso_turno:** la tabla SI existe (doc decia que no).
-- **A1:** trip.reserva confirmado huerfano.
-- **orm_viaje.fk_comercio_schema:** public.comercio existe.
+- **`fleet.chofer_vehiculo.ubicacion`** — `index=True` eliminado (B-tree
+  redundante con GIST auto-generado por GeoAlchemy2). No baja el diff
+  por bug de colapso, pero es cleanup real (`158e594`).
 
 ---
 
-## CERRADAS EN RONDA 6 (2026-10-01, Fase 2, Sesion 1)
+## CERRADAS EN RONDA 8 (2026-10-05)
 
-### Decisiones tomadas
+### Fixes de tooling (diff.py)
 
-- **D-005** (metodo_pago): vocabulario canonico acotado al CHECK actual de
-  trip.viaje_solicitado. Sin migracion DB. 4 deudas nuevas derivadas.
-- **D-006** (J9 auth): FALSO POSITIVO documental. Declarar ambas tablas
-  en ORM, no unificar.
-- **D-007** (control_base): confirmado, sin cambios.
-- **D-012** (timestamps neumatico_*): ORM a naive (opcion a).
+- **orm.geography_case_divergente** — CERRADA. `_types_equivalent()`
+  normaliza Geography a lowercase (`6927f08`).
+- **orm.diff_check_nombres_no_matchean** — CERRADA. Exclusion de
+  `*_not_null` autogenerados bajo ~358 items (`d3692f1`).
+
+### Fixes del ORM
+
+- **orm.naming_convention_doble_prefijo** — CERRADA. 8 CHECKs de
+  `trip.viaje_solicitado` con prefijo `ck_viaje_solicitado_` duplicado
+  corregidos (`b2edb4e`).
+
+### Fase 6 — Indices reales
+
+Todos los indices reales del diff aplicados:
+- `audit.py`: 8 indices.
+- `corporate.py`: 7 indices.
+- `tenant.py`: 5 indices.
+- `public.py`: 6 indices.
+- `payment.py`: 4 indices.
+- `geo.py`: 1 indice.
+- `foto_viaje.py`: 1 indice.
+- `fleet.py`: 60 indices (+2 UNIQUEs).
+- `turno.py`: 4 indices.
+- `gasto_turno.py`: 2 indices.
+
+**Total: ~98 indices aplicados.** `fleet` schema 100% reconciliado.
+
+### Cambios en este documento
+
+- Nueva deuda: `orm.unique_constraint_vs_unique_index` (14 items).
+- Nueva deuda: `orm.indice_falta_incluye_pks` (72 items de ruido). CERRADA en R9.
+- Nueva deuda: `orm.comercio_indice_redundante` (1 item).
+- Deuda ampliada: `orm.tabla_falta_ampliada` (10 → 16 tablas).
+- Deuda actualizada: `metodo_pago.pasarela` (tablas ya existen en DB).
+- Deuda actualizada: `orm.paso4_check_constraints_residual` (reemplaza
+  `_bloqueado`).
+
+---
+
+## CERRADAS EN RONDA 7 (2026-10-01)
+
+### Fase 4b (fleet.py + 13 archivos)
+
+- Paso 2 residual (tipos): `fleet.gasto_vehiculo.km_registro`.
+- Paso 3 (nullable/columnas/tipos/indices) en 14 archivos.
+- Paso 7 (D-012): 19 timestamps naive en 7 clases `Neumatico*`.
+- Paso 8 parcial: 9 comments.
 
 ### Items cerrados
 
-- **J9** — CERRADO como FALSO POSITIVO (H-023). No hay dos fuentes de
-  verdad. codigo_metadatos es satelite de codigo_verificacion.
-- **metodo_pago.catalogo** (item original de la deuda) — CERRADO en su
-  parte de decision. La limpieza del catalogo pasa a metodo_pago.catalogo_sucio.
+- `orm.turno_chofer_estado_truncado` (Paso 2).
+- D-012 (Paso 7).
 
-### Items con decision acotada
-
-- **D-008** (fleet timestamps): corregido de 70 columnas (estimacion Fase 0)
-  a 19 columnas (dato real Fase 1). Resuelto en D-012.
-- **H-021** (24 items requieren decision): 24/24 resueltos.
-
-### Hallazgos nuevos
-
-- **H-023** — J9 es falso positivo.
-- **H-024** — fleet tiene 68 columnas timestamp, todas naive.
-- **H-025** — volumen de datos en neumatico_*: 41 filas de prueba.
-- **H-026** — vocabularios de metodo_pago: 5 variantes documentadas.
+**Ver:** `docs/HISTORICO_CERRADAS.md`.
 
 ---
 
@@ -611,54 +739,45 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 |---|---|
 | Bloqueante | 1 |
 | Critico | 1 |
-| Nuevos Ronda 5 | 6 |
+| Nuevos Ronda 5 | 5 |
 | Nuevos Ronda 6 (Fase 2) | 4 |
 | Nuevos Ronda 7 (Fase 4b) | 7 |
-| Alta prioridad | 4 |
+| Nuevos Ronda 8 (Fase 6) | 4 |
+| Nuevos Ronda 9 (Paso 9) | 3 |
+| Alta prioridad | 3 |
 | Media prioridad | 15 |
 | Baja prioridad | 21 |
 | Expo-router / EAS | 3 |
-| **TOTAL PENDIENTES** | **57** |
+| **TOTAL PENDIENTES** | **~67** |
 
-**Notas sobre el recuento:**
-- Cerradas en Ronda 6: J9 (falso positivo), metodo_pago.catalogo (absorbido
-  en D-005).
-- Nuevas en Ronda 6: metodo_pago.catalogo_sucio, metodo_pago.fk_catalogo,
-  metodo_pago.ingreso_turno, metodo_pago.frontend_e2.
-- Cerradas en Ronda 7 (Fase 4b): orm.turno_chofer_estado_truncado (Paso 2),
-  D-012 (Paso 7).
-- Nuevas en Ronda 7 (Fase 4b): orm.snapshot_desactualizado,
-  orm.diff_falsos_positivos_tipo_cambio, orm.diff_check_constraints_duplicados,
-  orm.diff_check_nombres_no_matchean, orm.naming_convention_check_divergente,
-  orm.paso4_check_constraints_bloqueado, orm.alembic_check_ruidoso.
-- Balance neto: -2 cerradas + 6 nuevas = +4. De 53 a 57.
+**Notas sobre el recuento R9:**
+- Cerradas en R9: 1 (`orm.indice_falta_incluye_pks`).
+- Nuevas en R9: 3 (`orm.indice_sobra_ambiguo`, `orm.geoalchemy2_indices_no_aplicados`, `orm.diff_indexes_colapsa_por_columnas`).
+- Balance neto: −1 cerrada + 3 nuevas = +2.
 
-
+**Notas sobre el recuento R8 (historicas):**
+- Cerradas en R8: 3.
+- Nuevas en R8: 4.
+- Balance neto: +1.
 
 ---
 
 ## REFERENCIAS
 
-- **Plan de reconciliacion:** `D:\aTaxip\backend\docs\orm_reconciliacion_plan.md`
+- **Plan de reconciliacion:** `docs/orm_reconciliacion_plan.md`
 - **Snapshots:** `docs/orm_sync/`
 - **Reporte diff:** `docs/orm_sync/orm_diff_reporte.md`
 - **Decisiones:** `docs/orm_sync/orm_decisiones.md`
+- **Historico:** `docs/HISTORICO_CERRADAS.md`
 - **Baseline:** `docs/orm_sync/baseline_info.md`
+- **Handoff R7→R8:** `docs/CONTEXTO_RONDA_7 a 8.md`
+- **Handoff R8→R9:** `docs/CONTEXTO_RONDA_8 a 9.md`
+- **Handoff R9→R10:** `docs/CONTEXTO_RONDA_9 a 10.md`
+- **Alembic check cierre R7:** `docs/orm_sync/alembic_check_cierre_r7_2026-10-04.txt`
+- **Alembic check cierre R8:** `docs/orm_sync/alembic_check_cierre_r8_2026-10-05.txt`
 - **Backups:** `docs/backups/`
 - **Bitacoras:** `E:\Taxip\app chofer\BITACORA_M1.md`, `M2`, `M3`.
 
-### orm.alembic_check_ruidoso — NUEVA 2026-10-03
-
-`alembic check` reporta cientos de operaciones de upgrade pendientes
-porque el ORM y la DB estan desalineados (esperado en Fase 4b). NO es
-un gate util por paso. Usar el ciclo diff.py + apply.py.
-
-Ademas, hay inconsistencias entre `alembic check` y `diff.py` en la
-direccion de los nullable y en la clasificacion de indices:
-- diff dice "ORM=False, DB=True" para vehiculo.control_base_id.
-- alembic dice "existing=True, new=False".
-El diff es mas confiable (basado en snapshots).
-
-**Tier 2.** Investigar en Fase 5.
+---
 
 **FIN DEL DOCUMENTO**
