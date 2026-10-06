@@ -1,6 +1,6 @@
 {
   "meta": {
-    "capturado_en": "2026-10-06T10:29:29.505454+00:00",
+    "capturado_en": "2026-10-06T10:46:04.472637+00:00",
     "stats": {
       "total_diferencias": 332,
       "por_clasificacion": {
@@ -1411,49 +1411,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_usuario_suspendido_por",
-          "columns": [
-            "suspendido_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_usuario_suspendido_por_usuario",
-          "columns": [
-            "suspendido_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": null
-        }
-      },
-      "tier": 1,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0052",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "auth",
-      "tabla": "usuario",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_usuario_control_base_id",
           "columns": [
             "control_base_id"
@@ -1476,6 +1433,49 @@
           "references": {
             "schema": "tenant",
             "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "SET NULL",
+          "on_update": null
+        }
+      },
+      "tier": 1,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0052",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "auth",
+      "tabla": "usuario",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_usuario_suspendido_por",
+          "columns": [
+            "suspendido_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "NO ACTION",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_usuario_suspendido_por_usuario",
+          "columns": [
+            "suspendido_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
@@ -2435,49 +2435,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_chofer_vehiculo_usuario_id",
-          "columns": [
-            "usuario_id"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "CASCADE",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_chofer_vehiculo_usuario_id_usuario",
-          "columns": [
-            "usuario_id"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "CASCADE",
-          "on_update": null
-        }
-      },
-      "tier": 1,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0088",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "chofer_vehiculo",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_chofer_vehiculo_control_base_id",
           "columns": [
             "control_base_id"
@@ -2513,7 +2470,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0089",
+      "id": "D-0088",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "chofer_vehiculo",
@@ -2556,6 +2513,49 @@
       "razon_decision": null
     },
     {
+      "id": "D-0089",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "chofer_vehiculo",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_chofer_vehiculo_usuario_id",
+          "columns": [
+            "usuario_id"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_chofer_vehiculo_usuario_id_usuario",
+          "columns": [
+            "usuario_id"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": null
+        }
+      },
+      "tier": 1,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
       "id": "D-0090",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
@@ -2582,11 +2582,11 @@
       "detalle": {
         "db": null,
         "orm": {
-          "name": "ix_fleet_chofer_vehiculo_ubicacion",
+          "name": "idx_chofer_vehiculo_ubicacion",
           "unique": false,
           "primary": false,
-          "method": "btree",
-          "definition": "CREATE INDEX ix_fleet_chofer_vehiculo_ubicacion ON fleet.chofer_vehiculo USING btree (ubicacion)",
+          "method": "gist",
+          "definition": "CREATE INDEX idx_chofer_vehiculo_ubicacion ON fleet.chofer_vehiculo USING gist (ubicacion)",
           "columns": [
             "ubicacion"
           ]
@@ -2730,49 +2730,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_contrato_propietario",
-          "columns": [
-            "propietario_id"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "CASCADE",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_contrato_vehiculo_propietario_id_usuario",
-          "columns": [
-            "propietario_id"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "CASCADE",
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0098",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "contrato_vehiculo",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_contrato_control_base",
           "columns": [
             "control_base_id"
@@ -2808,7 +2765,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0099",
+      "id": "D-0098",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "contrato_vehiculo",
@@ -2834,6 +2791,49 @@
           "name": "fk_contrato_vehiculo_chofer_id_usuario",
           "columns": [
             "chofer_id"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0099",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "contrato_vehiculo",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_contrato_propietario",
+          "columns": [
+            "propietario_id"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_contrato_vehiculo_propietario_id_usuario",
+          "columns": [
+            "propietario_id"
           ],
           "references": {
             "schema": "auth",
@@ -2902,8 +2902,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_contrato_dia_inicio_semana",
-          "definition": "(((dia_inicio_semana)::text = ANY ((ARRAY['lunes'::character varying, 'martes'::character varying, 'miercoles'::character varying, 'jueves'::character varying, 'viernes'::character varying, 'sabado'::character varying, 'domingo'::character varying])::text[])) OR (dia_inicio_semana IS NULL))"
+          "name": "ck_contrato_estado",
+          "definition": "((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'ACTIVO'::character varying, 'FINALIZADO'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -2913,6 +2913,24 @@
     },
     {
       "id": "D-0102",
+      "clasificacion": "constraint_falta",
+      "schema": "fleet",
+      "tabla": "contrato_vehiculo",
+      "columna": null,
+      "tipo_constraint": "check",
+      "detalle": {
+        "db": {
+          "name": "ck_contrato_activo_estado",
+          "definition": "((((estado_contrato)::text = 'ACTIVO'::text) AND (activo = true)) OR (((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'FINALIZADO'::character varying])::text[])) AND (activo = false)))"
+        },
+        "orm": null
+      },
+      "tier": 2,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0103",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
       "tabla": "contrato_vehiculo",
@@ -2930,24 +2948,6 @@
       "razon_decision": null
     },
     {
-      "id": "D-0103",
-      "clasificacion": "constraint_falta",
-      "schema": "fleet",
-      "tabla": "contrato_vehiculo",
-      "columna": null,
-      "tipo_constraint": "check",
-      "detalle": {
-        "db": {
-          "name": "check_auto_gestion",
-          "definition": "(((tipo_contrato)::text <> 'AUTO_GESTION'::text) OR (propietario_id = chofer_id))"
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
       "id": "D-0104",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
@@ -2956,8 +2956,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_contrato_compensacion_km",
-          "definition": "((compensacion_km)::text = ANY ((ARRAY['DIARIA'::character varying, 'ACUMULADA'::character varying, 'COMPENSADA'::character varying])::text[]))"
+          "name": "ck_contrato_duracion_minima",
+          "definition": "((duracion_minima_horas IS NULL) OR (duracion_minima_horas >= 1))"
         },
         "orm": null
       },
@@ -2967,24 +2967,6 @@
     },
     {
       "id": "D-0105",
-      "clasificacion": "constraint_falta",
-      "schema": "fleet",
-      "tabla": "contrato_vehiculo",
-      "columna": null,
-      "tipo_constraint": "check",
-      "detalle": {
-        "db": {
-          "name": "check_porcentaje",
-          "definition": "((((tipo_contrato)::text = 'PORCENTAJE'::text) AND (porcentaje_chofer IS NOT NULL) AND ((porcentaje_chofer >= (0)::numeric) AND (porcentaje_chofer <= (100)::numeric))) OR (((tipo_contrato)::text <> 'PORCENTAJE'::text) AND (porcentaje_chofer IS NULL)))"
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0106",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
       "tabla": "contrato_vehiculo",
@@ -3002,25 +2984,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0107",
-      "clasificacion": "constraint_falta",
-      "schema": "fleet",
-      "tabla": "contrato_vehiculo",
-      "columna": null,
-      "tipo_constraint": "check",
-      "detalle": {
-        "db": {
-          "name": "ck_contrato_estado",
-          "definition": "((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'ACTIVO'::character varying, 'FINALIZADO'::character varying])::text[]))"
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0108",
+      "id": "D-0106",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
       "tabla": "contrato_vehiculo",
@@ -3038,6 +3002,42 @@
       "razon_decision": null
     },
     {
+      "id": "D-0107",
+      "clasificacion": "constraint_falta",
+      "schema": "fleet",
+      "tabla": "contrato_vehiculo",
+      "columna": null,
+      "tipo_constraint": "check",
+      "detalle": {
+        "db": {
+          "name": "check_auto_gestion",
+          "definition": "(((tipo_contrato)::text <> 'AUTO_GESTION'::text) OR (propietario_id = chofer_id))"
+        },
+        "orm": null
+      },
+      "tier": 2,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0108",
+      "clasificacion": "constraint_falta",
+      "schema": "fleet",
+      "tabla": "contrato_vehiculo",
+      "columna": null,
+      "tipo_constraint": "check",
+      "detalle": {
+        "db": {
+          "name": "ck_contrato_compensacion_km",
+          "definition": "((compensacion_km)::text = ANY ((ARRAY['DIARIA'::character varying, 'ACUMULADA'::character varying, 'COMPENSADA'::character varying])::text[]))"
+        },
+        "orm": null
+      },
+      "tier": 2,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
       "id": "D-0109",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
@@ -3046,8 +3046,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_contrato_duracion_minima",
-          "definition": "((duracion_minima_horas IS NULL) OR (duracion_minima_horas >= 1))"
+          "name": "check_porcentaje",
+          "definition": "((((tipo_contrato)::text = 'PORCENTAJE'::text) AND (porcentaje_chofer IS NOT NULL) AND ((porcentaje_chofer >= (0)::numeric) AND (porcentaje_chofer <= (100)::numeric))) OR (((tipo_contrato)::text <> 'PORCENTAJE'::text) AND (porcentaje_chofer IS NULL)))"
         },
         "orm": null
       },
@@ -3082,8 +3082,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_contrato_activo_estado",
-          "definition": "((((estado_contrato)::text = 'ACTIVO'::text) AND (activo = true)) OR (((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'FINALIZADO'::character varying])::text[])) AND (activo = false)))"
+          "name": "ck_contrato_dia_inicio_semana",
+          "definition": "(((dia_inicio_semana)::text = ANY ((ARRAY['lunes'::character varying, 'martes'::character varying, 'miercoles'::character varying, 'jueves'::character varying, 'viernes'::character varying, 'sabado'::character varying, 'domingo'::character varying])::text[])) OR (dia_inicio_semana IS NULL))"
         },
         "orm": null
       },
@@ -3446,49 +3446,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_gasto_turno_categoria",
-          "columns": [
-            "categoria_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "categoria_gasto",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_gasto_turno_categoria_id_categoria_gasto",
-          "columns": [
-            "categoria_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "categoria_gasto",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0123",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "gasto_turno",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_gasto_turno_turno_id",
           "columns": [
             "turno_id"
@@ -3516,6 +3473,49 @@
             ]
           },
           "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0123",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "gasto_turno",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_gasto_turno_categoria",
+          "columns": [
+            "categoria_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "categoria_gasto",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "SET NULL",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_gasto_turno_categoria_id_categoria_gasto",
+          "columns": [
+            "categoria_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "categoria_gasto",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "SET NULL",
           "on_update": null
         }
       },
@@ -3835,33 +3835,33 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_liquidacion_turno",
+          "name": "fk_liquidacion_rechazada_por",
           "columns": [
-            "turno_id"
+            "rechazada_por"
           ],
           "references": {
-            "schema": "fleet",
-            "table": "turno_chofer",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "SET NULL",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_liquidacion_turno_id_turno_chofer",
+          "name": "fk_liquidacion_rechazada_por_usuario",
           "columns": [
-            "turno_id"
+            "rechazada_por"
           ],
           "references": {
-            "schema": "fleet",
-            "table": "turno_chofer",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "SET NULL",
           "on_update": null
         }
       },
@@ -3921,92 +3921,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_liquidacion_pagada_por",
-          "columns": [
-            "pagada_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_liquidacion_pagada_por_usuario",
-          "columns": [
-            "pagada_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0138",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "liquidacion",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
-          "name": "fk_liquidacion_rechazada_por",
-          "columns": [
-            "rechazada_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_liquidacion_rechazada_por_usuario",
-          "columns": [
-            "rechazada_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0139",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "liquidacion",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_liquidacion_propietario",
           "columns": [
             "propietario_id"
@@ -4042,7 +3956,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0140",
+      "id": "D-0138",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "liquidacion",
@@ -4050,33 +3964,33 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_liquidacion_control_base",
+          "name": "fk_liquidacion_aprobada_por",
           "columns": [
-            "control_base_id"
+            "aprobada_por"
           ],
           "references": {
-            "schema": "tenant",
-            "table": "control_base",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "SET NULL",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_liquidacion_control_base_id_control_base",
+          "name": "fk_liquidacion_aprobada_por_usuario",
           "columns": [
-            "control_base_id"
+            "aprobada_por"
           ],
           "references": {
-            "schema": "tenant",
-            "table": "control_base",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "SET NULL",
           "on_update": null
         }
       },
@@ -4085,7 +3999,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0141",
+      "id": "D-0139",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "liquidacion",
@@ -4128,7 +4042,50 @@
       "razon_decision": null
     },
     {
-      "id": "D-0142",
+      "id": "D-0140",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "liquidacion",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_liquidacion_turno",
+          "columns": [
+            "turno_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "turno_chofer",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_liquidacion_turno_id_turno_chofer",
+          "columns": [
+            "turno_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "turno_chofer",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0141",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "liquidacion",
@@ -4171,6 +4128,49 @@
       "razon_decision": null
     },
     {
+      "id": "D-0142",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "liquidacion",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_liquidacion_control_base",
+          "columns": [
+            "control_base_id"
+          ],
+          "references": {
+            "schema": "tenant",
+            "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_liquidacion_control_base_id_control_base",
+          "columns": [
+            "control_base_id"
+          ],
+          "references": {
+            "schema": "tenant",
+            "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
       "id": "D-0143",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
@@ -4179,9 +4179,9 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_liquidacion_aprobada_por",
+          "name": "fk_liquidacion_pagada_por",
           "columns": [
-            "aprobada_por"
+            "pagada_por"
           ],
           "references": {
             "schema": "auth",
@@ -4194,9 +4194,9 @@
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_liquidacion_aprobada_por_usuario",
+          "name": "fk_liquidacion_pagada_por_usuario",
           "columns": [
-            "aprobada_por"
+            "pagada_por"
           ],
           "references": {
             "schema": "auth",
@@ -4250,33 +4250,33 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_liquidacion_ajuste_liquidacion",
+          "name": "fk_liquidacion_ajuste_usuario",
           "columns": [
-            "liquidacion_id"
+            "usuario_id"
           ],
           "references": {
-            "schema": "fleet",
-            "table": "liquidacion",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "SET NULL",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_liquidacion_ajuste_liquidacion_id_liquidacion",
+          "name": "fk_liquidacion_ajuste_usuario_id_usuario",
           "columns": [
-            "liquidacion_id"
+            "usuario_id"
           ],
           "references": {
-            "schema": "fleet",
-            "table": "liquidacion",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "SET NULL",
           "on_update": null
         }
       },
@@ -4336,33 +4336,33 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_liquidacion_ajuste_usuario",
+          "name": "fk_liquidacion_ajuste_liquidacion",
           "columns": [
-            "usuario_id"
+            "liquidacion_id"
           ],
           "references": {
-            "schema": "auth",
-            "table": "usuario",
+            "schema": "fleet",
+            "table": "liquidacion",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "SET NULL",
+          "on_delete": "CASCADE",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_liquidacion_ajuste_usuario_id_usuario",
+          "name": "fk_liquidacion_ajuste_liquidacion_id_liquidacion",
           "columns": [
-            "usuario_id"
+            "liquidacion_id"
           ],
           "references": {
-            "schema": "auth",
-            "table": "usuario",
+            "schema": "fleet",
+            "table": "liquidacion",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "SET NULL",
+          "on_delete": "CASCADE",
           "on_update": null
         }
       },
@@ -4478,33 +4478,33 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_liquidacion_estado_historial_liquidacion",
+          "name": "fk_liquidacion_estado_historial_usuario",
           "columns": [
-            "liquidacion_id"
+            "cambiado_por"
           ],
           "references": {
-            "schema": "fleet",
-            "table": "liquidacion",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "SET NULL",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_liquidacion_estado_historial_liquidacion_id_liquidacion",
+          "name": "fk_liquidacion_estado_historial_cambiado_por_usuario",
           "columns": [
-            "liquidacion_id"
+            "cambiado_por"
           ],
           "references": {
-            "schema": "fleet",
-            "table": "liquidacion",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "SET NULL",
           "on_update": null
         }
       },
@@ -4564,33 +4564,33 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_liquidacion_estado_historial_usuario",
+          "name": "fk_liquidacion_estado_historial_liquidacion",
           "columns": [
-            "cambiado_por"
+            "liquidacion_id"
           ],
           "references": {
-            "schema": "auth",
-            "table": "usuario",
+            "schema": "fleet",
+            "table": "liquidacion",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "SET NULL",
+          "on_delete": "CASCADE",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_liquidacion_estado_historial_cambiado_por_usuario",
+          "name": "fk_liquidacion_estado_historial_liquidacion_id_liquidacion",
           "columns": [
-            "cambiado_por"
+            "liquidacion_id"
           ],
           "references": {
-            "schema": "auth",
-            "table": "usuario",
+            "schema": "fleet",
+            "table": "liquidacion",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "SET NULL",
+          "on_delete": "CASCADE",
           "on_update": null
         }
       },
@@ -4996,6 +4996,49 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
+          "name": "fk_historial_pos_control_base",
+          "columns": [
+            "control_base_id"
+          ],
+          "references": {
+            "schema": "tenant",
+            "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "NO ACTION",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_neumatico_historial_posicion_control_base_id_control_base",
+          "columns": [
+            "control_base_id"
+          ],
+          "references": {
+            "schema": "tenant",
+            "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0168",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "neumatico_historial_posicion",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
           "name": "fk_historial_pos_neumatico",
           "columns": [
             "neumatico_vehiculo_id"
@@ -5031,7 +5074,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0168",
+      "id": "D-0169",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "neumatico_historial_posicion",
@@ -5061,49 +5104,6 @@
           "references": {
             "schema": "fleet",
             "table": "neumatico_operacion",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0169",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "neumatico_historial_posicion",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
-          "name": "fk_historial_pos_control_base",
-          "columns": [
-            "control_base_id"
-          ],
-          "references": {
-            "schema": "tenant",
-            "table": "control_base",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_neumatico_historial_posicion_control_base_id_control_base",
-          "columns": [
-            "control_base_id"
-          ],
-          "references": {
-            "schema": "tenant",
-            "table": "control_base",
             "columns": [
               "id"
             ]
@@ -5214,28 +5214,28 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_imagen_neumatico",
+          "name": "fk_imagen_control_base",
           "columns": [
-            "neumatico_vehiculo_id"
+            "control_base_id"
           ],
           "references": {
-            "schema": "fleet",
-            "table": "neumatico_vehiculo",
+            "schema": "tenant",
+            "table": "control_base",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "SET NULL",
+          "on_delete": "NO ACTION",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_neumatico_imagen_neumatico_vehiculo_id_neumatico_vehiculo",
+          "name": "fk_neumatico_imagen_control_base_id_control_base",
           "columns": [
-            "neumatico_vehiculo_id"
+            "control_base_id"
           ],
           "references": {
-            "schema": "fleet",
-            "table": "neumatico_vehiculo",
+            "schema": "tenant",
+            "table": "control_base",
             "columns": [
               "id"
             ]
@@ -5300,49 +5300,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_imagen_control_base",
-          "columns": [
-            "control_base_id"
-          ],
-          "references": {
-            "schema": "tenant",
-            "table": "control_base",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_neumatico_imagen_control_base_id_control_base",
-          "columns": [
-            "control_base_id"
-          ],
-          "references": {
-            "schema": "tenant",
-            "table": "control_base",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0176",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "neumatico_imagen",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_imagen_subido_por",
           "columns": [
             "subido_por"
@@ -5365,6 +5322,49 @@
           "references": {
             "schema": "auth",
             "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0176",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "neumatico_imagen",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_imagen_neumatico",
+          "columns": [
+            "neumatico_vehiculo_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "neumatico_vehiculo",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "SET NULL",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_neumatico_imagen_neumatico_vehiculo_id_neumatico_vehiculo",
+          "columns": [
+            "neumatico_vehiculo_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "neumatico_vehiculo",
             "columns": [
               "id"
             ]
@@ -5432,49 +5432,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_medicion_historial",
-          "columns": [
-            "historial_posicion_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "neumatico_historial_posicion",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "CASCADE",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_neumatico_medicion_historial_posicion_id_neumatico_historial_posicion",
-          "columns": [
-            "historial_posicion_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "neumatico_historial_posicion",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0180",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "neumatico_medicion",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_medicion_control_base",
           "columns": [
             "control_base_id"
@@ -5497,6 +5454,49 @@
           "references": {
             "schema": "tenant",
             "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0180",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "neumatico_medicion",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_medicion_historial",
+          "columns": [
+            "historial_posicion_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "neumatico_historial_posicion",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_neumatico_medicion_historial_posicion_id_neumatico_historial_posicion",
+          "columns": [
+            "historial_posicion_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "neumatico_historial_posicion",
             "columns": [
               "id"
             ]
@@ -5650,49 +5650,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_operacion_creado_por",
-          "columns": [
-            "creado_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_neumatico_operacion_creado_por_usuario",
-          "columns": [
-            "creado_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0186",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "neumatico_operacion",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_operacion_vehiculo",
           "columns": [
             "vehiculo_id"
@@ -5715,6 +5672,49 @@
           "references": {
             "schema": "fleet",
             "table": "vehiculo",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0186",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "neumatico_operacion",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_operacion_creado_por",
+          "columns": [
+            "creado_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "SET NULL",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_neumatico_operacion_creado_por_usuario",
+          "columns": [
+            "creado_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
@@ -5782,49 +5782,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_detalle_neumatico",
-          "columns": [
-            "neumatico_vehiculo_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "neumatico_vehiculo",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "CASCADE",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_neumatico_operacion_detalle_neumatico_vehiculo_id_neumatico_vehiculo",
-          "columns": [
-            "neumatico_vehiculo_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "neumatico_vehiculo",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0190",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "neumatico_operacion_detalle",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_detalle_operacion",
           "columns": [
             "operacion_id"
@@ -5847,6 +5804,49 @@
           "references": {
             "schema": "fleet",
             "table": "neumatico_operacion",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0190",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "neumatico_operacion_detalle",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_detalle_neumatico",
+          "columns": [
+            "neumatico_vehiculo_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "neumatico_vehiculo",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_neumatico_operacion_detalle_neumatico_vehiculo_id_neumatico_vehiculo",
+          "columns": [
+            "neumatico_vehiculo_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "neumatico_vehiculo",
             "columns": [
               "id"
             ]
@@ -5896,49 +5896,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_sugerencia_neumatico",
-          "columns": [
-            "neumatico_vehiculo_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "neumatico_vehiculo",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_neumatico_sugerencia_neumatico_vehiculo_id_neumatico_vehiculo",
-          "columns": [
-            "neumatico_vehiculo_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "neumatico_vehiculo",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0193",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "neumatico_sugerencia",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_sugerencia_control_base",
           "columns": [
             "control_base_id"
@@ -5974,7 +5931,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0194",
+      "id": "D-0193",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "neumatico_sugerencia",
@@ -6017,7 +5974,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0195",
+      "id": "D-0194",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "neumatico_sugerencia",
@@ -6060,25 +6017,50 @@
       "razon_decision": null
     },
     {
-      "id": "D-0196",
-      "clasificacion": "constraint_falta",
+      "id": "D-0195",
+      "clasificacion": "constraint_nombre_desalineado",
       "schema": "fleet",
       "tabla": "neumatico_sugerencia",
       "columna": null,
-      "tipo_constraint": "check",
+      "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "ck_neumatico_sugerencia_chk_sugerencia_tipo",
-          "definition": "((tipo_sugerencia)::text = ANY ((ARRAY['ROTACION'::character varying, 'REEMPLAZO'::character varying, 'REPARACION'::character varying, 'INSPECCION'::character varying, 'INVENTARIO'::character varying, 'OTRO'::character varying])::text[]))"
+          "name": "fk_sugerencia_neumatico",
+          "columns": [
+            "neumatico_vehiculo_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "neumatico_vehiculo",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "SET NULL",
+          "on_update": "NO ACTION"
         },
-        "orm": null
+        "orm": {
+          "name": "fk_neumatico_sugerencia_neumatico_vehiculo_id_neumatico_vehiculo",
+          "columns": [
+            "neumatico_vehiculo_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "neumatico_vehiculo",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
       },
-      "tier": 2,
+      "tier": 3,
       "requiere_decision": false,
       "razon_decision": null
     },
     {
-      "id": "D-0197",
+      "id": "D-0196",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
       "tabla": "neumatico_sugerencia",
@@ -6096,7 +6078,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0198",
+      "id": "D-0197",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
       "tabla": "neumatico_sugerencia",
@@ -6106,6 +6088,24 @@
         "db": {
           "name": "ck_neumatico_sugerencia_chk_sugerencia_estado",
           "definition": "((estado)::text = ANY ((ARRAY['PENDIENTE'::character varying, 'EN_PROCESO'::character varying, 'ATENDIDA'::character varying, 'DESCARTADA'::character varying])::text[]))"
+        },
+        "orm": null
+      },
+      "tier": 2,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0198",
+      "clasificacion": "constraint_falta",
+      "schema": "fleet",
+      "tabla": "neumatico_sugerencia",
+      "columna": null,
+      "tipo_constraint": "check",
+      "detalle": {
+        "db": {
+          "name": "ck_neumatico_sugerencia_chk_sugerencia_tipo",
+          "definition": "((tipo_sugerencia)::text = ANY ((ARRAY['ROTACION'::character varying, 'REEMPLAZO'::character varying, 'REPARACION'::character varying, 'INSPECCION'::character varying, 'INVENTARIO'::character varying, 'OTRO'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -6287,8 +6287,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_neumatico_vehiculo_chk_neumatico_estado",
-          "definition": "((estado)::text = ANY ((ARRAY['ACTIVO'::character varying, 'EN_USO'::character varying, 'DESBASTADO'::character varying, 'RECICLADO'::character varying, 'DESECHADO'::character varying, 'BAJA'::character varying])::text[]))"
+          "name": "ck_neumatico_vehiculo_chk_neumatico_tipo",
+          "definition": "((tipo_neumatico)::text = ANY ((ARRAY['RADIAL'::character varying, 'BIAS'::character varying, 'TUBELESS'::character varying, 'RUN_FLAT'::character varying, 'TODO_TERRENO'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -6305,8 +6305,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_neumatico_vehiculo_chk_neumatico_tipo",
-          "definition": "((tipo_neumatico)::text = ANY ((ARRAY['RADIAL'::character varying, 'BIAS'::character varying, 'TUBELESS'::character varying, 'RUN_FLAT'::character varying, 'TODO_TERRENO'::character varying])::text[]))"
+          "name": "ck_neumatico_vehiculo_chk_neumatico_estado",
+          "definition": "((estado)::text = ANY ((ARRAY['ACTIVO'::character varying, 'EN_USO'::character varying, 'DESBASTADO'::character varying, 'RECICLADO'::character varying, 'DESECHADO'::character varying, 'BAJA'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -6426,8 +6426,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_notificacion_vencimiento_chk_notificacion_nivel_valido",
-          "definition": "((nivel)::text = ANY ((ARRAY['vencido'::character varying, 'critico'::character varying, 'urgente'::character varying, 'preventivo'::character varying, 'vigente'::character varying])::text[]))"
+          "name": "ck_notificacion_vencimiento_chk_notificacion_entidad_ti_fd97",
+          "definition": "((entidad_tipo)::text = ANY ((ARRAY['propietario'::character varying, 'vehiculo'::character varying, 'chofer'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -6444,8 +6444,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_notificacion_vencimiento_chk_notificacion_entidad_ti_fd97",
-          "definition": "((entidad_tipo)::text = ANY ((ARRAY['propietario'::character varying, 'vehiculo'::character varying, 'chofer'::character varying])::text[]))"
+          "name": "ck_notificacion_vencimiento_chk_notificacion_nivel_valido",
+          "definition": "((nivel)::text = ANY ((ARRAY['vencido'::character varying, 'critico'::character varying, 'urgente'::character varying, 'preventivo'::character varying, 'vigente'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -6693,49 +6693,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_turno_chofer_chofer_id",
-          "columns": [
-            "chofer_id"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "RESTRICT",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_turno_chofer_chofer_id_usuario",
-          "columns": [
-            "chofer_id"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 1,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0219",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "fleet",
-      "tabla": "turno_chofer",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_turno_chofer_contrato_id",
           "columns": [
             "contrato_id"
@@ -6758,6 +6715,49 @@
           "references": {
             "schema": "fleet",
             "table": "contrato_vehiculo",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 1,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0219",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "fleet",
+      "tabla": "turno_chofer",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_turno_chofer_chofer_id",
+          "columns": [
+            "chofer_id"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "RESTRICT",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_turno_chofer_chofer_id_usuario",
+          "columns": [
+            "chofer_id"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
@@ -6941,8 +6941,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_vehiculo_ck_vehiculo_estado_vehiculo",
-          "definition": "((estado_vehiculo)::text = ANY ((ARRAY['regular'::character varying, 'bueno'::character varying, 'excelente'::character varying])::text[]))"
+          "name": "ck_vehiculo_ck_vehiculo_capacidad_baul",
+          "definition": "((capacidad_baul)::text = ANY ((ARRAY['sin_baul'::character varying, 'baul_chico'::character varying, 'baul_mediano'::character varying, 'baul_grande'::character varying, 'van_carga'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -6959,8 +6959,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_vehiculo_ck_vehiculo_capacidad_baul",
-          "definition": "((capacidad_baul)::text = ANY ((ARRAY['sin_baul'::character varying, 'baul_chico'::character varying, 'baul_mediano'::character varying, 'baul_grande'::character varying, 'van_carga'::character varying])::text[]))"
+          "name": "ck_vehiculo_ck_vehiculo_estado_vehiculo",
+          "definition": "((estado_vehiculo)::text = ANY ((ARRAY['regular'::character varying, 'bueno'::character varying, 'excelente'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -7848,49 +7848,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_pago_empresa_confirmado_por",
-          "columns": [
-            "confirmado_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_pago_empresa_confirmado_por_usuario",
-          "columns": [
-            "confirmado_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0255",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "payment",
-      "tabla": "pago_empresa",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_pago_empresa_empresa_id",
           "columns": [
             "empresa_id"
@@ -7918,6 +7875,49 @@
             ]
           },
           "on_delete": "CASCADE",
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0255",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "payment",
+      "tabla": "pago_empresa",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_pago_empresa_confirmado_por",
+          "columns": [
+            "confirmado_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "NO ACTION",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_pago_empresa_confirmado_por_usuario",
+          "columns": [
+            "confirmado_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
           "on_update": null
         }
       },
@@ -7977,8 +7977,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "pago_empresa_estado_check",
-          "definition": "((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'confirmado'::character varying, 'rechazado'::character varying, 'cancelado'::character varying])::text[]))"
+          "name": "pago_empresa_monto_check",
+          "definition": "(monto > (0)::numeric)"
         },
         "orm": null
       },
@@ -7995,8 +7995,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "pago_empresa_monto_check",
-          "definition": "(monto > (0)::numeric)"
+          "name": "pago_empresa_estado_check",
+          "definition": "((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'confirmado'::character varying, 'rechazado'::character varying, 'cancelado'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -8355,6 +8355,49 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
+          "name": "fk_escaneo_qr_contrato",
+          "columns": [
+            "contrato_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "contrato_vehiculo",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "SET NULL",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_escaneo_qr_contrato_id_contrato_vehiculo",
+          "columns": [
+            "contrato_id"
+          ],
+          "references": {
+            "schema": "fleet",
+            "table": "contrato_vehiculo",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "SET NULL",
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0271",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "public",
+      "tabla": "escaneo_qr",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
           "name": "fk_escaneo_qr_viaje_id",
           "columns": [
             "viaje_id"
@@ -8390,7 +8433,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0271",
+      "id": "D-0272",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "public",
       "tabla": "escaneo_qr",
@@ -8433,7 +8476,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0272",
+      "id": "D-0273",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "public",
       "tabla": "escaneo_qr",
@@ -8463,49 +8506,6 @@
           "references": {
             "schema": "auth",
             "table": "autorizacion_inicio",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0273",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "public",
-      "tabla": "escaneo_qr",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
-          "name": "fk_escaneo_qr_contrato",
-          "columns": [
-            "contrato_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "contrato_vehiculo",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_escaneo_qr_contrato_id_contrato_vehiculo",
-          "columns": [
-            "contrato_id"
-          ],
-          "references": {
-            "schema": "fleet",
-            "table": "contrato_vehiculo",
             "columns": [
               "id"
             ]
@@ -8796,49 +8796,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_empresa_suspendido_por",
-          "columns": [
-            "suspendido_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_empresa_suspendido_por_usuario",
-          "columns": [
-            "suspendido_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0284",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "tenant",
-      "tabla": "empresa",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_empresa_control_base_id",
           "columns": [
             "control_base_id"
@@ -8861,6 +8818,49 @@
           "references": {
             "schema": "tenant",
             "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0284",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "tenant",
+      "tabla": "empresa",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_empresa_suspendido_por",
+          "columns": [
+            "suspendido_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "NO ACTION",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_empresa_suspendido_por_usuario",
+          "columns": [
+            "suspendido_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
@@ -8910,49 +8910,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_factura_pagada_por",
-          "columns": [
-            "pagada_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_factura_pagada_por_usuario",
-          "columns": [
-            "pagada_por"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": null,
-          "on_update": null
-        }
-      },
-      "tier": 3,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0287",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "tenant",
-      "tabla": "factura",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_factura_control_base_id",
           "columns": [
             "control_base_id"
@@ -8975,6 +8932,49 @@
           "references": {
             "schema": "tenant",
             "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": null,
+          "on_update": null
+        }
+      },
+      "tier": 3,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0287",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "tenant",
+      "tabla": "factura",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_factura_pagada_por",
+          "columns": [
+            "pagada_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "NO ACTION",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_factura_pagada_por_usuario",
+          "columns": [
+            "pagada_por"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
@@ -9079,28 +9079,28 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_calificacion_viaje_id",
+          "name": "fk_calificacion_calificado_id",
           "columns": [
-            "viaje_id"
+            "calificado_id"
           ],
           "references": {
-            "schema": "trip",
-            "table": "viaje_solicitado",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "CASCADE",
+          "on_delete": "NO ACTION",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_calificacion_viaje_id_viaje_solicitado",
+          "name": "fk_calificacion_calificado_id_usuario",
           "columns": [
-            "viaje_id"
+            "calificado_id"
           ],
           "references": {
-            "schema": "trip",
-            "table": "viaje_solicitado",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
@@ -9165,28 +9165,28 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_calificacion_calificado_id",
+          "name": "fk_calificacion_viaje_id",
           "columns": [
-            "calificado_id"
+            "viaje_id"
           ],
           "references": {
-            "schema": "auth",
-            "table": "usuario",
+            "schema": "trip",
+            "table": "viaje_solicitado",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "NO ACTION",
+          "on_delete": "CASCADE",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_calificacion_calificado_id_usuario",
+          "name": "fk_calificacion_viaje_id_viaje_solicitado",
           "columns": [
-            "calificado_id"
+            "viaje_id"
           ],
           "references": {
-            "schema": "auth",
-            "table": "usuario",
+            "schema": "trip",
+            "table": "viaje_solicitado",
             "columns": [
               "id"
             ]
@@ -9925,13 +9925,13 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_viaje_cc",
+          "name": "fk_viaje_empleado",
           "columns": [
-            "cuenta_corriente_id"
+            "empleado_id"
           ],
           "references": {
-            "schema": "corporate",
-            "table": "cuenta_corriente",
+            "schema": "auth",
+            "table": "usuario",
             "columns": [
               "id"
             ]
@@ -9947,35 +9947,6 @@
     },
     {
       "id": "D-0320",
-      "clasificacion": "constraint_falta",
-      "schema": "trip",
-      "tabla": "viaje_solicitado",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
-          "name": "fk_viaje_mov_cc",
-          "columns": [
-            "movimiento_cc_id"
-          ],
-          "references": {
-            "schema": "corporate",
-            "table": "movimiento_cuenta",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": null
-      },
-      "tier": 1,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0321",
       "clasificacion": "constraint_falta",
       "schema": "trip",
       "tabla": "viaje_solicitado",
@@ -10004,6 +9975,35 @@
       "razon_decision": null
     },
     {
+      "id": "D-0321",
+      "clasificacion": "constraint_falta",
+      "schema": "trip",
+      "tabla": "viaje_solicitado",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_viaje_cc",
+          "columns": [
+            "cuenta_corriente_id"
+          ],
+          "references": {
+            "schema": "corporate",
+            "table": "cuenta_corriente",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "NO ACTION",
+          "on_update": "NO ACTION"
+        },
+        "orm": null
+      },
+      "tier": 1,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
       "id": "D-0322",
       "clasificacion": "constraint_falta",
       "schema": "trip",
@@ -10012,13 +10012,13 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_viaje_empleado",
+          "name": "fk_viaje_mov_cc",
           "columns": [
-            "empleado_id"
+            "movimiento_cc_id"
           ],
           "references": {
-            "schema": "auth",
-            "table": "usuario",
+            "schema": "corporate",
+            "table": "movimiento_cuenta",
             "columns": [
               "id"
             ]
@@ -10084,28 +10084,28 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_viaje_solicitado_turno_id",
+          "name": "fk_viaje_solicitado_chofer_vehiculo",
           "columns": [
-            "turno_id"
+            "chofer_vehiculo_id"
           ],
           "references": {
             "schema": "fleet",
-            "table": "turno_chofer",
+            "table": "chofer_vehiculo",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "NO ACTION",
+          "on_delete": "SET NULL",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_viaje_solicitado_turno_id_turno_chofer",
+          "name": "fk_viaje_solicitado_chofer_vehiculo_id_chofer_vehiculo",
           "columns": [
-            "turno_id"
+            "chofer_vehiculo_id"
           ],
           "references": {
             "schema": "fleet",
-            "table": "turno_chofer",
+            "table": "chofer_vehiculo",
             "columns": [
               "id"
             ]
@@ -10170,28 +10170,28 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_viaje_solicitado_chofer_vehiculo",
+          "name": "fk_viaje_solicitado_vehiculo_id",
           "columns": [
-            "chofer_vehiculo_id"
+            "vehiculo_id"
           ],
           "references": {
             "schema": "fleet",
-            "table": "chofer_vehiculo",
+            "table": "vehiculo",
             "columns": [
               "id"
             ]
           },
-          "on_delete": "SET NULL",
+          "on_delete": "NO ACTION",
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_viaje_solicitado_chofer_vehiculo_id_chofer_vehiculo",
+          "name": "fk_viaje_solicitado_vehiculo_id_vehiculo",
           "columns": [
-            "chofer_vehiculo_id"
+            "vehiculo_id"
           ],
           "references": {
             "schema": "fleet",
-            "table": "chofer_vehiculo",
+            "table": "vehiculo",
             "columns": [
               "id"
             ]
@@ -10256,49 +10256,6 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_viaje_solicitado_control_base_id",
-          "columns": [
-            "control_base_id"
-          ],
-          "references": {
-            "schema": "tenant",
-            "table": "control_base",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": {
-          "name": "fk_viaje_solicitado_control_base_id_control_base",
-          "columns": [
-            "control_base_id"
-          ],
-          "references": {
-            "schema": "tenant",
-            "table": "control_base",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "CASCADE",
-          "on_update": null
-        }
-      },
-      "tier": 1,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0329",
-      "clasificacion": "constraint_nombre_desalineado",
-      "schema": "trip",
-      "tabla": "viaje_solicitado",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
           "name": "fk_viaje_solicitado_chofer_id",
           "columns": [
             "chofer_id"
@@ -10334,7 +10291,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0330",
+      "id": "D-0329",
       "clasificacion": "constraint_nombre_desalineado",
       "schema": "trip",
       "tabla": "viaje_solicitado",
@@ -10342,13 +10299,13 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_viaje_solicitado_vehiculo_id",
+          "name": "fk_viaje_solicitado_turno_id",
           "columns": [
-            "vehiculo_id"
+            "turno_id"
           ],
           "references": {
             "schema": "fleet",
-            "table": "vehiculo",
+            "table": "turno_chofer",
             "columns": [
               "id"
             ]
@@ -10357,18 +10314,61 @@
           "on_update": "NO ACTION"
         },
         "orm": {
-          "name": "fk_viaje_solicitado_vehiculo_id_vehiculo",
+          "name": "fk_viaje_solicitado_turno_id_turno_chofer",
           "columns": [
-            "vehiculo_id"
+            "turno_id"
           ],
           "references": {
             "schema": "fleet",
-            "table": "vehiculo",
+            "table": "turno_chofer",
             "columns": [
               "id"
             ]
           },
           "on_delete": "SET NULL",
+          "on_update": null
+        }
+      },
+      "tier": 1,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0330",
+      "clasificacion": "constraint_nombre_desalineado",
+      "schema": "trip",
+      "tabla": "viaje_solicitado",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_viaje_solicitado_control_base_id",
+          "columns": [
+            "control_base_id"
+          ],
+          "references": {
+            "schema": "tenant",
+            "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "NO ACTION",
+          "on_update": "NO ACTION"
+        },
+        "orm": {
+          "name": "fk_viaje_solicitado_control_base_id_control_base",
+          "columns": [
+            "control_base_id"
+          ],
+          "references": {
+            "schema": "tenant",
+            "table": "control_base",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "CASCADE",
           "on_update": null
         }
       },

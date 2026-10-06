@@ -195,7 +195,6 @@ class ChoferVehiculo(Base):
     ubicacion: Mapped[Geography] = mapped_column(
         Geography(geometry_type='Point', srid=4326),
         nullable=True,
-        index=True
     )
     estado_laboral: Mapped[Optional[str]] = mapped_column(String(20), default='libre', nullable=True)
     estado_panico: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
