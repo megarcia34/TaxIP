@@ -217,11 +217,16 @@ def get_columns(cur, schema, table):
 # ============================================================
 
 def get_primary_key(cur, schema, table):
-    """Primary key de la tabla (nombre + columnas)."""
+    """Primary key de la tabla (nombre + columnas).
+
+    Nota: se castea a ::text[] para que psycopg2 adapte el array a list
+    de Python. Sin el cast, array_agg() sobre information_schema devuelve
+    el string crudo '{col1,col2}' en vez de una lista.
+    """
     cur.execute("""
         SELECT
             tc.constraint_name,
-            array_agg(kcu.column_name ORDER BY kcu.ordinal_position) AS columns
+            array_agg(kcu.column_name::text ORDER BY kcu.ordinal_position)::text[] AS columns
         FROM information_schema.table_constraints tc
         JOIN information_schema.key_column_usage kcu
             ON tc.constraint_name = kcu.constraint_name
@@ -278,11 +283,16 @@ def get_foreign_keys(cur, schema, table):
 
 
 def get_unique_constraints(cur, schema, table):
-    """Unique constraints de la tabla."""
+    """Unique constraints de la tabla.
+
+    Nota: se castea a ::text[] para que psycopg2 adapte el array a list
+    de Python. Sin el cast, array_agg() sobre information_schema devuelve
+    el string crudo '{col1,col2}' en vez de una lista.
+    """
     cur.execute("""
         SELECT
             tc.constraint_name,
-            array_agg(kcu.column_name ORDER BY kcu.ordinal_position) AS columns
+            array_agg(kcu.column_name::text ORDER BY kcu.ordinal_position)::text[] AS columns
         FROM information_schema.table_constraints tc
         JOIN information_schema.key_column_usage kcu
             ON tc.constraint_name = kcu.constraint_name
