@@ -23,9 +23,9 @@ Fecha de cierre: 2026-10-06
 
 Tag de cierre: ronda9-fase9-completa
 
-Commit: <hash-final>
+Commit: a887cc3
 
-HEAD local = HEAD remoto: <hash-final> (tag pusheado)
+HEAD local = HEAD remoto: a887cc3 (tag pusheado)
 
 Working tree: clean
 
@@ -625,7 +625,7 @@ Verificar entorno:
 cd D:\aTaxip\backend
 .\venv\Scripts\Activate.ps1
 alembic current      # → m3_010
-git log --oneline -1 # → <hash-final>
+git log --oneline -1 # → a887cc3
 git status           # → clean
 
 Verificar diff actual:
