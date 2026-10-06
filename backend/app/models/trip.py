@@ -83,6 +83,10 @@ class ViajeSolicitado(Base):
         Index("idx_viaje_comercio", "comercio_id"),
         Index("idx_viaje_estado", "estado"),
         Index("idx_viaje_fecha_programada", "fecha_programada", postgresql_where=text("(estado)::text = 'programada'::text")),
+        # FIX R10: restaurado. La DB tiene idx_viaje_origen_gist (GIST manual).
+        # El GIST auto-generado por GeoAlchemy2 se desactiva con spatial_index=False
+        # en la columna origen para evitar duplicado.
+        Index("idx_viaje_origen_gist", "origen", postgresql_using="gist"),
         Index("idx_viaje_pasajero", "pasajero_id"),
         Index("idx_viaje_reservas_pendientes", "fecha_programada", "reserva_procesada", postgresql_where=text("(estado)::text = 'programada'::text")),
         Index("idx_viaje_solicitado_chofer_vehiculo", "chofer_vehiculo_id"),
@@ -137,10 +141,15 @@ class ViajeSolicitado(Base):
     )
 
     # PostGIS Geography points
+    # FIX R10: spatial_index=False en origen. La DB tiene idx_viaje_origen_gist
+    # (manual, declarado en __table_args__). Sin esto, GeoAlchemy2 auto-genera
+    # idx_viaje_solicitado_origen, que crea un GIST duplicado sobre la misma columna.
     origen: Mapped[Optional[Geography]] = mapped_column(
-        Geography(geometry_type='POINT', srid=4326),
+        Geography(geometry_type='POINT', srid=4326, spatial_index=False),
         nullable=True,
     )
+    # destino mantiene spatial_index=True (default). La DB no tiene GIST sobre
+    # destino. Se creara en migracion m3_011.
     destino: Mapped[Optional[Geography]] = mapped_column(
         Geography(geometry_type='POINT', srid=4326),
         nullable=True,
