@@ -16,7 +16,7 @@ from app.database import Base
 class GastoTurno(Base):
     __tablename__ = "gasto_turno"
     __table_args__ = (
-        CheckConstraint("monto > 0", name="check_monto_positivo"),
+        CheckConstraint("monto > 0", name="monto_check"),
         Index("idx_gasto_turno_turno", "turno_id"),
         Index("ix_gasto_turno_categoria_id", "categoria_id"),
         {"schema": "fleet"},
@@ -24,7 +24,7 @@ class GastoTurno(Base):
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     turno_id = Column(PGUUID(as_uuid=True), ForeignKey("fleet.turno_chofer.id"), nullable=False)
-    
+
     # NUEVOS CAMPOS (Fase 5.1) - coinciden con la BD
     categoria_id = Column(
         PGUUID(as_uuid=True),
@@ -32,15 +32,15 @@ class GastoTurno(Base):
         nullable=True
     )
     subcategoria = Column(String(50), nullable=True)
-    
+
     # Campos existentes
     tipo_gasto = Column(String(30), nullable=False)  # Legacy
     monto = Column(Numeric, nullable=False)
     km_registro = Column(Numeric, nullable=True)
     url_comprobante = Column(String(500), nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.now)
-    
+
     # Relationships
     turno = relationship(
         "TurnoChofer",
