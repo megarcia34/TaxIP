@@ -394,7 +394,20 @@ def diff_columns(db_table, orm_table, schema, tabla):
 # ============================================================
 
 def diff_constraints(db_table, orm_table, schema, tabla):
-    """Compara constraints de una tabla."""
+    """Compara constraints de una tabla.
+
+    Matching:
+    - PK: por columnas. El nombre NO se compara: la DB tiene dos
+      convenciones mezcladas (<tabla>_pkey autogenerados + pk_<tabla>
+      explicitos). El ORM usa pk_<tabla>. Como el nombre de un PK no
+      tiene semantica funcional, matchear por columnas es suficiente.
+    - FK: por (columnas, schema_ref, tabla_ref). El nombre NO se compara
+      por la misma razon: la DB tiene FKs con nombres cortos
+      (fk_<tabla>_<col>) y largos (fk_<tabla>_<col>_<ref>) mezclados.
+    - UNIQUE: por columnas. Si las columnas matchean, no se reporta.
+    - CHECK: por nombre. Los CHECKs con nombres divergentes aparecen
+      como constraint_falta + constraint_sobra (deuda D-027).
+    """
     diff = []
 
     db_cons = db_table["constraints"]
@@ -425,13 +438,83 @@ def diff_constraints(db_table, orm_table, schema, tabla):
                 "tipo_constraint": "pk",
                 "detalle": {"db": db_pk, "orm": orm_pk},
             })
-        elif db_pk.get("name") != orm_pk.get("name"):
-            diff.append({
-                "id": None, "clasificacion": "constraint_nombre_desalineado",
-                "schema": schema, "tabla": tabla, "columna": None,
-                "tipo_constraint": "pk",
-                "detalle": {"db": db_pk, "orm": orm_pk},
-            })
+        # NOTA: no se compara db_pk.name != orm_pk.name.
+        # El nombre de un PK no tiene semantica funcional y la DB tiene
+        # convenciones mezcladas. Matchear por columnas es suficiente.
+
+    # FKs - match por columnas
+    db_fks = {(tuple(f["columns"]), f["references"]["schema"], f["references"]["table"]): f
+              for f in db_cons.get("foreign_keys", [])}
+    orm_fks = {(tuple(f["columns"]), f["references"]["schema"], f["references"]["table"]): f
+               for f in orm_cons.get("foreign_keys", [])}
+
+    for key in db_fks.keys() - orm_fks.keys():
+        diff.append({
+            "id": None, "clasificacion": "constraint_falta",
+            "schema": schema, "tabla": tabla, "columna": None,
+            "tipo_constraint": "fk",
+            "detalle": {"db": db_fks[key], "orm": None},
+        })
+    for key in orm_fks.keys() - db_fks.keys():
+        diff.append({
+            "id": None, "clasificacion": "constraint_sobra",
+            "schema": schema, "tabla": tabla, "columna": None,
+            "tipo_constraint": "fk",
+            "detalle": {"db": None, "orm": orm_fks[key]},
+        })
+    # NOTA: no se compara nombre de FK. Misma razon que PK.
+    # Las FKs que matchean por (columnas, ref) no se reportan aunque
+    # el nombre difiera.
+
+    # UNIQUEs - match por columnas
+    db_uqs = {tuple(u["columns"]): u for u in db_cons.get("unique", [])}
+    orm_uqs = {tuple(u["columns"]): u for u in orm_cons.get("unique", [])}
+
+    for key in db_uqs.keys() - orm_uqs.keys():
+        diff.append({
+            "id": None, "clasificacion": "constraint_falta",
+            "schema": schema, "tabla": tabla, "columna": None,
+            "tipo_constraint": "unique",
+            "detalle": {"db": db_uqs[key], "orm": None},
+        })
+    for key in orm_uqs.keys() - db_uqs.keys():
+        diff.append({
+            "id": None, "clasificacion": "constraint_sobra",
+            "schema": schema, "tabla": tabla, "columna": None,
+            "tipo_constraint": "unique",
+            "detalle": {"db": None, "orm": orm_uqs[key]},
+        })
+
+    # CHECKs - match por nombre (los CHECK no siempre tienen columnas).
+    # Excluye *_not_null autogenerados por Alembic: no son deuda real,
+    # son artefactos del ALTER TABLE ... SET NOT NULL.
+    db_cks = {
+        c.get("name"): c
+        for c in db_cons.get("check", [])
+        if not RE_NOT_NULL_AUTOGEN.match(c.get("name") or "")
+    }
+    orm_cks = {
+        c.get("name"): c
+        for c in orm_cons.get("check", [])
+        if not RE_NOT_NULL_AUTOGEN.match(c.get("name") or "")
+    }
+
+    for name in db_cks.keys() - orm_cks.keys():
+        diff.append({
+            "id": None, "clasificacion": "constraint_falta",
+            "schema": schema, "tabla": tabla, "columna": None,
+            "tipo_constraint": "check",
+            "detalle": {"db": db_cks[name], "orm": None},
+        })
+    for name in orm_cks.keys() - db_cks.keys():
+        diff.append({
+            "id": None, "clasificacion": "constraint_sobra",
+            "schema": schema, "tabla": tabla, "columna": None,
+            "tipo_constraint": "check",
+            "detalle": {"db": None, "orm": orm_cks[name]},
+        })
+
+    return diff
 
     # FKs - match por columnas
     db_fks = {(tuple(f["columns"]), f["references"]["schema"], f["references"]["table"]): f
