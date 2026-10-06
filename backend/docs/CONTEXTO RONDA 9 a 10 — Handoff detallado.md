@@ -387,6 +387,17 @@ $env:PGPASSWORD = "postgres123"
 
 11. Reglas operativas (CRITICAS)
 
+NO committear snapshots (orm_snapshot.json, orm_diff.json, orm_diff_reporte.md,
+orm_diff_acciones.csv) en commits intermedios.
+
+- Commits intermedios: solo archivos de codigo (.py).
+- Cierre de ronda: UN unico commit "chore: snapshots de cierre RN" con los
+  4 snapshots regenerados.
+- Docs: commits separados, agrupados por tema, solo al cierre de ronda.
+
+Motivo: regenerar snapshots en cada paso infla los commits con miles de
+lineas de JSON reordenado, oscureciendo el cambio real.
+
 NO hacer
 
 NO tocar la DB sin backup previo.
