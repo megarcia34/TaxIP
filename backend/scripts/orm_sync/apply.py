@@ -118,6 +118,7 @@ CLASIF_AUTOMATIZABLES = {
     "nullable_desalineado",
     "indice_falta",
     "indice_sobra",
+    "indice_falta_en_db",
     "indice_nombre_desalineado",
     "constraint_falta",
     "constraint_sobra",
@@ -563,6 +564,35 @@ def gen_comment_desalineado(item):
         "",
     ])
 
+def gen_indice_falta_en_db(item):
+    """Indica como crear el indice en DB via migracion Alembic.
+
+    El ORM ya declara el indice (via GeoAlchemy2 spatial_index=True).
+    No hay que tocar el modelo: hay que crear la migracion.
+    """
+    detalle = safe_dict(item.get("detalle"))
+    det_orm = safe_dict(detalle.get("orm"))
+    nombre = det_orm.get("name") or "?"
+    schema = item.get("schema", "")
+    tabla = item.get("tabla", "")
+    columnas = det_orm.get("columns") or []
+    cols_str = ", ".join(f'"{c}"' for c in columnas) if columnas else '"..."'
+
+    return "\n".join([
+        f"# Item {item.get('id', '?')}: indice existe en ORM, falta en DB",
+        f"# {schema}.{tabla}",
+        f"# Indice: {nombre}",
+        f"# Accion: crear migracion Alembic. NO tocar el modelo.",
+        f"# En alembic/versions/m3_011_*.py:",
+        f"op.create_index(",
+        f'    "{nombre}",',
+        f'    "{tabla}",',
+        f"    [{cols_str}],",
+        f'    schema="{schema}",',
+        f'    postgresql_using="gist",',
+        f")",
+        "",
+    ])
 
 GENERADORES = {
     "columna_falta": gen_columna_falta,
@@ -570,6 +600,7 @@ GENERADORES = {
     "nullable_desalineado": gen_nullable_desalineado,
     "indice_falta": gen_indice_falta,
     "indice_sobra": gen_indice_sobra,
+    "indice_falta_en_db": gen_indice_falta_en_db,
     "indice_nombre_desalineado": gen_indice_nombre,
     "constraint_falta": gen_constraint_falta,
     "constraint_sobra": gen_constraint_sobra,

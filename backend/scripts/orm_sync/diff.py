@@ -74,6 +74,25 @@ RE_NOT_NULL_AUTOGEN = re.compile(r"^\d+_\d+_\d+_not_null$")
 # de indice_falta (deuda orm.indice_falta_incluye_pks).
 RE_PK_INDEX = re.compile(r"^(pk_.+|.+_pkey)$")
 
+# Patron de nombres de indices GIST auto-generados por GeoAlchemy2 sobre
+# columnas Geography. Formato: idx_<tabla>_<columna>.
+# El ORM los declara implicitamente via spatial_index=True (default);
+# la DB no los tiene. NO son indice_sobra (no hay que borrarlos del ORM),
+# son indice_falta_en_db (requieren migracion Alembic).
+RE_GEOALCHEMY2_INDEX = re.compile(r"^idx_.+_.+$")
+
+def _is_geoalchemy2_gist(idx):
+    """True si el indice parece auto-generado por GeoAlchemy2.
+
+    Heuristica: nombre matchea idx_<tabla>_<columna> y el indice usa
+    GIST (postgresql_using == 'gist' o definition contiene 'USING gist').
+    """
+    name = idx.get("name") or ""
+    if not RE_GEOALCHEMY2_INDEX.match(name):
+        return False
+    using = (idx.get("postgresql_using") or "").lower()
+    definition = (idx.get("definition") or "").lower()
+    return using == "gist" or "using gist" in definition
 
 # ============================================================
 # Logging
@@ -123,7 +142,7 @@ def assign_tier(schema, tabla, clasificacion):
     if clasificacion in ("comment_desalineado", "constraint_nombre_desalineado",
                          "indice_nombre_desalineado"):
         return 3
-    if clasificacion in ("indice_falta", "indice_sobra"):
+    if clasificacion in ("indice_falta", "indice_sobra", "indice_falta_en_db"):
         return 2
     if clasificacion.startswith("columna_"):
         return 2
@@ -509,22 +528,49 @@ def _is_pk_index(idx):
     name = idx.get("name") or ""
     return RE_PK_INDEX.match(name) is not None
 
+def _norm_idx_name(name):
+    """Normaliza nombre de indice para matching tolerante.
+
+    Baja a lowercase y quita espacios. No quita prefijos: los nombres
+    en DB y ORM deben coincidir salvo sufijos cosmeticos.
+    """
+    if not name:
+        return ""
+    return str(name).strip().lower()
+
+
+def _idx_key(idx):
+    """Clave de matching para un indice.
+
+    Usa (nombre_normalizado, columnas). El nombre es necesario porque el
+    ORM puede declarar dos indices sobre la misma columna (ej. B-tree +
+    GIST sobre Geography). Con solo `columns` se colapsan y uno queda
+    invisible (deuda orm.diff_indexes_colapsa_por_columnas).
+    """
+    cols = tuple(idx.get("columns") or [])
+    return (_norm_idx_name(idx.get("name")), cols)
+
 
 def diff_indexes(db_table, orm_table, schema, tabla):
-    """Compara indices de una tabla. Match por columnas.
+    """Compara indices de una tabla. Match por (nombre_normalizado, columnas).
 
     Excluye indices de PRIMARY KEY de ambos lados: no son declarables
     como Index en el ORM.
+
+    Los indices del ORM que parecen auto-generados por GeoAlchemy2
+    (GIST sobre Geography) y no existen en DB se clasifican como
+    indice_falta_en_db, no como indice_sobra: el ORM esta correcto,
+    falta la migracion que los cree en DB.
     """
     diff = []
 
     db_idx = {
-        tuple(i["columns"]): i
+        _idx_key(i): i
         for i in db_table.get("indexes", [])
         if not _is_pk_index(i)
     }
     orm_idx = {
-        tuple(i["columns"]): i
+        _idx_key(i): i
         for i in orm_table.get("indexes", [])
         if not _is_pk_index(i)
     }
@@ -535,12 +581,16 @@ def diff_indexes(db_table, orm_table, schema, tabla):
             "schema": schema, "tabla": tabla, "columna": None,
             "detalle": {"db": db_idx[key], "orm": None},
         })
+
     for key in orm_idx.keys() - db_idx.keys():
+        idx = orm_idx[key]
+        clasif = "indice_falta_en_db" if _is_geoalchemy2_gist(idx) else "indice_sobra"
         diff.append({
-            "id": None, "clasificacion": "indice_sobra",
+            "id": None, "clasificacion": clasif,
             "schema": schema, "tabla": tabla, "columna": None,
-            "detalle": {"db": None, "orm": orm_idx[key]},
+            "detalle": {"db": None, "orm": idx},
         })
+
     for key in db_idx.keys() & orm_idx.keys():
         if db_idx[key].get("name") != orm_idx[key].get("name"):
             diff.append({

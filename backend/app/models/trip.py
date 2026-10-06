@@ -83,7 +83,6 @@ class ViajeSolicitado(Base):
         Index("idx_viaje_comercio", "comercio_id"),
         Index("idx_viaje_estado", "estado"),
         Index("idx_viaje_fecha_programada", "fecha_programada", postgresql_where=text("(estado)::text = 'programada'::text")),
-        Index("idx_viaje_origen_gist", "origen", postgresql_using="gist"),
         Index("idx_viaje_pasajero", "pasajero_id"),
         Index("idx_viaje_reservas_pendientes", "fecha_programada", "reserva_procesada", postgresql_where=text("(estado)::text = 'programada'::text")),
         Index("idx_viaje_solicitado_chofer_vehiculo", "chofer_vehiculo_id"),
