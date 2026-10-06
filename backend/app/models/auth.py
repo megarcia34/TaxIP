@@ -60,7 +60,7 @@ class Usuario(Base):
         ForeignKey("auth.tipo_usuario.id"),
         nullable=True
     )
-    email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
     fecha_suspension: Mapped[datetime] = mapped_column(DateTime, nullable=True)

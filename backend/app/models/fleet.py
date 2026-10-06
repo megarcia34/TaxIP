@@ -41,7 +41,7 @@ class Vehiculo(Base):
         ForeignKey("tenant.control_base.id", ondelete="CASCADE"),
         nullable=True
     )    
-    patente: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    patente: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     marca: Mapped[str] = mapped_column(String(100), nullable=True)
     modelo: Mapped[str] = mapped_column(String(100), nullable=True)
     anio: Mapped[int] = mapped_column(Integer, nullable=True)
