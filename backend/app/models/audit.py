@@ -61,10 +61,10 @@ class AlertaDesvio(Base):
         primary_key=True,
         default=uuid.uuid4
     )
-    viaje_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    viaje_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("trip.viaje_solicitado.id", ondelete="CASCADE"),
-        nullable=True
+        nullable=False
     )
     latitud: Mapped[float] = mapped_column(Numeric(10, 8), nullable=False)
     longitud: Mapped[float] = mapped_column(Numeric(11, 8), nullable=False)
