@@ -447,7 +447,7 @@ class PropietarioVehiculo(Base):
 class ContratoVehiculo(Base):
     __tablename__ = "contrato_vehiculo"
     __table_args__ = (
-        Index("ix_contrato_vehiculo_estado_contrato", "estado_contrato"),
+        Index("idx_contrato_estado", "estado_contrato"),
         Index("ix_contrato_vehiculo_hora_inicio", "hora_inicio"),
         Index("ix_contrato_vehiculo_hora_fin", "hora_fin"),
         Index("idx_contrato_chofer_historial", "chofer_id", "fecha_inicio"),
@@ -578,6 +578,11 @@ class DocumentoPropietario(Base):
     __tablename__ = "documento_propietario"
     __table_args__ = (
         Index("idx_documento_propietario_propietario_id", "propietario_id"),
+        Index(
+            "uq_documento_propietario_tipo",
+            "propietario_id", "tipo_documento",
+            unique=True,
+        ),
         {"schema": "fleet"},
     )
 
@@ -817,6 +822,7 @@ class ContratoQr(Base):
     __tablename__ = "contrato_qr"
     __table_args__ = (
         Index("idx_contrato_qr_contrato", "contrato_id"),
+        Index("idx_contrato_qr_token", "token"),
         Index(
             "idx_contrato_qr_activos",
             "contrato_id",
@@ -966,6 +972,11 @@ class NotificacionVencimiento(Base):
         Index("idx_notificacion_propietario", "propietario_id"),
         Index("idx_notificacion_documento", "documento_id"),
         Index("idx_notificacion_fecha_vencimiento", "fecha_vencimiento"),
+        Index(
+            "uq_notificacion_documento_nivel",
+            "documento_id", "nivel",
+            unique=True,
+        ),
         {"schema": "fleet"},
     )
 
@@ -1040,7 +1051,14 @@ class Modelo(Base):
     Tabla: fleet.modelo
     """
     __tablename__ = "modelo"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        Index(
+            "modelo_marca_id_nombre_key",
+            "marca_id", "nombre",
+            unique=True,
+        ),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
