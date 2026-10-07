@@ -4,9 +4,9 @@ Tablas: log_gps, alerta_desvio, log_acciones (schema: audit)
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
-from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, Numeric, JSON, Index
+from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, Numeric, JSON, Index, Date, UniqueConstraint, text, func
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, INET, JSONB
 
@@ -117,3 +117,35 @@ class LogAcciones(Base):
     ip_address: Mapped[str] = mapped_column(INET, nullable=True)
     user_agent: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
+
+class AlertasVencimiento(Base):
+    """
+    Alertas de vencimiento de documentos.
+    Tabla: audit.alertas_vencimiento
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "alertas_vencimiento"
+    __table_args__ = (
+        Index("idx_alertas_entidad", "entidad_id", "entidad_tipo"),
+        Index("idx_alertas_fecha", "fecha_vencimiento"),
+        UniqueConstraint("documento_id", name="uq_alertas_documento"),
+        {"schema": "audit"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    entidad_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    entidad_tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    documento_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    mensaje: Mapped[str] = mapped_column(Text, nullable=False)
+    nivel: Mapped[str] = mapped_column(String(20), nullable=False)
+    fecha_vencimiento: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+        server_default=func.now(),
+    )
