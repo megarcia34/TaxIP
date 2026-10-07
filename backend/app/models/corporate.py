@@ -20,8 +20,10 @@ class CuentaCorriente(Base):
     Tabla: corporate.cuenta_corriente
     """
     __tablename__ = "cuenta_corriente"
-    __table_args__ = {"schema": "corporate"}
-
+    __table_args__ = (
+        Index("idx_cuenta_corriente_empresa", "empresa_id"),
+        {"schema": "corporate"},
+    )
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
