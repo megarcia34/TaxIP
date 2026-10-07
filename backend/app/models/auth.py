@@ -6,12 +6,14 @@ Tablas: tipo_usuario, usuario, perfil_general, direccion_frecuente, taxista_favo
 
 import uuid
 from datetime import datetime, date
+from decimal import Decimal
 from typing import Optional
 from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Text, Integer, Date, Numeric, Index, text
+    String, Boolean, DateTime, ForeignKey, Text, Integer, Date, Numeric, Index,
+    UniqueConstraint, text, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
 
 
@@ -542,3 +544,110 @@ class AuditoriaEmail(Base):
     ip_address: Mapped[str] = mapped_column(String, nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     user_agent: Mapped[str] = mapped_column(Text, nullable=True)
+
+class CodigoMetadatos(Base):
+    """
+    Metadata de codigos de verificacion (chofer, contrato, vehiculo).
+    Tabla: auth.codigo_metadatos
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "codigo_metadatos"
+    __table_args__ = (
+        Index("idx_codigo_metadatos_codigo_id", "codigo_id"),
+        Index("idx_codigo_metadatos_contrato_id", "contrato_id"),
+        Index("idx_codigo_metadatos_propietario_id", "propietario_id"),
+        Index("idx_codigo_metadatos_vehiculo_id", "vehiculo_id"),
+        {"schema": "auth"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    codigo_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.codigo_verificacion.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    contrato_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.contrato_vehiculo.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    vehiculo_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    propietario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class CodigoVerificacion(Base):
+    """
+    Codigos de verificacion para registro, inicio de turno y recuperacion.
+    Tabla: auth.codigo_verificacion
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    CHECK chk_codigo_verificacion_tipo omitido (naming D-027, pendiente R12).
+    """
+    __tablename__ = "codigo_verificacion"
+    __table_args__ = (
+        Index("idx_codigo_verificacion_codigo", "codigo"),
+        Index("idx_codigo_verificacion_codigo_tipo_usado", "codigo", "tipo", "usado"),
+        Index("idx_codigo_verificacion_expira", "expira_en"),
+        Index("idx_codigo_verificacion_tipo_usado", "tipo", "usado"),
+        Index("idx_codigo_verificacion_usuario_usado", "usuario_id", "usado"),
+        {"schema": "auth"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    codigo: Mapped[str] = mapped_column(String(6), nullable=False)
+    tipo: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        server_default=text("'REGISTRO_CHOFER'"),
+    )
+    usado: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+    )
+    intentos: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    expira_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    metadata_: Mapped[Optional[dict]] = mapped_column(
+        "metadata",
+        JSONB,
+        nullable=True,
+    )
