@@ -651,3 +651,114 @@ class CodigoVerificacion(Base):
         JSONB,
         nullable=True,
     )
+
+class PlantillaViaje(Base):
+    """
+    Plantillas de viaje guardadas por usuario.
+    Tabla: auth.plantilla_viaje
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "plantilla_viaje"
+    __table_args__ = (
+        Index("ix_plantilla_empresa", "empresa_id"),
+        Index("ix_plantilla_usuario", "usuario_id"),
+        {"schema": "auth"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=False,
+    )
+    empresa_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.empresa.id"),
+        nullable=True,
+    )
+    nombre: Mapped[str] = mapped_column(String(80), nullable=False)
+    direccion_origen: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    latitud_origen: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 7), nullable=True)
+    longitud_origen: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 7), nullable=True)
+    direccion_destino: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    latitud_destino: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 7), nullable=True)
+    longitud_destino: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 7), nullable=True)
+    paradas_intermedias: Mapped[Optional[list]] = mapped_column(
+        JSONB,
+        nullable=True,
+        server_default=text("'[]'::jsonb"),
+    )
+    tipo_vehiculo: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    metodo_pago: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    cantidad_pasajeros: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        server_default=text("1"),
+    )
+    cantidad_equipaje: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        server_default=text("0"),
+    )
+    nota_conductor: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    activo: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("true"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class PrestadoraTelefonica(Base):
+    """
+    Catalogo de prestadoras telefonicas.
+    Tabla: auth.prestadora_telefonica
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "prestadora_telefonica"
+    __table_args__ = (
+        UniqueConstraint("nombre", name="uq_prestadora_telefonica_nombre"),
+        {"schema": "auth"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
+    codigo_pais: Mapped[Optional[str]] = mapped_column(
+        String(10),
+        nullable=True,
+        server_default=text("'+54'"),
+    )
+    activo: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("true"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
