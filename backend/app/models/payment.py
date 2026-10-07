@@ -290,7 +290,14 @@ class ConfiguracionTarifaVehiculo(Base):
     - minivan: factor_precio = 1.50 (+50%)
     """
     __tablename__ = "configuracion_tarifa_vehiculo"
-    __table_args__ = {"schema": "payment"}
+    __table_args__ = (
+        Index(
+            "uq_config_tarifa_vehiculo",
+            "configuracion_tarifa_id", "tipo_vehiculo_id",
+            unique=True,
+        ),
+        {"schema": "payment"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
