@@ -4,10 +4,14 @@ Tablas: metodo_pago, billetera, transaccion, configuracion_tarifa, configuracion
 """
 import uuid
 from datetime import datetime, time
+from decimal import Decimal
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Time, Index
+from sqlalchemy import (
+    String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Time,
+    Index, UniqueConstraint, CheckConstraint, text, func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
 
 
@@ -426,3 +430,83 @@ class PagoEmpresa(Base):
     empresa: Mapped["Empresa"] = relationship("Empresa", lazy="selectin")
     factura: Mapped["FacturaEmpresa"] = relationship("FacturaEmpresa", back_populates="pagos", lazy="selectin")
     confirmado_por_usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+
+class ConfiguracionPasarela(Base):
+    """
+    Configuracion de pasarelas de pago por tenant.
+    Tabla: payment.configuracion_pasarela
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "configuracion_pasarela"
+    __table_args__ = (
+        UniqueConstraint("control_base_id", "pasarela", name="uq_cb_pasarela"),
+        {"schema": "payment"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    control_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    pasarela: Mapped[str] = mapped_column(String(30), nullable=False)
+    activa: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    credenciales: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    comision_porcentaje: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
+        server_default=text("0"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+class QrCobro(Base):
+    """
+    QR de cobro generado por viaje.
+    Tabla: payment.qr_cobro
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "qr_cobro"
+    __table_args__ = (
+        Index("ix_qr_cobro_viaje", "viaje_id"),
+        UniqueConstraint("token", name="uq_qr_cobro_token"),
+        CheckConstraint(
+            "estado IN ('pendiente', 'pagado', 'expirado', 'cancelado')",
+            name="ck_qr_estado",
+        ),
+        {"schema": "payment"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    viaje_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("trip.viaje_solicitado.id"),
+        nullable=False,
+    )
+    token: Mapped[str] = mapped_column(String(120), nullable=False)
+    monto: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    pasarela: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    estado: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        server_default=text("'pendiente'"),
+    )
+    url_pago: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    id_transaccion_externa: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        nullable=False,
+        server_default=func.now(),
+    )
+    expira_en: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    pagado_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=False), nullable=True)
+    control_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
