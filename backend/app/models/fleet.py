@@ -7,6 +7,7 @@ categoria_gasto, neumatico_vehiculo, neumatico_historial_posicion, ...
 import uuid
 from uuid import uuid4
 from datetime import datetime, date
+from decimal import Decimal
 from typing import Optional, List
 from sqlalchemy import (
     Column, String, Boolean, DateTime, ForeignKey, Integer, DECIMAL, 
@@ -1151,3 +1152,71 @@ class IngresoTurno(Base):
     viaje: Mapped["ViajeSolicitado"] = relationship("ViajeSolicitado", lazy="selectin")
     declarante: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[declarado_por], lazy="selectin")
     transaccion: Mapped["Transaccion"] = relationship("Transaccion", lazy="selectin")
+
+class HistorialChoferVehiculo(Base):
+    """
+    Historial de asignaciones chofer-vehiculo.
+    Tabla: fleet.historial_chofer_vehiculo
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "historial_chofer_vehiculo"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    vehiculo_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.vehiculo.id"),
+        nullable=True,
+    )
+    chofer_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=True,
+    )
+    fecha_inicio: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=False), nullable=True)
+    fecha_fin: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=False), nullable=True)
+    estado: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+
+
+class RelacionPropietarioVehiculo(Base):
+    """
+    Relacion propietario-vehiculo con porcentaje de participacion.
+    Tabla: fleet.relacion_propietario_vehiculo
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "relacion_propietario_vehiculo"
+    __table_args__ = {"schema": "fleet"}
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    vehiculo_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.vehiculo.id"),
+        nullable=True,
+    )
+    propietario_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=True,
+    )
+    porcentaje_participacion: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
+        server_default=text("100"),
+    )
+    fecha_inicio: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    fecha_fin: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    activo: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+        server_default=text("true"),
+    )
