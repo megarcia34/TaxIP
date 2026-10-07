@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import (
-    String, Boolean, DateTime, ForeignKey, Text, Integer, Date, Numeric, Index
+    String, Boolean, DateTime, ForeignKey, Text, Integer, Date, Numeric, Index, text
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -326,6 +326,12 @@ class UsuarioRol(Base):
         Index("idx_usuario_rol_usuario", "usuario_id", "activo"),
         Index("idx_usuario_rol_vigencia", "usuario_id", "fecha_inicio", "fecha_fin"),
         Index("idx_usuario_rol_tipo", "tipo_usuario_id", "activo"),
+        Index(
+            "uq_usuario_rol_activo",
+            "usuario_id", "tipo_usuario_id",
+            unique=True,
+            postgresql_where=text("activo = true"),
+        ),
         {"schema": "auth"},
     )
 
@@ -359,8 +365,10 @@ class UsuarioRol(Base):
 class RefreshToken(Base):
     """Refresh tokens for JWT authentication"""
     __tablename__ = "refresh_token"
-    __table_args__ = {"schema": "auth"}
-
+    __table_args__ = (
+        Index("unique_usuario_token", "usuario_id", "token", unique=True),
+        {"schema": "auth"}
+    )
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -414,6 +422,7 @@ class AutorizacionInicio(Base):
         Index("idx_autorizacion_inicio_chofer", "chofer_id"),
         Index("idx_autorizacion_inicio_contrato", "contrato_id"),
         Index("idx_autorizacion_inicio_expires", "expires_at"),
+        Index("idx_autorizacion_inicio_token", "token"),
         {"schema": "auth"},
     )
 
