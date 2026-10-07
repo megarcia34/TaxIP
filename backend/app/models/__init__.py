@@ -124,6 +124,11 @@ from app.models.comunicacion import (
     EmailEnviado,
     Mensaje,
 )
+from app.models.rentabilidad import (
+    AnalisisMediosPago,
+    RentabilidadDiariaVehiculo,
+    RentabilidadMensualVehiculo,
+)
 
 __all__ = [
     # Base
@@ -226,4 +231,9 @@ __all__ = [
     "Conversacion",
     "EmailEnviado",
     "Mensaje",
+
+    # Rentabilidad
+    "AnalisisMediosPago",
+    "RentabilidadDiariaVehiculo",
+    "RentabilidadMensualVehiculo",
 ]
