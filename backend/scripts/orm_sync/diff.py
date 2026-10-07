@@ -81,6 +81,7 @@ RE_PK_INDEX = re.compile(r"^(pk_.+|.+_pkey)$")
 # son indice_falta_en_db (requieren migracion Alembic).
 RE_GEOALCHEMY2_INDEX = re.compile(r"^idx_.+_.+$")
 
+
 def _is_geoalchemy2_gist(idx):
     """True si el indice parece auto-generado por GeoAlchemy2.
 
@@ -93,6 +94,7 @@ def _is_geoalchemy2_gist(idx):
     using = (idx.get("postgresql_using") or "").lower()
     definition = (idx.get("definition") or "").lower()
     return using == "gist" or "using gist" in definition
+
 
 # ============================================================
 # Logging
@@ -280,9 +282,6 @@ def diff_tables(db, orm, schemas_comunes):
             })
 
     return diff
-
-
-
 
 
 def _types_equivalent(db_type, orm_type):
@@ -516,86 +515,6 @@ def diff_constraints(db_table, orm_table, schema, tabla):
 
     return diff
 
-    # FKs - match por columnas
-    db_fks = {(tuple(f["columns"]), f["references"]["schema"], f["references"]["table"]): f
-              for f in db_cons.get("foreign_keys", [])}
-    orm_fks = {(tuple(f["columns"]), f["references"]["schema"], f["references"]["table"]): f
-               for f in orm_cons.get("foreign_keys", [])}
-
-    for key in db_fks.keys() - orm_fks.keys():
-        diff.append({
-            "id": None, "clasificacion": "constraint_falta",
-            "schema": schema, "tabla": tabla, "columna": None,
-            "tipo_constraint": "fk",
-            "detalle": {"db": db_fks[key], "orm": None},
-        })
-    for key in orm_fks.keys() - db_fks.keys():
-        diff.append({
-            "id": None, "clasificacion": "constraint_sobra",
-            "schema": schema, "tabla": tabla, "columna": None,
-            "tipo_constraint": "fk",
-            "detalle": {"db": None, "orm": orm_fks[key]},
-        })
-    for key in db_fks.keys() & orm_fks.keys():
-        if db_fks[key].get("name") != orm_fks[key].get("name"):
-            diff.append({
-                "id": None, "clasificacion": "constraint_nombre_desalineado",
-                "schema": schema, "tabla": tabla, "columna": None,
-                "tipo_constraint": "fk",
-                "detalle": {"db": db_fks[key], "orm": orm_fks[key]},
-            })
-
-    # UNIQUEs - match por columnas
-    db_uqs = {tuple(u["columns"]): u for u in db_cons.get("unique", [])}
-    orm_uqs = {tuple(u["columns"]): u for u in orm_cons.get("unique", [])}
-
-    for key in db_uqs.keys() - orm_uqs.keys():
-        diff.append({
-            "id": None, "clasificacion": "constraint_falta",
-            "schema": schema, "tabla": tabla, "columna": None,
-            "tipo_constraint": "unique",
-            "detalle": {"db": db_uqs[key], "orm": None},
-        })
-    for key in orm_uqs.keys() - db_uqs.keys():
-        diff.append({
-            "id": None, "clasificacion": "constraint_sobra",
-            "schema": schema, "tabla": tabla, "columna": None,
-            "tipo_constraint": "unique",
-            "detalle": {"db": None, "orm": orm_uqs[key]},
-        })
-
-    # CHECKs - match por nombre (los CHECK no siempre tienen columnas)
-    # CHECKs - match por nombre (los CHECK no siempre tienen columnas).
-    # Excluye *_not_null autogenerados por Alembic: no son deuda real,
-    # son artefactos del ALTER TABLE ... SET NOT NULL.
-    db_cks = {
-        c.get("name"): c
-        for c in db_cons.get("check", [])
-        if not RE_NOT_NULL_AUTOGEN.match(c.get("name") or "")
-    }
-    orm_cks = {
-        c.get("name"): c
-        for c in orm_cons.get("check", [])
-        if not RE_NOT_NULL_AUTOGEN.match(c.get("name") or "")
-    }
-
-    for name in db_cks.keys() - orm_cks.keys():
-        diff.append({
-            "id": None, "clasificacion": "constraint_falta",
-            "schema": schema, "tabla": tabla, "columna": None,
-            "tipo_constraint": "check",
-            "detalle": {"db": db_cks[name], "orm": None},
-        })
-    for name in orm_cks.keys() - db_cks.keys():
-        diff.append({
-            "id": None, "clasificacion": "constraint_sobra",
-            "schema": schema, "tabla": tabla, "columna": None,
-            "tipo_constraint": "check",
-            "detalle": {"db": None, "orm": orm_cks[name]},
-        })
-
-    return diff
-
 
 # ============================================================
 # Comparacion: indices
@@ -610,6 +529,38 @@ def _is_pk_index(idx):
     """
     name = idx.get("name") or ""
     return RE_PK_INDEX.match(name) is not None
+
+
+def _is_partial_index(idx):
+    """True si el indice es partial (tiene clausula WHERE).
+
+    Postgres expone el predicado dentro de `definition`, no como campo
+    aparte. Formato:
+        CREATE UNIQUE INDEX uq_x ON t USING btree (a, b) WHERE (activo = true)
+    Un UniqueConstraint de SQLAlchemy no puede expresar WHERE, asi que
+    un partial unique index de DB nunca es equivalente a un
+    UniqueConstraint de ORM.
+    """
+    definition = (idx.get("definition") or "").lower()
+    return " where " in definition
+
+
+def _orm_unique_cols(orm_table):
+    """Set de tuplas de columnas con UniqueConstraint en el ORM.
+
+    Los UniqueConstraint viven en constraints.unique, no en indexes.
+    El diff no los miraba, generando falsos positivos de indice_falta
+    cuando la DB expone lo mismo como CREATE UNIQUE INDEX (patron
+    autogenerado *_key, o explicito uq_*).
+    """
+    result = set()
+    cons = orm_table.get("constraints") or {}
+    for u in cons.get("unique") or []:
+        cols = tuple(u.get("columns") or [])
+        if cols:
+            result.add(cols)
+    return result
+
 
 def _norm_idx_name(name):
     """Normaliza nombre de indice para matching tolerante.
@@ -644,6 +595,11 @@ def diff_indexes(db_table, orm_table, schema, tabla):
     (GIST sobre Geography) y no existen en DB se clasifican como
     indice_falta_en_db, no como indice_sobra: el ORM esta correcto,
     falta la migracion que los cree en DB.
+
+    Ademas, un CREATE UNIQUE INDEX en DB se considera equivalente a un
+    UniqueConstraint en ORM si tienen las mismas columnas (mismo orden)
+    y el indice de DB no es partial. Elimina falsos positivos por
+    naming divergente (*_key vs uq_*) sin tocar la DB.
     """
     diff = []
 
@@ -658,11 +614,27 @@ def diff_indexes(db_table, orm_table, schema, tabla):
         if not _is_pk_index(i)
     }
 
+    # UniqueConstraints del ORM indexados por columnas. Permite matchear
+    # un CREATE UNIQUE INDEX (DB) contra un UniqueConstraint (ORM) sin
+    # depender del nombre (que historicamente diverge: *_key vs uq_*).
+    orm_unique_cols = _orm_unique_cols(orm_table)
+
     for key in db_idx.keys() - orm_idx.keys():
+        idx = db_idx[key]
+
+        # Equivalencia UNIQUE INDEX (DB) <-> UniqueConstraint (ORM).
+        # Excluye partial: SQLAlchemy no puede expresar WHERE en un
+        # UniqueConstraint, asi que un partial unique index de DB nunca
+        # es equivalente a un UniqueConstraint de ORM.
+        if (idx.get("unique") and not idx.get("primary")
+                and not _is_partial_index(idx)
+                and tuple(idx.get("columns") or []) in orm_unique_cols):
+            continue
+
         diff.append({
             "id": None, "clasificacion": "indice_falta",
             "schema": schema, "tabla": tabla, "columna": None,
-            "detalle": {"db": db_idx[key], "orm": None},
+            "detalle": {"db": idx, "orm": None},
         })
 
     for key in orm_idx.keys() - db_idx.keys():
