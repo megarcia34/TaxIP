@@ -11,33 +11,46 @@ from app.models.auth import (
     DireccionFrecuente,
     TaxistaFavorito,
     ResetToken,
+    UsuarioRol,
+    RefreshToken,
+    UsuarioEmpresa,
+    AutorizacionInicio,
+    TurnoEmpleado,
+    AuditoriaEmail,
+    CodigoMetadatos,
+    CodigoVerificacion,
+    PlantillaViaje,
+    PrestadoraTelefonica,
 )
 
-# app/models/__init__.py - AGREGAR
-
+# Corporate
 from app.models.corporate import (
     CuentaCorriente,
     MovimientoCuenta,
     FacturaCorporativa,
-    PagoCorporativo
+    PagoCorporativo,
 )
 
+# Public
 from app.models.public import (
     Comercio,
-    EscaneoQr
+    EscaneoQr,
 )
 
 # Tenant
 from app.models.tenant import (
     ControlBase,
-    Configuracion,  # <-- Cambiar a ConfiguracionTenant
-    Empresa
+    Configuracion,
+    Empresa,
+    Factura as FacturaTenant,
 )
 
 # Audit
 from app.models.audit import (
     LogGps,
     AlertaDesvio,
+    LogAcciones,
+    AlertasVencimiento,
 )
 
 # Fleet
@@ -49,8 +62,10 @@ from app.models.fleet import (
     PropietarioVehiculo,
     ContratoVehiculo,
     CategoriaGasto,
-    DocumentoVehiculo,      # <--- NUEVO
-    DocumentoPropietario,   # <--- NUEVO
+    DocumentoVehiculo,
+    DocumentoPropietario,
+    HistorialChoferVehiculo,
+    RelacionPropietarioVehiculo,
 )
 
 # Geo
@@ -71,6 +86,9 @@ from app.models.payment import (
     Billetera,
     Transaccion,
     ConfiguracionTarifa,
+    ConfiguracionTarifaVehiculo,
+    ConfiguracionPasarela,
+    QrCobro,
 )
 
 # Trip
@@ -83,49 +101,29 @@ from app.models.trip import (
     TipoVehiculo,
 )
 
-# En la sección de imports
+# Liquidacion
 from app.models.liquidacion import (
     Liquidacion,
     LiquidacionDetalle,
     LiquidacionEstadoHistorial,
-    LiquidacionAjuste
-)
-
-# app/models/__init__.py - AGREGAR
-
-from app.models.corporate import (
-    CuentaCorriente,
-    MovimientoCuenta,
-    FacturaCorporativa,
-    PagoCorporativo
+    LiquidacionAjuste,
 )
 
 # Turno
 from app.models.turno import TurnoChofer
-
-# app/models/__init__.py - AGREGAR
-
-from app.models.corporate import (
-    CuentaCorriente,
-    MovimientoCuenta,
-    FacturaCorporativa,
-    PagoCorporativo
-)
-
-# app/models/__init__.py - AGREGAR
-
-from app.models.corporate import (
-    CuentaCorriente,
-    MovimientoCuenta,
-    FacturaCorporativa,
-    PagoCorporativo
-)
 
 # Gasto
 from app.models.gasto_turno import GastoTurno
 
 # Foto Viaje
 from app.models.foto_viaje import FotoViaje
+
+# Comunicacion (nuevo, Fase 4c)
+from app.models.comunicacion import (
+    Conversacion,
+    EmailEnviado,
+    Mensaje,
+)
 
 __all__ = [
     # Base
@@ -138,14 +136,38 @@ __all__ = [
     "DireccionFrecuente",
     "TaxistaFavorito",
     "ResetToken",
+    "UsuarioRol",
+    "RefreshToken",
+    "UsuarioEmpresa",
+    "AutorizacionInicio",
+    "TurnoEmpleado",
+    "AuditoriaEmail",
+    "CodigoMetadatos",
+    "CodigoVerificacion",
+    "PlantillaViaje",
+    "PrestadoraTelefonica",
+
+    # Corporate
+    "CuentaCorriente",
+    "MovimientoCuenta",
+    "FacturaCorporativa",
+    "PagoCorporativo",
+
+    # Public
+    "Comercio",
+    "EscaneoQr",
 
     # Tenant
     "ControlBase",
     "Configuracion",
+    "Empresa",
+    "FacturaTenant",
 
     # Audit
     "LogGps",
     "AlertaDesvio",
+    "LogAcciones",
+    "AlertasVencimiento",
 
     # Fleet
     "Vehiculo",
@@ -155,8 +177,10 @@ __all__ = [
     "PropietarioVehiculo",
     "ContratoVehiculo",
     "CategoriaGasto",
-    "DocumentoVehiculo",      # <--- NUEVO
-    "DocumentoPropietario",   # <--- NUEVO
+    "DocumentoVehiculo",
+    "DocumentoPropietario",
+    "HistorialChoferVehiculo",
+    "RelacionPropietarioVehiculo",
 
     # Geo
     "Pais",
@@ -171,6 +195,9 @@ __all__ = [
     "Billetera",
     "Transaccion",
     "ConfiguracionTarifa",
+    "ConfiguracionTarifaVehiculo",
+    "ConfiguracionPasarela",
+    "QrCobro",
 
     # Trip
     "ViajeSolicitado",
@@ -179,6 +206,12 @@ __all__ = [
     "Calificacion",
     "ObjetoOlvidado",
     "TipoVehiculo",
+
+    # Liquidacion
+    "Liquidacion",
+    "LiquidacionDetalle",
+    "LiquidacionEstadoHistorial",
+    "LiquidacionAjuste",
 
     # Turno
     "TurnoChofer",
@@ -189,9 +222,8 @@ __all__ = [
     # Foto Viaje
     "FotoViaje",
 
-    # Liquidaciones
-    "Liquidacion",
-    "LiquidacionDetalle",
-    "LiquidacionEstadoHistorial",
-    "LiquidacionAjuste",
+    # Comunicacion
+    "Conversacion",
+    "EmailEnviado",
+    "Mensaje",
 ]
