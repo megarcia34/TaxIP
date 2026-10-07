@@ -655,3 +655,55 @@ class Reserva(Base):
     empleado: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[empleado_id], lazy="selectin")
     creador: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[creado_por], lazy="selectin")
     turno: Mapped["TurnoEmpleado"] = relationship("TurnoEmpleado", lazy="selectin")
+
+class BroadcastLog(Base):
+    """
+    Log de broadcast de viajes a choferes.
+    Tabla: trip.broadcast_log
+
+    Existente en DB, faltante en ORM (Fase 4c, R11).
+    """
+    __tablename__ = "broadcast_log"
+    __table_args__ = (
+        Index("ix_bcl_cb_fecha", "control_base_id", "emitido_en"),
+        Index("ix_bcl_chofer_fecha", "chofer_id", "emitido_en"),
+        Index("ix_bcl_motivo", "motivo_exclusion"),
+        Index("ix_bcl_respuesta", "respuesta"),
+        Index("ix_bcl_viaje", "viaje_id"),
+        {"schema": "trip"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    viaje_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("trip.viaje_solicitado.id"),
+        nullable=False,
+    )
+    chofer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=False,
+    )
+    vehiculo_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.vehiculo.id"),
+        nullable=True,
+    )
+    distancia_metros: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    emitido_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        nullable=False,
+        server_default=func.now(),
+    )
+    respondido_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
+    respuesta: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    motivo_exclusion: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    tiempo_respuesta_segundos: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    control_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
