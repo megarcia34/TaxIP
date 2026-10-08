@@ -400,8 +400,16 @@ class HistorialEstadoViaje(Base):
         nullable=True
     )
     estado: Mapped[str] = mapped_column(String(30), nullable=True)
-    latitud: Mapped[Optional[float]] = mapped_column(Numeric(10, 8), nullable=True)
-    longitud: Mapped[Optional[float]] = mapped_column(Numeric(11, 8), nullable=True)
+    latitud: Mapped[Optional[float]] = mapped_column(
+        Numeric(10, 8),
+        nullable=True,
+        comment="Latitud del vehículo al momento del cambio de estado"
+    )
+    longitud: Mapped[Optional[float]] = mapped_column(
+        Numeric(11, 8),
+        nullable=True,
+        comment="Longitud del vehículo al momento del cambio de estado"
+    )
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
@@ -426,14 +434,19 @@ class Panico(Base):
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="CASCADE"),
-        nullable=True
+        nullable=True,
+        comment="Usuario (chofer/pasajero) que activó el pánico"
     )
     ubicacion: Mapped[Optional[Geography]] = mapped_column(
         Geography(geometry_type='POINT', srid=4326),
         nullable=True
     )
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=True)
-    resuelto_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    resuelto_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Fecha y hora en que se resolvió la alerta de pánico"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
 
     viaje: Mapped["ViajeSolicitado"] = relationship(back_populates="alertas_panico")
@@ -561,22 +574,25 @@ class TipoVehiculo(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
     
     precio_por_ficha: Mapped[float] = mapped_column(
-        Numeric, 
+        Numeric,
         default=0,
         nullable=True,
-        doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha"
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.precio_por_ficha",
+        comment="Precio por ficha específico para este tipo de vehículo"
     )
     distancia_por_ficha: Mapped[float] = mapped_column(
-        Numeric, 
+        Numeric,
         default=100,
         nullable=True,
-        doc="DEPRECATED - Usar payment.configuracion_tarifa.metros_por_ficha"
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.metros_por_ficha",
+        comment="Distancia en metros por ficha para este tipo de vehículo"
     )
     precio_por_minuto_espera: Mapped[float] = mapped_column(
-        Numeric, 
+        Numeric,
         default=0,
         nullable=True,
-        doc="DEPRECATED - Usar payment.configuracion_tarifa.seg_por_ficha_espera"
+        doc="DEPRECATED - Usar payment.configuracion_tarifa.seg_por_ficha_espera",
+        comment="Precio por minuto de espera para este tipo de vehículo"
     )
 
     def __repr__(self):
