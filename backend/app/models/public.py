@@ -99,12 +99,12 @@ class EscaneoQr(Base):
         String(20),
         default="OPERATIVO",
         nullable=True,
-        comment="OPERATIVO | COMERCIO | VEHICULO | OTRO"
+        doc="OPERATIVO | COMERCIO | VEHICULO | OTRO"
     )
     resultado: Mapped[str] = mapped_column(
         String(20),
         nullable=True,
-        comment="EXITO | RECHAZADO | EXPIRADO | ERROR"
+        doc="EXITO | RECHAZADO | EXPIRADO | ERROR"
     )
     motivo: Mapped[str] = mapped_column(Text, nullable=True)
     user_agent: Mapped[str] = mapped_column(Text, nullable=True)
