@@ -1,9 +1,57 @@
 # DEUDA TECNICA ACTUAL — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-06 (cierre Ronda 10)
-**Ronda activa:** 10 cerrada (`ronda10-fase10-completa`)
-**Total items pendientes:** ~114
+**Ultima actualizacion:** 2026-10-08 (cierre Ronda 11)
+**Ronda activa:** 11 cerrada (`ronda11-fase11-completa`)
+**Total items pendientes:** ~71
 **Total criticos:** 1 (orm.db_desalineados)
+
+---
+
+## RESUMEN DE RONDA 11 (2026-10-08)
+
+**Objetivo:** fix de tooling (diff.py) + Paso 6 residual + Fase 4c +
+nullable_desalineado + comments Tipo A. Todo SIN tocar DB.
+
+**Resultado:**
+- Diff total: 114 -> **71** (-43, -38%).
+- Tier 1: 20 -> **17**.
+- Tier 2: 79 -> **46**.
+- Tier 3: 14 -> **7**.
+- `indice_falta`: 22 -> **1**.
+- `tabla_falta`: 10 -> **0**.
+- `schema_falta`: 2 -> **0**.
+- `nullable_desalineado`: 4 -> **0**.
+- `comment_desalineado`: 20 -> **13** (los 13 restantes son mojibake, R12).
+
+**Fixes aplicados:**
+
+1. `diff.py` — nuevo helper `_orm_unique_cols()` + `_is_partial_index()`.
+   Matchea `CREATE UNIQUE INDEX` (DB) contra `UniqueConstraint` (ORM) por
+   columnas, excluyendo partial indexes. Impacto: -12 items.
+
+2. Paso 6 residual (indices B-tree): declarados 9 indices + UNIQUEs
+   compuestos en auth, corporate, fleet y payment.
+
+3. Fase 4c (tablas faltantes): 10 tablas + 2 schemas nuevos
+   (comunicacion, rentabilidad). 11 tablas efectivas + 3 tablas nuevas.
+   Impacto: -11 items.
+
+4. nullable_desalineado: 4 columnas alineadas a `nullable=False`
+   (la DB ya tenia NOT NULL).
+
+5. comments Tipo A: 7 comentarios movidos de `comment=` a `doc=`
+   (documentacion interna, no persistida).
+
+**Deudas cerradas en R11:**
+- `orm.diff_indexes_colapsa_por_columnas`.
+- `orm.geoalchemy2_indices_no_aplicados`.
+- `orm.indice_falta` (parcial: 22 -> 1).
+- `orm.tabla_falta_ampliada` (10 -> 0).
+- `orm.schema_falta` (2 -> 0).
+- `orm.nullable_desalineado` (4 -> 0).
+- `orm.comment_tipo_a` (7 -> 0).
+
+**Ver:** `docs/CONTEXTO_RONDA_11 a 12.md` (handoff).
 
 ---
 
@@ -111,34 +159,35 @@ migraciones DDL basicas, limpiar redundancias en ORM.
 
 ### orm.db_desalineados — ACTUALIZADO 2026-10-06
 
-**Estado:** en progreso. R10 bajo el diff a **114 items** (−66% desde R9).
+### orm.db_desalineados — ACTUALIZADO 2026-10-08
 
-**Datos reales (post R10):**
+**Estado:** en progreso. R11 bajo el diff a **71 items** (-38% desde R10).
 
-| Metrica | Original | R5 | R8 | R9 | R10 |
-|---|---|---|---|---|---|
-| Tablas faltantes | ~40 | 17 | ~16 | ~16 | 12 (10+2 schemas) |
-| Columnas faltantes | ~150 | 227 | 1 | 1 | 1 |
-| Indices faltantes | ~80 | 251 | 86 | 14 | 22 (reales) |
-| Constraints faltantes | ? | 541 | 274 | 61 | 48 |
-| Diferencias totales | ~500 | 1,280 | 404 | 332 | **114** |
+**Datos reales (post R11):**
 
-**Clasificacion por Tier (post R10):**
-- Tier 1 (critico): **20**
-- Tier 2 (importante): **79**
-- Tier 3 (cosmetico): **14**
+| Metrica | Original | R5 | R8 | R9 | R10 | R11 |
+|---|---|---|---|---|---|---|
+| Tablas faltantes | ~40 | 17 | ~16 | ~16 | 12 (10+2 schemas) | **0** |
+| Columnas faltantes | ~150 | 227 | 1 | 1 | 1 | **1** |
+| Indices faltantes | ~80 | 251 | 86 | 14 | 22 | **1** |
+| Constraints faltantes | ? | 541 | 274 | 61 | 48 | **49** |
+| Diferencias totales | ~500 | 1,280 | 404 | 332 | 114 | **71** |
+
+**Clasificacion por Tier (post R11):**
+- Tier 1 (critico): **17**
+- Tier 2 (importante): **46**
+- Tier 3 (cosmetico): **7**
 - Tier 4 (muerte): **1**
 
-**Distribucion por clasificacion (post R10):**
-- `constraint_falta`: 48 (CHECKs reales + FKs + UNIQUEs)
-- `indice_falta`: 22 (B-tree reales)
-- `comment_desalineado`: 20 (mojibake 13 + Tipo A 7)
-- `tabla_falta`: 10
+**Distribucion por clasificacion (post R11):**
+- `constraint_falta`: 49 (CHECKs D-027 + FKs + UNIQUEs)
+- `comment_desalineado`: 13 (mojibake, todos requieren DB)
 - `constraint_sobra`: 6 (5 UNIQUEs Caso C + 1 metodo_pago)
-- `nullable_desalineado`: 4 (fantasma)
-- `schema_falta`: 2 (comunicacion, rentabilidad)
 - `tabla_sobra`: 1 (trip.reserva)
 - `columna_falta`: 1 (usuario_rol.control_base_id)
+- `indice_falta`: 1 (redundante contrato_vehiculo)
+
+**Todo lo que queda requiere DB o decision funcional.**
 
 **Riesgo:** cualquier `alembic revision --autogenerate` es DESTRUCTIVA.
 Verificado: ninguna migracion historica uso autogenerate.
@@ -148,14 +197,14 @@ Fase 4b (fleet.py) completa en R7.
 Fase 6 (indices reales) completa en R8.
 Fix de tooling (diff, introspector) completa en R9-R10.
 Migraciones m3_011 y m3_012 aplicadas en R10.
+Fase 4c (tablas faltantes) completa en R11.
+nullable_desalineado + comments Tipo A cerrados en R11.
 
 **Ver:**
 - `docs/orm_sync/orm_diff_reporte.md`
 - `docs/orm_sync/db_snapshot.json`
 - `docs/orm_sync/orm_snapshot.json`
 - `docs/orm_sync/orm_decisiones.md`
-
----
 
 ## NUEVOS — Ronda 10 (Fase 10)
 

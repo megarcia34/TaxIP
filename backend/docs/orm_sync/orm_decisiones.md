@@ -262,4 +262,132 @@ Cada entrada debe incluir: item, clasificacion, decision, justificacion, fecha.
 
 ---
 
+## DECISIONES RONDA 11 (2026-10-08)
+
+### D-030 — `diff.py` matchea UNIQUE INDEX (DB) vs UniqueConstraint (ORM) por columnas
+
+**Contexto:** el diff reportaba 22 `indice_falta` que en realidad eran
+`UniqueConstraint` del ORM expresados en DB como `CREATE UNIQUE INDEX`.
+El ORM los declara en `constraints.unique`, no en `indexes`, por lo que
+`diff_indexes` no los veia.
+
+**Decision:** matchear `CREATE UNIQUE INDEX` (DB, no PK, no partial)
+contra `UniqueConstraint` (ORM) por columna, sin comparar nombre. Excluye
+partial indexes porque SQLAlchemy no puede expresar `WHERE` en
+`UniqueConstraint` (los partial siguen apareciendo como `indice_falta`).
+
+**Implementacion:** `scripts/orm_sync/diff.py`, helper `_orm_unique_cols()`
++ `_is_partial_index()`. Commit `6918cb1`.
+
+**Impacto:** -12 items (falsos positivos eliminados).
+
+**Alternativa descartada:** renombrar los UNIQUEs en DB para que coincidan
+con los nombres del ORM. Rechazada porque requiere DDL y porque el nombre
+de un UNIQUE no tiene semantica funcional.
+
+**Tier 2.**
+
+### D-031 — B-tree declarados en ORM deben matchear el nombre exacto de DB
+
+**Contexto:** en R11 declaramos 9 B-tree + UNIQUEs compuestos que la DB
+ya tenia. Todos los nombres matchearon exactos (`idx_*`, `uq_*`,
+`unique_*`, `*_key`).
+
+**Decision:** al declarar un `Index` en el ORM, usar el nombre **literal**
+de la DB (no normalizar). El diff matchea por `(nombre_normalizado,
+columnas)`, por lo que cambiar el nombre genera un `indice_falta` (el de
+DB) + `indice_sobra` (el de ORM).
+
+**Excepcion:** `fleet.contrato_vehiculo.ix_contrato_vehiculo_estado_contrato`
+se renombro a `idx_contrato_estado` (el nombre de DB) porque eran el mismo
+indice con dos nombres distintos. Eso cerro un item pero abrio otro (el
+`ix_...` original de DB ahora queda sin par en ORM). Redundancia documentada
+en `orm.indice_redundante_contrato_vehiculo`.
+
+**Tier 2.**
+
+### D-032 — `nullable_desalineado`: alinear siempre el ORM a la DB
+
+**Contexto:** 4 columnas con `nullable=True` en ORM y `NOT NULL` en DB.
+Eso significa que el ORM puede intentar insertar `NULL` y la DB lo
+rechaza en runtime.
+
+**Decision:** la DB es la fuente de verdad. Cuando el ORM y la DB difieren
+en `nullable`, alinear **el ORM a la DB** (no tocar la DB). Cambio
+quirurgico: solo `nullable=True` -> `nullable=False`, sin tocar el tipo
+Python (`Mapped[Optional[...]]` se puede dejar como esta; no afecta al
+diff).
+
+**Cuidado:** verificar que ningun endpoint este pasando `None` a esas
+columnas antes de aplicar el cambio. Si la DB ya tiene `NOT NULL`, en
+principio no deberia romper (ya fallaba).
+
+**Impacto:** -4 items.
+
+**Tier 2.**
+
+### D-033 — Comments en ORM: usar `doc=` en lugar de `comment=`
+
+**Contexto:** 7 columnas con `comment="..."` en ORM que la DB no tenia
+en `pg_description`. Se reportaban como `comment_desalineado` (Tipo A).
+Los otros 13 `comment_desalineado` son mojibake en DB y requieren UPDATE.
+
+**Decision:** mover los `comment=` a `doc=`. El `doc=` de SQLAlchemy es
+documentacion interna de Python, **NO se persiste** en `pg_description`,
+por lo que el diff no lo ve. Esto cierra el item **conservando la
+documentacion**.
+
+**Regla para el futuro:** usar `comment=` **solo** cuando el comentario
+este tambien en la DB (sincronizado). Para documentacion interna, usar
+`doc=`.
+
+**Implementacion:**
+- `corporate.py`: factura_corporativa.estado, movimiento_cuenta.tipo_movimiento,
+  pago_corporativo.estado.
+- `fleet.py`: notificacion_vencimiento.entidad_tipo, notificacion_vencimiento.nivel.
+- `public.py`: escaneo_qr.resultado, escaneo_qr.tipo_qr.
+
+**Impacto:** -7 items.
+
+**Tier 3.**
+
+### D-034 — Fase 4c: tablas que existen en DB pero no en ORM
+
+**Contexto:** 10 tablas existian en DB pero no estaban declaradas en ORM.
+Ademas, 2 schemas completos (`comunicacion`, `rentabilidad`) tenian
+3 tablas cada uno, sin modulo ORM.
+
+**Decision:** declarar **todas** las tablas faltantes en ORM. La DB es la
+fuente de verdad; el ORM debe reflejarla. Se crearon 2 modulos nuevos
+(`app/models/comunicacion.py`, `app/models/rentabilidad.py`) y se
+ampliaron 4 existentes (auth, audit, fleet, payment, trip).
+
+**Implementacion:**
+- 8 commits de models (uno por sub-paso o par de tablas relacionadas).
+- 2 commits de archivos nuevos.
+
+**Impacto:** -11 items (10 tabla_falta + 2 schema_falta - 1 CHECK residual
+de `codigo_verificacion`).
+
+**Nota:** `auth.codigo_verificacion` tiene un CHECK (`chk_codigo_verificacion_tipo`)
+cuyo nombre **no matchea** la convention de SQLAlchemy. Queda como
+`constraint_falta` residual para R12 (migracion m3_014).
+
+**Tier 2.**
+
+---
+
+## RESUMEN DE DECISIONES R11
+
+| ID | Decision | Impacto | Commit |
+|---|---|---|---|
+| D-030 | Matchear UNIQUE INDEX vs UniqueConstraint por columnas | -12 | 6918cb1 |
+| D-031 | Declarar B-tree con nombre literal de DB | -9 | varios |
+| D-032 | Alinear nullable del ORM a la DB | -4 | varios |
+| D-033 | Mover `comment=` a `doc=` para comments solo-ORM | -7 | varios |
+| D-034 | Declarar tablas faltantes (Fase 4c) | -11 | varios |
+
+**Total cerrado en R11: -43 items.**
+---
+
 **FIN DEL DOCUMENTO**
