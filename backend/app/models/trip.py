@@ -177,7 +177,7 @@ class ViajeSolicitado(Base):
         DateTime,
         default=datetime.now,
         nullable=True,
-        comment="Fecha y hora en que se solicito el viaje (snapshot del momento de la solicitud)"
+        comment="Fecha y hora en que se solicitó el viaje (snapshot del momento de la solicitud)"
     )
     aceptado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     iniciado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
