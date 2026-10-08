@@ -288,7 +288,7 @@ class CategoriaGasto(Base):
         DateTime,
         server_default=text("now()"),
         onupdate=text("now()"),
-        nullable=True
+        nullable=False
     )
 
     control_base: Mapped["ControlBase"] = relationship("ControlBase", lazy="selectin")
