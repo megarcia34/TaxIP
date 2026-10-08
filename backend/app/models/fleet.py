@@ -378,7 +378,7 @@ class MantenimientoVehiculo(Base):
     vehiculo_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"),
-        nullable=True
+        nullable=False
     )
     propietario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
