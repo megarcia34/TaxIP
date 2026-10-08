@@ -154,7 +154,8 @@ class ConfiguracionTarifa(Base):
     modo_calculo: Mapped[Optional[str]] = mapped_column(
         String(20),
         default='por_km',
-        doc="DEPRECATED - Motor unificado no usa este campo"
+        doc="DEPRECATED - Motor unificado no usa este campo",
+        comment="Modo de cálculo: ficha_argentina, por_km, por_minuto, mixto"
     )
     distancia_por_ficha: Mapped[Optional[float]] = mapped_column(
         Numeric,
@@ -216,7 +217,8 @@ class ConfiguracionTarifa(Base):
     descripcion: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
-        doc="Descripción adicional de la configuración"
+        doc="Descripción adicional de la configuración",
+        comment="Descripción adicional de la configuración de tarifa"
     )
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     updated_at: Mapped[Optional[datetime]] = mapped_column(
