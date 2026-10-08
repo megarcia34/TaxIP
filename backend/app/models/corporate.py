@@ -111,7 +111,7 @@ class MovimientoCuenta(Base):
     tipo_movimiento: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        comment="credito | debito | ajuste"
+        doc="credito | debito | ajuste"
     )
     concepto: Mapped[str] = mapped_column(String(200), nullable=False)
     monto: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
@@ -176,7 +176,7 @@ class FacturaCorporativa(Base):
         String(20),
         default="pendiente",
         nullable=False,
-        comment="pendiente | pagada | vencida | cancelada"
+        doc="pendiente | pagada | vencida | cancelada"
     )
     pdf_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -236,7 +236,7 @@ class PagoCorporativo(Base):
         String(20),
         default="pendiente",
         nullable=False,
-        comment="pendiente | confirmado | rechazado"
+        doc="pendiente | confirmado | rechazado"
     )
     fecha_pago: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     confirmado_por: Mapped[Optional[uuid.UUID]] = mapped_column(
