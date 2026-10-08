@@ -993,7 +993,7 @@ class NotificacionVencimiento(Base):
     entidad_tipo: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        comment="propietario | vehiculo | chofer"
+        doc="propietario | vehiculo | chofer"
     )
     propietario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -1005,7 +1005,7 @@ class NotificacionVencimiento(Base):
     nivel: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        comment="vencido | critico | urgente | preventivo | vigente"
+        doc="vencido | critico | urgente | preventivo | vigente"
     )
     dias_restantes: Mapped[int] = mapped_column(Integer, nullable=False)
     fecha_vencimiento: Mapped[datetime] = mapped_column(Date, nullable=False)
