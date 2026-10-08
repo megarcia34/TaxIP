@@ -1128,7 +1128,7 @@ class IngresoTurno(Base):
         UUID(as_uuid=True),
         ForeignKey("auth.usuario.id", ondelete="SET NULL"),
         nullable=True,
-        comment="Usuario que declarÃ³ el ingreso (chofer)"
+        comment="Usuario que declaró el ingreso (chofer)"
     )
     estado: Mapped[str] = mapped_column(
         String(20),
@@ -1142,7 +1142,7 @@ class IngresoTurno(Base):
         UUID(as_uuid=True),
         ForeignKey("payment.transaccion.id", ondelete="SET NULL"),
         nullable=True,
-        comment="Referencia a transacciÃ³n electrÃ³nica si aplica"
+        comment="Referencia a transacción electrónica si aplica"
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
