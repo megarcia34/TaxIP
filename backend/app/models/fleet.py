@@ -657,6 +657,14 @@ class NeumaticoVehiculo(Base):
         Index("idx_neumatico_vehiculo_control_base", "control_base_id"),
         Index("idx_neumatico_vehiculo_estado", "estado"),
         Index("idx_neumatico_vehiculo_vehiculo", "vehiculo_id"),
+        CheckConstraint(
+            "tipo_neumatico IN ('RADIAL', 'BIAS', 'TUBELESS', 'RUN_FLAT', 'TODO_TERRENO')",
+            name="chk_neumatico_tipo"
+        ),
+        CheckConstraint(
+            "estado IN ('ACTIVO', 'EN_USO', 'DESBASTADO', 'RECICLADO', 'DESECHADO', 'BAJA')",
+            name="chk_neumatico_estado"
+        ),
         {"schema": "fleet"},
     )
 
@@ -692,6 +700,10 @@ class NeumaticoHistorialPosicion(Base):
         Index("idx_historial_pos_control_base", "control_base_id"),
         Index("idx_historial_pos_eje", "eje_posicion"),
         Index("idx_historial_pos_vehiculo", "vehiculo_id"),
+        CheckConstraint(
+            "eje_posicion ~ '^[DT][1-4]$'",
+            name="chk_eje_posicion_formato"
+        ),
         {"schema": "fleet"},
     )
 
@@ -715,6 +727,10 @@ class NeumaticoMedicion(Base):
         Index("idx_medicion_fecha", "fecha_medicion"),
         Index("idx_medicion_historial", "historial_posicion_id"),
         Index("idx_medicion_control_base", "control_base_id"),
+        CheckConstraint(
+            "profundidad_mm >= 0 AND profundidad_mm <= 30",
+            name="chk_profundidad_rango"
+        ),
         {"schema": "fleet"},
     )
 
@@ -736,6 +752,10 @@ class NeumaticoOperacion(Base):
         Index("idx_operacion_tipo", "tipo_operacion"),
         Index("idx_operacion_fecha", "fecha_operacion"),
         Index("idx_operacion_vehiculo", "vehiculo_id"),
+        CheckConstraint(
+            "tipo_operacion IN ('MONTAJE', 'DESMONTAJE', 'ROTACION', 'REPARACION', 'ALINEACION', 'BALANCEO', 'INVENTARIO', 'OTRO', 'CAMBIO', 'DESECHO')",
+            name="chk_operacion_tipo"
+        ),
         {"schema": "fleet"},
     )
 
@@ -786,6 +806,18 @@ class NeumaticoSugerencia(Base):
         Index("idx_sugerencia_control_base", "control_base_id"),
         Index("idx_sugerencia_estado", "estado"),
         Index("idx_sugerencia_vehiculo", "vehiculo_id"),
+        CheckConstraint(
+            "prioridad IN ('ALTA', 'MEDIA', 'BAJA')",
+            name="chk_sugerencia_prioridad"
+        ),
+        CheckConstraint(
+            "estado IN ('PENDIENTE', 'EN_PROCESO', 'ATENDIDA', 'DESCARTADA')",
+            name="chk_sugerencia_estado"
+        ),
+        CheckConstraint(
+            "tipo_sugerencia IN ('ROTACION', 'REEMPLAZO', 'REPARACION', 'INSPECCION', 'INVENTARIO', 'OTRO')",
+            name="chk_sugerencia_tipo"
+        ),
         {"schema": "fleet"},
     )
 
@@ -814,6 +846,10 @@ class NeumaticoImagen(Base):
         Index("idx_neumatico_imagen_neumatico", "neumatico_vehiculo_id"),
         Index("idx_neumatico_imagen_operacion", "operacion_id"),
         Index("idx_neumatico_imagen_control_base", "control_base_id"),
+        CheckConstraint(
+            "tipo_imagen IN ('NEUMATICO', 'OPERACION', 'DANO', 'MEDICION', 'INVENTARIO', 'OTRO')",
+            name="chk_imagen_tipo"
+        ),
         {"schema": "fleet"},
     )
 
