@@ -11,14 +11,14 @@ from decimal import Decimal
 from typing import Optional, List
 from sqlalchemy import (
     Column, String, Boolean, DateTime, ForeignKey, Integer, DECIMAL, 
-    Numeric, Text, Date, Index, text, UniqueConstraint, Time, func
+    Numeric, Text, Date, Index, text, UniqueConstraint, Time, func, CheckConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from geoalchemy2 import Geography
 from app.database import Base
 
-# Alias para que los modelos de neumÃ¡ticos puedan usar default=now
+# Alias para que los modelos de neumáticos puedan usar default=now
 now = datetime.now
 
 
@@ -29,6 +29,14 @@ class Vehiculo(Base):
         Index("idx_vehiculo_qr", "qr_uuid"),
         Index("ix_vehiculo_capacidad_baul", "capacidad_baul"),
         Index("ix_vehiculo_estado_vehiculo", "estado_vehiculo"),
+        CheckConstraint(
+            "estado_vehiculo IN ('regular', 'bueno', 'excelente')",
+            name="ck_vehiculo_estado_vehiculo"
+        ),
+        CheckConstraint(
+            "capacidad_baul IN ('sin_baul', 'baul_chico', 'baul_mediano', 'baul_grande', 'van_carga')",
+            name="ck_vehiculo_capacidad_baul"
+        ),
         {"schema": "fleet"},
     )
 
@@ -169,7 +177,13 @@ class Vehiculo(Base):
 class ChoferVehiculo(Base):
     """Active driver-vehicle assignment with real-time GPS"""
     __tablename__ = "chofer_vehiculo"
-    __table_args__ = {"schema": "fleet"}
+    __table_args__ = (
+        CheckConstraint(
+            "estado_aprobacion IN ('pendiente', 'en_revision', 'aprobado', 'rechazado')",
+            name="chk_estado_aprobacion"
+        ),
+        {"schema": "fleet"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -977,6 +991,14 @@ class NotificacionVencimiento(Base):
             "uq_notificacion_documento_nivel",
             "documento_id", "nivel",
             unique=True,
+        ),
+        CheckConstraint(
+            "nivel IN ('vencido', 'critico', 'urgente', 'preventivo', 'vigente')",
+            name="chk_notificacion_nivel_valido"
+        ),
+        CheckConstraint(
+            "entidad_tipo IN ('propietario', 'vehiculo', 'chofer')",
+            name="chk_notificacion_entidad_ti_fd97"
         ),
         {"schema": "fleet"},
     )
