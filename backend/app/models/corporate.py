@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 from decimal import Decimal
 
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Enum as SQLEnum, func, Index
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, Date, Enum as SQLEnum, func, Index, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
@@ -22,6 +22,10 @@ class CuentaCorriente(Base):
     __tablename__ = "cuenta_corriente"
     __table_args__ = (
         Index("idx_cuenta_corriente_empresa", "empresa_id"),
+        CheckConstraint(
+            "estado IN ('activa', 'suspendida', 'cerrada')",
+            name="ck_cc_estado"
+        ),
         {"schema": "corporate"},
     )
     id: Mapped[uuid.UUID] = mapped_column(
@@ -90,6 +94,10 @@ class MovimientoCuenta(Base):
     __table_args__ = (
         Index("idx_movimiento_cuenta_cuenta", "cuenta_id"),
         Index("idx_movimiento_cuenta_fecha", "created_at"),
+        CheckConstraint(
+            "estado IS NULL OR estado IN ('pendiente', 'pagado', 'vencido', 'anulado')",
+            name="ck_mc_estado"
+        ),
         {"schema": "corporate"},
     )
 
