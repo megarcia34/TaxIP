@@ -467,14 +467,23 @@ class ContratoVehiculo(Base):
         Index("ix_contrato_vehiculo_hora_fin", "hora_fin"),
         Index("idx_contrato_chofer_historial", "chofer_id", "fecha_inicio"),
         Index("idx_contrato_vehiculo_historial", "vehiculo_id", "fecha_inicio"),
-        Index(
+                Index(
             "idx_contrato_propietario_activo",
             "propietario_id",
             "activo",
             postgresql_where=text("activo = true"),
         ),
+        CheckConstraint(
+            "tratamiento_dia_no_trabajado IN ('POR_DISPONIBILIDAD', 'NO_COBRA', 'DESCUENTO_PROPORCIONAL')",
+            name="chk_contrato_tratamiento_dia"
+        ),
+        CheckConstraint(
+            "modalidad_computo IN ('DIARIO', 'SEMANAL', 'MENSUAL')",
+            name="chk_contrato_modalidad_computo"
+        ),
         {"schema": "fleet"},
     )
+    
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     control_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.control_base.id", ondelete="CASCADE"), nullable=False)
