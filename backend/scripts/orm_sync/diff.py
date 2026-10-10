@@ -465,11 +465,28 @@ def diff_constraints(db_table, orm_table, schema, tabla):
     # Las FKs que matchean por (columnas, ref) no se reportan aunque
     # el nombre difiera.
 
-    # UNIQUEs - match por columnas
+    # UNIQUEs - match por columnas    
     db_uqs = {tuple(u["columns"]): u for u in db_cons.get("unique", [])}
     orm_uqs = {tuple(u["columns"]): u for u in orm_cons.get("unique", [])}
 
+    # Columnas de UNIQUEs del ORM declarados como Index(unique=True).
+    # Postgres expone los CREATE UNIQUE INDEX como UniqueConstraint en
+    # pg_constraint. SQLAlchemy los declara como Index(unique=True), no
+    # como UniqueConstraint. Sin este set, un UNIQUE declarado en ORM
+    # como Index aparece como constraint_falta falso.
+    # Excluye partial (WHERE) porque un partial unique index no es
+    # equivalente a un UNIQUE constraint.
+    orm_idx_uq_cols = {
+        tuple(i.get("columns") or [])
+        for i in (orm_table.get("indexes") or [])
+        if i.get("unique") and not i.get("primary") and not _is_partial_index(i)
+    }
+
     for key in db_uqs.keys() - orm_uqs.keys():
+        # Si el ORM declara el mismo UNIQUE via Index(unique=True),
+        # no es constraint_falta.
+        if key in orm_idx_uq_cols:
+            continue
         diff.append({
             "id": None, "clasificacion": "constraint_falta",
             "schema": schema, "tabla": tabla, "columna": None,
