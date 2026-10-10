@@ -25,7 +25,7 @@ class MetodoPago(Base):
         primary_key=True,
         default=uuid.uuid4
     )
-    nombre: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    nombre: Mapped[str] = mapped_column(String(50), nullable=False)
 
     # Relationships
     transacciones: Mapped[list["Transaccion"]] = relationship(
