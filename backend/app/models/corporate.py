@@ -133,7 +133,11 @@ class MovimientoCuenta(Base):
     # COLUMNAS AGREGADAS EN FASE 4b (Ronda 7, reconciliacion ORM)
     # 6 columnas faltantes (D-0256 a D-0261).
     # ============================================================
-    created_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="NO ACTION"),
+        nullable=True
+    )
     estado: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     fecha_vencimiento: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=False),
