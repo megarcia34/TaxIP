@@ -1,11 +1,100 @@
 # DEUDA TECNICA ACTUAL — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-08 (cierre Ronda 11)
-**Ronda activa:** 11 cerrada (`ronda11-fase11-completa`)
-**Total items pendientes:** ~71
+**Ultima actualizacion:** 2026-10-10 (cierre Ronda 12)
+**Ronda activa:** 12 cerrada (`ronda12-fase12-completa`)
+**Total items pendientes:** ~27
 **Total criticos:** 1 (orm.db_desalineados)
 
 ---
+---
+
+## RESUMEN DE RONDA 12 (2026-10-10)
+
+**Objetivo:** migracion m3_013 + CHECKs Grupo 1 (doble prefijo) +
+comments residuales + fix de tooling (UNIQUE INDEX vs Index) + FK.
+
+**Resultado:**
+- Diff total: 71 -> **27** (-44, -62%).
+- Tier 1: 17 -> **7**.
+- Tier 2: 46 -> **19**.
+- Tier 3: 7 -> **0**.
+- Tier 4: 1 -> **1**.
+- `constraint_sobra`: 6 -> **1**.
+- `comment_desalineado`: 13 -> **1**.
+- `constraint_falta`: 49 -> **22**.
+
+**Fixes aplicados:**
+
+1. `m3_013` - agregar 5 UNIQUEs Caso C del ORM a la DB
+   (`auth.perfil_general`, `auth.reset_token`, `fleet.vehiculo`,
+   `tenant.configuracion_tenant`, `trip.calificacion`). Impacto: -5.
+
+2. Fix de tooling `diff.py` (`_orm_unique_cols` extendido):
+   matchea `UniqueConstraint` (DB) contra `Index(unique=True)` (ORM),
+   no solo contra `UniqueConstraint`. Impacto: -7 items.
+
+3. Fix de ORM: `unique=True` faltante en
+   `fleet.propietario_vehiculo.unique_propietario_vehiculo_activo`.
+   Impacto: -1.
+
+4. CHECKs Grupo 1 (doble prefijo) declarados en ORM:
+   - `corporate.py`: 2 CHECKs.
+   - `fleet.py`: 16 CHECKs (vehiculo, chofer_vehiculo,
+     contrato_vehiculo, notificacion_vencimiento, neumaticos).
+   Impacto: -18.
+
+5. Comments residuales:
+   - Mojibake en `fleet.ingreso_turno` (2 columnas).
+   - Tilde faltante en `trip.viaje_solicitado.solicitado_en`.
+   - `comment=` agregado a 9 columnas (payment, trip).
+   Impacto: -12.
+
+6. FK `corporate.movimiento_cuenta.created_by` declarada en ORM.
+   Impacto: -1.
+
+**Deudas cerradas en R12:**
+- `orm.unique_constraints_caso_c` (parcial: quedan 2, ver abajo).
+- `orm.naming_convention_check_divergente` (parcial: G1).
+- `orm.comment_mojibake` (parcial: quedan 1).
+- `orm.diff_check_constraints_duplicados` (parcial).
+- `orm.unique_constraint_vs_unique_index` (parcial).
+- `orm.indice_redundante_contrato_vehiculo` (sigue, ver P4).
+
+**Deudas nuevas identificadas en R12:**
+- `orm.ids_diff_no_estables`: los IDs `D-XXXX` de `orm_diff.json` se
+  regeneran en cada corrida de `diff.py`. No sirven como identificador
+  persistente. Usar `(schema, tabla, columna, clasificacion,
+  tipo_constraint, nombre)`.
+- `orm.snapshot_orm_stale`: el `orm_snapshot.json` puede quedar
+  desactualizado sin que el diff lo detecte. Regenerar siempre antes
+  de comparar.
+- `orm.columnas_snapshot_turno_faltantes`: 6 columnas `snapshot_*` de
+  `fleet.turno_chofer` existen en DB y no en ORM
+  (`snapshot_hora_inicio`, `snapshot_hora_fin`,
+  `snapshot_duracion_minima_horas`, `snapshot_permite_extension`,
+  `snapshot_hora_fin_extension`, `snapshot_dia_contractual`). El diff
+  solo reporta 1 (la que tiene COMMENT ON COLUMN).
+- `orm.diff_clasifica_mal_columnas_ausentes`: cuando una columna existe
+  en DB y no en ORM, el diff la clasifica como `comment_desalineado`
+  (no como `columna_falta`) si la DB tiene comment.
+
+**Plan R13:**
+- P1: m3_014 - CHECKs Grupo 2 (sin convention, ~16 items). Requiere
+  backup DB + decision de naming (`ck_<tabla>_<col>`).
+- P2: P4 - decisiones funcionales:
+  - `trip.reserva` (tabla_sobra): decidir crear en DB o deprecar.
+  - `usuario_rol.control_base_id` (columna_falta): decidir agregar
+    en ORM o quitar de DB.
+  - `contrato_vehiculo` redundancia (indice_falta): decidir declarar
+    en ORM o eliminar en DB.
+  - `metodo_pago` (constraint_sobra): limpiar catalogo sucio antes
+    de agregar UNIQUE.
+  - `snapshot_dia_contractual` y las 5 columnas snapshot restantes:
+    decidir declarar en ORM (columna + comment) o deprecar.
+- P3: 6 FKs huerfanas de `trip.viaje_solicitado` y `auth.usuario_rol`:
+  requieren declarar las columnas primero (depende de P2).
+
+**Ver:** `docs/CONTEXTO_RONDA_12 a 13.md` (handoff).
 
 ## RESUMEN DE RONDA 11 (2026-10-08)
 

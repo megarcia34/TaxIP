@@ -389,5 +389,159 @@ cuyo nombre **no matchea** la convention de SQLAlchemy. Queda como
 
 **Total cerrado en R11: -43 items.**
 ---
+---
+
+## DECISIONES RONDA 12 (2026-10-10)
+
+### D-035 - IDs `D-XXXX` de `orm_diff.json` no son estables entre corridas
+
+**Contexto:** durante R12 detectamos que los IDs `D-XXXX` se
+regeneran en cada corrida de `diff.py` (contador incremental por orden
+de aparicion). Un `D-0003` de una corrida no es el mismo item que un
+`D-0003` de la siguiente. Eso causo confusion al verificar si los items
+se habian cerrado (un check por ID parecia indicar que seguian
+presentes cuando en realidad eran otros items reasignados).
+
+**Decision:** los IDs `D-XXXX` son de uso interno del reporte. NO
+usarlos como identificador persistente. Para referirse a un item a
+traves de corridas, usar la tupla `(schema, tabla, columna,
+clasificacion, tipo_constraint, nombre)`.
+
+**Impacto:** documentativo.
+
+**Tier 2.**
+
+### D-036 - `_orm_unique_cols` extendido a `Index(unique=True)`
+
+**Contexto:** `diff_constraints` comparaba `constraints.unique` de DB
+contra `constraints.unique` de ORM. Cuando el ORM declara un UNIQUE
+como `Index(..., unique=True)` (patron establecido en R8/D-017), la DB
+lo expone como `UniqueConstraint` en `pg_constraint`. El diff los
+reportaba como `constraint_falta` falso (8 items).
+
+**Decision:** extender el matching en `diff_constraints` con un set
+`orm_idx_uq_cols` que captura las columnas de `Index(unique=True)` del
+ORM (excluyendo partial). Si un UNIQUE de DB matchea por columnas con
+un `Index(unique=True)` del ORM, no se reporta.
+
+**Implementacion:** `scripts/orm_sync/diff.py`, funcion
+`diff_constraints`, bloque UNIQUEs. Commit `11e5631`.
+
+**Impacto:** -7 items.
+
+**Tier 2.**
+
+### D-037 - `unique=True` faltante en `unique_propietario_vehiculo_activo`
+
+**Contexto:** el ORM declara
+`Index("unique_propietario_vehiculo_activo", "propietario_id", "vehiculo_id")`
+SIN `unique=True`. La DB tiene `CREATE UNIQUE INDEX ...`. El diff lo
+reportaba como `constraint_falta / unique` (falso positivo).
+
+**Decision:** agregar `unique=True` al Index en el ORM. El nombre del
+indice reflejaba la intencion (unique) pero faltaba el flag.
+
+**Implementacion:** `app/models/fleet.py`. Commit `7d48ef3`.
+
+**Impacto:** -1 item.
+
+**Tier 2.**
+
+### D-038 - CHECKs Grupo 1 (doble prefijo) se declaran en ORM, no se migran en DB
+
+**Contexto:** 16 CHECKs en `fleet.py` y 2 en `corporate.py` tienen
+nombres en DB tipo `ck_<tabla>_ck_<tabla>_<nombre>` o
+`ck_<tabla>_chk_<algo>`. Es el resultado de aplicar la
+naming_convention de SQLAlchemy a un `name=` que ya incluia el prefijo
+original. Los CHECKs existen en DB pero NO en ORM.
+
+**Decision:** declarar los `CheckConstraint` en el ORM con el `name=`
+correcto para que la convention genere el nombre exacto que ya existe
+en DB. NO tocar la DB.
+
+**Ejemplos:**
+- DB `ck_vehiculo_ck_vehiculo_estado_vehiculo` => ORM
+  `name="ck_vehiculo_estado_vehiculo"` (convention agrega
+  `ck_vehiculo_`).
+- DB `ck_neumatico_imagen_chk_imagen_tipo` => ORM
+  `name="chk_imagen_tipo"` (convention agrega `ck_neumatico_imagen_`).
+
+**Implementacion:** 3 commits (`c3393a9`, `7c50431`, `81ebf1d`,
+`5049322`). Impacto: -18 items.
+
+**Tier 2.**
+
+### D-039 - CHECKs Grupo 2 (sin convention) van a m3_014
+
+**Contexto:** ~16 CHECKs en DB tienen nombres legacy (`check_*`,
+`chk_*`, `*_check`) que NO siguen la convention. Declararlos en el
+ORM no matchearia (la convention los expandiria mal).
+
+**Decision:** renombrar los CHECKs en DB a nombres canonicos
+`ck_<tabla>_<col>` via m3_014. Despues declararlos en ORM con el
+`name=` interno correcto.
+
+**Requiere:** backup DB + decision de naming + auditoria individual por
+CHECK.
+
+**Postergado a R13.**
+
+**Tier 2.**
+
+### D-040 - FK `corporate.movimiento_cuenta.created_by` declarada
+
+**Contexto:** la DB tiene FK `fk_movimiento_cuenta_created_by_usuario`
+sobre `created_by` -> `auth.usuario.id`. La columna `created_by`
+existia en ORM pero sin `ForeignKey`.
+
+**Decision:** declarar la `ForeignKey` en el ORM.
+
+**Implementacion:** `app/models/corporate.py`. Commit `5856d32`.
+
+**Impacto:** -1 item.
+
+**Tier 2.**
+
+### D-041 - Comments residuales: mojibake en fleet y tilde en trip
+
+**Contexto:** 3 `comment_desalineado` reales (no los Tipo A ya
+resueltos en R11):
+- `fleet.ingreso_turno.declarado_por`: mojibake `declarÃ³` -> `declaró`.
+- `fleet.ingreso_turno.transaccion_id`: mojibake `transacciÃ³n` ->
+  `transacción`.
+- `trip.viaje_solicitado.solicitado_en`: ORM decia `solicito` (sin
+  tilde), DB decia `solicitó` (con tilde).
+
+Ademas, 9 columnas en `payment.configuracion_tarifa` y `trip` tenian
+comment en DB y `comment=null` en ORM. Se agrego `comment=` con el
+string exacto de la DB.
+
+**Decision:** alinear ORM a DB (DB es fuente de verdad). Los strings
+con tildes se escriben en UTF-8 en el `.py`.
+
+**Implementacion:** `49da7de`, `419a464`, `e81311e`, `3fbf298`.
+
+**Impacto:** -12 items.
+
+**Tier 3.**
+
+---
+
+## RESUMEN DE DECISIONES R12
+
+| ID | Decision | Impacto | Commit |
+|---|---|---|---|
+| D-035 | IDs D-XXXX no estables | 0 | varios |
+| D-036 | `_orm_unique_cols` extendido a `Index(unique=True)` | -7 | 11e5631 |
+| D-037 | `unique=True` faltante en Index propietario_vehiculo | -1 | 7d48ef3 |
+| D-038 | CHECKs G1: declarar en ORM | -18 | c3393a9, 7c50431, 81ebf1d, 5049322 |
+| D-039 | CHECKs G2: renombrar en DB (m3_014, R13) | 0 | pendiente |
+| D-040 | FK `created_by` en corporate | -1 | 5856d32 |
+| D-041 | Comments residuales (mojibake + tilde) | -12 | 49da7de, 419a464, e81311e, 3fbf298 |
+
+**Total cerrado en R12: -44 items** (m3_013 -5, fixes de tooling -8,
+CHECKs G1 -18, comments -12, FK -1).
+
+---
 
 **FIN DEL DOCUMENTO**

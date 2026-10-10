@@ -1,9 +1,9 @@
 {
   "meta": {
-    "capturado_en": "2026-10-06T22:10:53.084575+00:00",
+    "capturado_en": "2026-10-08T19:28:05.049021+00:00",
     "postgres_version": "PostgreSQL 17.0 on x86_64-windows, compiled by msvc-19.41.34120, 64-bit",
     "postgis_version": "3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
-    "alembic_head": "m3_012",
+    "alembic_head": "m3_013",
     "schemas_incluidos": [
       "audit",
       "auth",
@@ -23,8 +23,8 @@
       "total_schemas": 12,
       "total_tables": 90,
       "total_columns": 1065,
-      "total_indexes": 283,
-      "total_constraints": 784
+      "total_indexes": 288,
+      "total_constraints": 789
     }
   },
   "schemas": {
@@ -2252,7 +2252,14 @@
                 "on_update": "NO ACTION"
               }
             ],
-            "unique": [],
+            "unique": [
+              {
+                "name": "uq_perfil_general_usuario_id",
+                "columns": [
+                  "usuario_id"
+                ]
+              }
+            ],
             "check": [
               {
                 "name": "63665_63759_1_not_null",
@@ -2269,6 +2276,16 @@
               "definition": "CREATE UNIQUE INDEX perfil_general_pkey ON auth.perfil_general USING btree (id)",
               "columns": [
                 "id"
+              ]
+            },
+            {
+              "name": "uq_perfil_general_usuario_id",
+              "unique": true,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX uq_perfil_general_usuario_id ON auth.perfil_general USING btree (usuario_id)",
+              "columns": [
+                "usuario_id"
               ]
             }
           ]
@@ -2995,7 +3012,14 @@
                 "on_update": "NO ACTION"
               }
             ],
-            "unique": [],
+            "unique": [
+              {
+                "name": "uq_reset_token_token",
+                "columns": [
+                  "token"
+                ]
+              }
+            ],
             "check": [
               {
                 "name": "63665_72046_1_not_null",
@@ -3024,6 +3048,16 @@
               "definition": "CREATE UNIQUE INDEX reset_token_pkey ON auth.reset_token USING btree (id)",
               "columns": [
                 "id"
+              ]
+            },
+            {
+              "name": "uq_reset_token_token",
+              "unique": true,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX uq_reset_token_token ON auth.reset_token USING btree (token)",
+              "columns": [
+                "token"
               ]
             }
           ]
@@ -14618,6 +14652,12 @@
             ],
             "unique": [
               {
+                "name": "uq_vehiculo_qr_uuid",
+                "columns": [
+                  "qr_uuid"
+                ]
+              },
+              {
                 "name": "vehiculo_patente_key",
                 "columns": [
                   "patente"
@@ -14684,6 +14724,16 @@
               "definition": "CREATE INDEX ix_vehiculo_estado_vehiculo ON fleet.vehiculo USING btree (estado_vehiculo)",
               "columns": [
                 "estado_vehiculo"
+              ]
+            },
+            {
+              "name": "uq_vehiculo_qr_uuid",
+              "unique": true,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX uq_vehiculo_qr_uuid ON fleet.vehiculo USING btree (qr_uuid)",
+              "columns": [
+                "qr_uuid"
               ]
             },
             {
@@ -18920,7 +18970,14 @@
                 "on_update": "NO ACTION"
               }
             ],
-            "unique": [],
+            "unique": [
+              {
+                "name": "uq_configuracion_tenant_control_base_id",
+                "columns": [
+                  "control_base_id"
+                ]
+              }
+            ],
             "check": [
               {
                 "name": "63666_63711_1_not_null",
@@ -18937,6 +18994,16 @@
               "definition": "CREATE UNIQUE INDEX configuracion_tenant_pkey ON tenant.configuracion_tenant USING btree (id)",
               "columns": [
                 "id"
+              ]
+            },
+            {
+              "name": "uq_configuracion_tenant_control_base_id",
+              "unique": true,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX uq_configuracion_tenant_control_base_id ON tenant.configuracion_tenant USING btree (control_base_id)",
+              "columns": [
+                "control_base_id"
               ]
             }
           ]
@@ -20294,7 +20361,14 @@
                 "on_update": "NO ACTION"
               }
             ],
-            "unique": [],
+            "unique": [
+              {
+                "name": "uq_calificacion_viaje_id",
+                "columns": [
+                  "viaje_id"
+                ]
+              }
+            ],
             "check": [
               {
                 "name": "63669_71951_1_not_null",
@@ -20331,6 +20405,16 @@
               "definition": "CREATE UNIQUE INDEX calificacion_pkey ON trip.calificacion USING btree (id)",
               "columns": [
                 "id"
+              ]
+            },
+            {
+              "name": "uq_calificacion_viaje_id",
+              "unique": true,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX uq_calificacion_viaje_id ON trip.calificacion USING btree (viaje_id)",
+              "columns": [
+                "viaje_id"
               ]
             }
           ]
