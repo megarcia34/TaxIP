@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_, or_, text
 from sqlalchemy.orm import selectinload
 
-from app.models.trip import ViajeSolicitado, HistorialEstadoViaje, Reserva
+from app.models.trip import ViajeSolicitado, HistorialEstadoViaje
 from app.models.fleet import ChoferVehiculo
 from app.models.turno import TurnoChofer
 from app.models.auth import Usuario
@@ -311,94 +311,6 @@ class TripService:
         )
         result = await self.db.execute(query)
         return result.first() is not None
-
-    # ============================================================
-    # MÉTODOS PARA RESERVAS
-    # ============================================================
-
-    async def crear_reserva(self, data: dict) -> Reserva:
-        """
-        Crear una reserva corporativa
-        """
-        reserva = Reserva(
-            id=uuid.uuid4(),
-            empresa_id=data.get("empresa_id"),
-            empleado_id=data.get("empleado_id"),
-            turno_id=data.get("turno_id"),
-            pasajero_nombre=data.get("pasajero_nombre"),
-            pasajero_telefono=data.get("pasajero_telefono"),
-            direccion_origen=data.get("direccion_origen"),
-            latitud_origen=data.get("latitud_origen"),
-            longitud_origen=data.get("longitud_origen"),
-            direccion_destino=data.get("direccion_destino"),
-            latitud_destino=data.get("latitud_destino"),
-            longitud_destino=data.get("longitud_destino"),
-            paradas_intermedias=data.get("paradas_intermedias", []),
-            tipo_vehiculo=data.get("tipo_vehiculo", "standard"),
-            nota_conductor=data.get("nota_conductor"),
-            estado="reservado",
-            es_programado=data.get("es_programado", False),
-            fecha_programada=data.get("fecha_programada"),
-            distancia_estimada_km=data.get("distancia_estimada_km"),
-            tiempo_estimado_minutos=data.get("tiempo_estimado_minutos"),
-            precio_estimado=data.get("precio_estimado"),
-            metodo_pago=data.get("metodo_pago", "vehiculo"),
-            cantidad_pasajeros=data.get("cantidad_pasajeros", 1),
-            cantidad_equipaje=data.get("cantidad_equipaje", 0),
-            centro_costo=data.get("centro_costo"),
-            creado_por=data.get("creado_por"),
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-
-        self.db.add(reserva)
-        await self.db.commit()
-        await self.db.refresh(reserva)
-
-        return reserva
-
-    async def procesar_reserva(self, reserva_id: UUID) -> ViajeSolicitado:
-        """
-        Procesar una reserva y convertirla en un viaje
-        """
-        reserva = await self.db.get(Reserva, reserva_id)
-        if not reserva:
-            raise TripNotFoundError(f"Reserva {reserva_id} no encontrada")
-
-        if reserva.estado != "reservado":
-            raise TripInvalidStateError(f"No se puede procesar una reserva en estado {reserva.estado}")
-
-        # Crear viaje desde la reserva
-        viaje = ViajeSolicitado(
-            id=uuid.uuid4(),
-            control_base_id=reserva.empresa.control_base_id if reserva.empresa else None,
-            pasajero_id=reserva.creado_por,
-            direccion_origen=reserva.direccion_origen,
-            direccion_destino=reserva.direccion_destino,
-            estado="pendiente",
-            precio_estimado=reserva.precio_estimado,
-            moneda="ARS",
-            empresa_id=reserva.empresa_id,
-            nombre_pasajero=reserva.pasajero_nombre,
-            notas=reserva.nota_conductor,
-            solicitado_en=datetime.now(),
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-
-        self.db.add(viaje)
-        await self.db.flush()
-
-        # Actualizar reserva
-        reserva.estado = "procesado"
-        reserva.updated_at = datetime.now()
-
-        await self._registrar_historial(viaje.id, "pendiente")
-
-        await self.db.commit()
-        await self.db.refresh(viaje)
-
-        return viaje
 
     # ============================================================
     # METODOS ATOMICOS M3 (broadcast + concurrencia)
