@@ -1,20 +1,14 @@
 {
   "meta": {
-    "capturado_en": "2026-10-10T11:33:21.963181+00:00",
+    "capturado_en": "2026-10-10T15:22:06.134256+00:00",
     "stats": {
-      "total_diferencias": 27,
+      "total_diferencias": 21,
       "por_clasificacion": {
-        "tabla_sobra": 1,
-        "constraint_falta": 22,
-        "columna_falta": 1,
-        "indice_falta": 1,
-        "comment_desalineado": 1,
-        "constraint_sobra": 1
+        "constraint_falta": 21
       },
       "por_tier": {
-        "1": 7,
-        "2": 19,
-        "4": 1
+        "1": 6,
+        "2": 15
       },
       "requiere_decision": 1
     }
@@ -22,22 +16,6 @@
   "diferencias": [
     {
       "id": "D-0001",
-      "clasificacion": "tabla_sobra",
-      "schema": "trip",
-      "tabla": "reserva",
-      "columna": null,
-      "detalle": {
-        "db": null,
-        "orm": {
-          "n_columns": 29
-        }
-      },
-      "tier": 4,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0002",
       "clasificacion": "constraint_falta",
       "schema": "auth",
       "tabla": "codigo_verificacion",
@@ -55,7 +33,7 @@
       "razon_decision": "j9_dos_fuentes_de_verdad"
     },
     {
-      "id": "D-0003",
+      "id": "D-0002",
       "clasificacion": "constraint_falta",
       "schema": "auth",
       "tabla": "turno_empleado",
@@ -73,61 +51,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0004",
-      "clasificacion": "columna_falta",
-      "schema": "auth",
-      "tabla": "usuario_rol",
-      "columna": "control_base_id",
-      "detalle": {
-        "db": {
-          "ordinal": 9,
-          "type": "uuid",
-          "base_type": "uuid",
-          "nullable": true,
-          "default": null,
-          "character_maximum_length": null,
-          "numeric_precision": null,
-          "numeric_scale": null,
-          "datetime_precision": null,
-          "comment": null
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0005",
-      "clasificacion": "constraint_falta",
-      "schema": "auth",
-      "tabla": "usuario_rol",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
-          "name": "fk_usuario_rol_control_base_id_control_base",
-          "columns": [
-            "control_base_id"
-          ],
-          "references": {
-            "schema": "tenant",
-            "table": "control_base",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "SET NULL",
-          "on_update": "NO ACTION"
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0006",
+      "id": "D-0003",
       "clasificacion": "constraint_falta",
       "schema": "corporate",
       "tabla": "cuenta_corriente",
@@ -156,7 +80,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0007",
+      "id": "D-0004",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
       "tabla": "contrato_vehiculo",
@@ -164,8 +88,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "check_auto_gestion",
-          "definition": "(((tipo_contrato)::text <> 'AUTO_GESTION'::text) OR (propietario_id = chofer_id))"
+          "name": "ck_contrato_compensacion_km",
+          "definition": "((compensacion_km)::text = ANY ((ARRAY['DIARIA'::character varying, 'ACUMULADA'::character varying, 'COMPENSADA'::character varying])::text[]))"
         },
         "orm": null
       },
@@ -174,7 +98,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0008",
+      "id": "D-0005",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
       "tabla": "contrato_vehiculo",
@@ -192,6 +116,60 @@
       "razon_decision": null
     },
     {
+      "id": "D-0006",
+      "clasificacion": "constraint_falta",
+      "schema": "fleet",
+      "tabla": "contrato_vehiculo",
+      "columna": null,
+      "tipo_constraint": "check",
+      "detalle": {
+        "db": {
+          "name": "ck_contrato_extension_valida",
+          "definition": "(((permite_extension = false) AND (hora_fin_extension IS NULL)) OR ((permite_extension = true) AND (hora_fin_extension IS NOT NULL)))"
+        },
+        "orm": null
+      },
+      "tier": 2,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0007",
+      "clasificacion": "constraint_falta",
+      "schema": "fleet",
+      "tabla": "contrato_vehiculo",
+      "columna": null,
+      "tipo_constraint": "check",
+      "detalle": {
+        "db": {
+          "name": "ck_contrato_dia_inicio_semana",
+          "definition": "(((dia_inicio_semana)::text = ANY ((ARRAY['lunes'::character varying, 'martes'::character varying, 'miercoles'::character varying, 'jueves'::character varying, 'viernes'::character varying, 'sabado'::character varying, 'domingo'::character varying])::text[])) OR (dia_inicio_semana IS NULL))"
+        },
+        "orm": null
+      },
+      "tier": 2,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0008",
+      "clasificacion": "constraint_falta",
+      "schema": "fleet",
+      "tabla": "contrato_vehiculo",
+      "columna": null,
+      "tipo_constraint": "check",
+      "detalle": {
+        "db": {
+          "name": "check_porcentaje",
+          "definition": "((((tipo_contrato)::text = 'PORCENTAJE'::text) AND (porcentaje_chofer IS NOT NULL) AND ((porcentaje_chofer >= (0)::numeric) AND (porcentaje_chofer <= (100)::numeric))) OR (((tipo_contrato)::text <> 'PORCENTAJE'::text) AND (porcentaje_chofer IS NULL)))"
+        },
+        "orm": null
+      },
+      "tier": 2,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
       "id": "D-0009",
       "clasificacion": "constraint_falta",
       "schema": "fleet",
@@ -200,8 +178,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_contrato_horario_valido",
-          "definition": "((hora_fin IS NULL) OR (hora_inicio IS NULL) OR (hora_fin <> hora_inicio))"
+          "name": "ck_contrato_activo_estado",
+          "definition": "((((estado_contrato)::text = 'ACTIVO'::text) AND (activo = true)) OR (((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'FINALIZADO'::character varying])::text[])) AND (activo = false)))"
         },
         "orm": null
       },
@@ -218,8 +196,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "ck_contrato_activo_estado",
-          "definition": "((((estado_contrato)::text = 'ACTIVO'::text) AND (activo = true)) OR (((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'FINALIZADO'::character varying])::text[])) AND (activo = false)))"
+          "name": "ck_contrato_horario_valido",
+          "definition": "((hora_fin IS NULL) OR (hora_inicio IS NULL) OR (hora_fin <> hora_inicio))"
         },
         "orm": null
       },
@@ -254,8 +232,8 @@
       "tipo_constraint": "check",
       "detalle": {
         "db": {
-          "name": "check_porcentaje",
-          "definition": "((((tipo_contrato)::text = 'PORCENTAJE'::text) AND (porcentaje_chofer IS NOT NULL) AND ((porcentaje_chofer >= (0)::numeric) AND (porcentaje_chofer <= (100)::numeric))) OR (((tipo_contrato)::text <> 'PORCENTAJE'::text) AND (porcentaje_chofer IS NULL)))"
+          "name": "check_auto_gestion",
+          "definition": "(((tipo_contrato)::text <> 'AUTO_GESTION'::text) OR (propietario_id = chofer_id))"
         },
         "orm": null
       },
@@ -265,121 +243,6 @@
     },
     {
       "id": "D-0013",
-      "clasificacion": "constraint_falta",
-      "schema": "fleet",
-      "tabla": "contrato_vehiculo",
-      "columna": null,
-      "tipo_constraint": "check",
-      "detalle": {
-        "db": {
-          "name": "ck_contrato_compensacion_km",
-          "definition": "((compensacion_km)::text = ANY ((ARRAY['DIARIA'::character varying, 'ACUMULADA'::character varying, 'COMPENSADA'::character varying])::text[]))"
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0014",
-      "clasificacion": "constraint_falta",
-      "schema": "fleet",
-      "tabla": "contrato_vehiculo",
-      "columna": null,
-      "tipo_constraint": "check",
-      "detalle": {
-        "db": {
-          "name": "ck_contrato_dia_inicio_semana",
-          "definition": "(((dia_inicio_semana)::text = ANY ((ARRAY['lunes'::character varying, 'martes'::character varying, 'miercoles'::character varying, 'jueves'::character varying, 'viernes'::character varying, 'sabado'::character varying, 'domingo'::character varying])::text[])) OR (dia_inicio_semana IS NULL))"
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0015",
-      "clasificacion": "constraint_falta",
-      "schema": "fleet",
-      "tabla": "contrato_vehiculo",
-      "columna": null,
-      "tipo_constraint": "check",
-      "detalle": {
-        "db": {
-          "name": "ck_contrato_extension_valida",
-          "definition": "(((permite_extension = false) AND (hora_fin_extension IS NULL)) OR ((permite_extension = true) AND (hora_fin_extension IS NOT NULL)))"
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0016",
-      "clasificacion": "indice_falta",
-      "schema": "fleet",
-      "tabla": "contrato_vehiculo",
-      "columna": null,
-      "detalle": {
-        "db": {
-          "name": "ix_contrato_vehiculo_estado_contrato",
-          "unique": false,
-          "primary": false,
-          "method": "btree",
-          "definition": "CREATE INDEX ix_contrato_vehiculo_estado_contrato ON fleet.contrato_vehiculo USING btree (estado_contrato)",
-          "columns": [
-            "estado_contrato"
-          ]
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0017",
-      "clasificacion": "comment_desalineado",
-      "schema": "fleet",
-      "tabla": "turno_chofer",
-      "columna": "snapshot_dia_contractual",
-      "detalle": {
-        "db": {
-          "comment": "Día contractual al inicio del turno (ej. LUNES, MARTES). Snapshot inmutable."
-        },
-        "orm": {
-          "comment": null
-        }
-      },
-      "tier": 1,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0018",
-      "clasificacion": "constraint_sobra",
-      "schema": "payment",
-      "tabla": "metodo_pago",
-      "columna": null,
-      "tipo_constraint": "unique",
-      "detalle": {
-        "db": null,
-        "orm": {
-          "name": "uq_metodo_pago_nombre",
-          "columns": [
-            "nombre"
-          ]
-        }
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0019",
       "clasificacion": "constraint_falta",
       "schema": "payment",
       "tabla": "pago_empresa",
@@ -397,7 +260,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0020",
+      "id": "D-0014",
       "clasificacion": "constraint_falta",
       "schema": "payment",
       "tabla": "pago_empresa",
@@ -415,25 +278,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0021",
-      "clasificacion": "constraint_falta",
-      "schema": "public",
-      "tabla": "escaneo_qr",
-      "columna": null,
-      "tipo_constraint": "check",
-      "detalle": {
-        "db": {
-          "name": "chk_escaneo_qr_tipo",
-          "definition": "((tipo_qr)::text = ANY ((ARRAY['OPERATIVO'::character varying, 'COMERCIO'::character varying, 'VEHICULO'::character varying, 'OTRO'::character varying])::text[]))"
-        },
-        "orm": null
-      },
-      "tier": 2,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0022",
+      "id": "D-0015",
       "clasificacion": "constraint_falta",
       "schema": "public",
       "tabla": "escaneo_qr",
@@ -451,7 +296,25 @@
       "razon_decision": null
     },
     {
-      "id": "D-0023",
+      "id": "D-0016",
+      "clasificacion": "constraint_falta",
+      "schema": "public",
+      "tabla": "escaneo_qr",
+      "columna": null,
+      "tipo_constraint": "check",
+      "detalle": {
+        "db": {
+          "name": "chk_escaneo_qr_tipo",
+          "definition": "((tipo_qr)::text = ANY ((ARRAY['OPERATIVO'::character varying, 'COMERCIO'::character varying, 'VEHICULO'::character varying, 'OTRO'::character varying])::text[]))"
+        },
+        "orm": null
+      },
+      "tier": 2,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0017",
       "clasificacion": "constraint_falta",
       "schema": "trip",
       "tabla": "calificacion",
@@ -469,36 +332,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0024",
-      "clasificacion": "constraint_falta",
-      "schema": "trip",
-      "tabla": "viaje_solicitado",
-      "columna": null,
-      "tipo_constraint": "fk",
-      "detalle": {
-        "db": {
-          "name": "fk_viaje_empleado",
-          "columns": [
-            "empleado_id"
-          ],
-          "references": {
-            "schema": "auth",
-            "table": "usuario",
-            "columns": [
-              "id"
-            ]
-          },
-          "on_delete": "NO ACTION",
-          "on_update": "NO ACTION"
-        },
-        "orm": null
-      },
-      "tier": 1,
-      "requiere_decision": false,
-      "razon_decision": null
-    },
-    {
-      "id": "D-0025",
+      "id": "D-0018",
       "clasificacion": "constraint_falta",
       "schema": "trip",
       "tabla": "viaje_solicitado",
@@ -527,7 +361,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0026",
+      "id": "D-0019",
       "clasificacion": "constraint_falta",
       "schema": "trip",
       "tabla": "viaje_solicitado",
@@ -535,13 +369,13 @@
       "tipo_constraint": "fk",
       "detalle": {
         "db": {
-          "name": "fk_viaje_turno_emp",
+          "name": "fk_viaje_empleado",
           "columns": [
-            "turno_empleado_id"
+            "empleado_id"
           ],
           "references": {
             "schema": "auth",
-            "table": "turno_empleado",
+            "table": "usuario",
             "columns": [
               "id"
             ]
@@ -556,7 +390,7 @@
       "razon_decision": null
     },
     {
-      "id": "D-0027",
+      "id": "D-0020",
       "clasificacion": "constraint_falta",
       "schema": "trip",
       "tabla": "viaje_solicitado",
@@ -571,6 +405,35 @@
           "references": {
             "schema": "corporate",
             "table": "cuenta_corriente",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "NO ACTION",
+          "on_update": "NO ACTION"
+        },
+        "orm": null
+      },
+      "tier": 1,
+      "requiere_decision": false,
+      "razon_decision": null
+    },
+    {
+      "id": "D-0021",
+      "clasificacion": "constraint_falta",
+      "schema": "trip",
+      "tabla": "viaje_solicitado",
+      "columna": null,
+      "tipo_constraint": "fk",
+      "detalle": {
+        "db": {
+          "name": "fk_viaje_turno_emp",
+          "columns": [
+            "turno_empleado_id"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "turno_empleado",
             "columns": [
               "id"
             ]
