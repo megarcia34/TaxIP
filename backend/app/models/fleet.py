@@ -422,7 +422,7 @@ class MantenimientoVehiculo(Base):
 class PropietarioVehiculo(Base):
     __tablename__ = "propietario_vehiculo"
     __table_args__ = (
-        Index("unique_propietario_vehiculo_activo", "propietario_id", "vehiculo_id"),
+        Index("unique_propietario_vehiculo_activo", "propietario_id", "vehiculo_id", unique=True),
         Index("idx_propietario_vehiculo_vehiculo", "vehiculo_id", "activo"),
         Index("idx_propietario_vehiculo_propietario", "propietario_id", "activo"),
         {"schema": "fleet"},
