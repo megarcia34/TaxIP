@@ -1,6 +1,12 @@
 """
 Router para gestión de reservas y estimación de precios
 Usa el MOTOR UNIFICADO TAXIP 2.1 para el cálculo de tarifas.
+
+R13: migrado de trip.reserva a trip.viaje_solicitado.
+- La tabla trip.reserva fue deprecada (nunca existio en DB).
+- Los estados visibles del frontend se preservan:
+    reservado, despachado, vehiculo_llego, pasajero_a_bordo, completado, cancelado
+- Se mapean a (viaje_solicitado.estado, viaje_solicitado.subestado_despacho).
 """
 import json
 import logging
@@ -35,6 +41,56 @@ router = APIRouter(prefix="/reservas", tags=["Reservas"])
 
 
 # ============================================================
+# MAPEO DE ESTADOS (R13)
+# ============================================================
+# El frontend usa 6 estados visibles:
+#     reservado | despachado | vehiculo_llego | pasajero_a_bordo | completado | cancelado
+#
+# En trip.viaje_solicitado se representan con dos columnas:
+#     estado (varchar 30) + subestado_despacho (varchar 30)
+#
+# Mapeo canonico:
+#     reservado         -> estado='pendiente',  subestado_despacho='reservado'
+#     despachado        -> estado='aceptado',   subestado_despacho='despachado'
+#     vehiculo_llego    -> estado='aceptado',   subestado_despacho='vehiculo_llego'
+#     pasajero_a_bordo  -> estado='en_curso',   subestado_despacho='pasajero_a_bordo'
+#     completado        -> estado='finalizado', subestado_despacho='completado'
+#     cancelado         -> estado='cancelado',  subestado_despacho=NULL
+
+_MAP_ESTADO_VISIBLE_A_DB = {
+    "reservado": ("pendiente", "reservado"),
+    "despachado": ("aceptado", "despachado"),
+    "vehiculo_llego": ("aceptado", "vehiculo_llego"),
+    "pasajero_a_bordo": ("en_curso", "pasajero_a_bordo"),
+    "completado": ("finalizado", "completado"),
+    "cancelado": ("cancelado", None),
+}
+
+
+def _map_estado_db(estado_visible: str):
+    """
+    Devuelve (estado_db, subestado_despacho) a partir del estado visible.
+    Si el estado no esta mapeado, devuelve (estado_visible, None) como fallback.
+    """
+    return _MAP_ESTADO_VISIBLE_A_DB.get(estado_visible, (estado_visible, None))
+
+
+def _map_estado_visible(estado_db: str, subestado_db: Optional[str]) -> str:
+    """
+    Devuelve el estado visible a partir de (estado_db, subestado_despacho).
+    Regla:
+      - Si estado_db='cancelado' -> 'cancelado'.
+      - Si subestado_despacho coincide con uno de los 6 visibles -> ese.
+      - Si no -> 'reservado' como fallback.
+    """
+    if estado_db == "cancelado":
+        return "cancelado"
+    if subestado_db in _MAP_ESTADO_VISIBLE_A_DB:
+        return subestado_db
+    return "reservado"
+
+
+# ============================================================
 # ESTIMAR PRECIO
 # ============================================================
 @router.post("/estimar-precio", response_model=EstimacionPrecioResponse)
@@ -48,7 +104,7 @@ async def estimar_precio(
     Accesible para empleados (solo visualización) y administradores.
     """
     user_id, control_base_id, email, tipo, empresa_id, empresa_nombre, turno_id = current_user
-    logger.info(f"📊 Estimando precio para empleado {email} (tenant {control_base_id})")
+    logger.info(f"Estimando precio para empleado {email} (tenant {control_base_id})")
 
     # 1. Validar que el tenant esté activo
     await validar_tenant_activo(control_base_id, db)
@@ -66,9 +122,9 @@ async def estimar_precio(
         lon_origen = ruta.get("lon_origen")
         lat_destino = ruta.get("lat_destino")
         lon_destino = ruta.get("lon_destino")
-        logger.info(f"📍 Ruta calculada: {distancia_km}km, {tiempo_minutos}min")
+        logger.info(f"Ruta calculada: {distancia_km}km, {tiempo_minutos}min")
     except Exception as e:
-        logger.error(f"❌ Error calculando ruta: {str(e)}")
+        logger.error(f"Error calculando ruta: {str(e)}")
         distancia_km = 5.0
         tiempo_minutos = 15
         lat_origen = None
@@ -94,22 +150,22 @@ async def estimar_precio(
         resultado.longitud_origen = lon_origen
         resultado.latitud_destino = lat_destino
         resultado.longitud_destino = lon_destino
-        logger.info(f"✅ Precio estimado: {resultado.precio_estimado} {resultado.moneda}")
+        logger.info(f"Precio estimado: {resultado.precio_estimado} {resultado.moneda}")
         return resultado
     except TarifaNotFoundError as e:
-        logger.error(f"❌ {str(e)}")
+        logger.error(f"{str(e)}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except TipoVehiculoNotFoundError as e:
-        logger.error(f"❌ {str(e)}")
+        logger.error(f"{str(e)}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except Exception as e:
-        logger.error(f"❌ Error inesperado: {str(e)}")
+        logger.error(f"Error inesperado: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al calcular el precio: {str(e)}",
@@ -128,10 +184,12 @@ async def create_reserva(
     """
     Crea una nueva reserva de viaje.
     Solo accesible para empleados con turno activo.
+
+    R13: inserta en trip.viaje_solicitado (antes trip.reserva).
     """
     user_id, control_base_id, email, tipo, empresa_id, empresa_nombre, turno_id = current_user
     logger.info("=" * 60)
-    logger.info(f"📥 SOLICITUD DE VIAJE RECIBIDA:")
+    logger.info("SOLICITUD DE VIAJE RECIBIDA:")
     logger.info(f"  - Empleado ID: {user_id} ({email})")
     logger.info(f"  - Empresa: {empresa_nombre} (ID: {empresa_id})")
     logger.info(f"  - Turno Activo ID: {turno_id}")
@@ -197,37 +255,64 @@ async def create_reserva(
         )
         precio_estimado = resultado.precio_estimado
     except Exception as e:
-        logger.error(f"❌ Error calculando precio: {str(e)}")
+        logger.error(f"Error calculando precio: {str(e)}")
         # Fallback: estimación básica si falla el motor
         distancia_km = 5.0
         tiempo_minutos = 15
         precio_estimado = (distancia_km * 200) + (tiempo_minutos * 50)
 
-    # 5. Insertar la reserva
+    # 5. Insertar la reserva en trip.viaje_solicitado
+    # Mapeo:
+    #   empresa_id           -> empresa_id
+    #   empleado_id          -> empleado_id
+    #   turno_id             -> turno_empleado_id
+    #   pasajero_nombre      -> nombre_pasajero
+    #   pasajero_telefono    -> pasajero_telefono
+    #   lat/lng origen       -> origen (Geography, ST_SetSRID + ST_MakePoint)
+    #   lat/lng destino      -> destino (Geography)
+    #   tipo_vehiculo        -> tipo_vehiculo_solicitado
+    #   nota_conductor       -> notas
+    #   estado='reservado'   -> estado='pendiente' + subestado_despacho='reservado'
+    #   distancia_km         -> distancia_metros (x1000)
+    #   tiempo_minutos       -> tiempo_estimado_segundos (x60)
+    #   cantidad_equipaje    -> cantidad_valijas
+    #   creado_por           -> empleado_id (mismo valor)
+    estado_db, subestado_db = _map_estado_db("reservado")
+
     query = text("""
-        INSERT INTO trip.reserva (
-            id, empresa_id, empleado_id, turno_id,
-            pasajero_nombre, pasajero_telefono,
-            direccion_origen, latitud_origen, longitud_origen,
-            direccion_destino, latitud_destino, longitud_destino,
+        INSERT INTO trip.viaje_solicitado (
+            id, control_base_id, empresa_id, empleado_id, turno_empleado_id,
+            nombre_pasajero, pasajero_telefono,
+            direccion_origen, origen,
+            direccion_destino, destino,
             paradas_intermedias,
-            tipo_vehiculo, nota_conductor,
-            estado, es_programado, fecha_programada,
-            distancia_estimada_km, tiempo_estimado_minutos, precio_estimado,
-            metodo_pago, centro_costo, created_at, updated_at, creado_por,
-            cantidad_pasajeros, cantidad_equipaje
+            tipo_vehiculo_solicitado, notas,
+            estado, subestado_despacho,
+            es_programado, fecha_programada,
+            distancia_metros, tiempo_estimado_segundos, precio_estimado,
+            metodo_pago, centro_costo,
+            solicitado_en, created_at, updated_at,
+            cantidad_pasajeros, cantidad_valijas
         )
         VALUES (
-            gen_random_uuid(), :empresa_id, :empleado_id, :turno_id,
-            :pasajero_nombre, :pasajero_telefono,
-            :direccion_origen, :latitud_origen, :longitud_origen,
-            :direccion_destino, :latitud_destino, :longitud_destino,
+            gen_random_uuid(), :control_base_id, :empresa_id, :empleado_id, :turno_empleado_id,
+            :nombre_pasajero, :pasajero_telefono,
+            :direccion_origen,
+            CASE WHEN :latitud_origen IS NOT NULL AND :longitud_origen IS NOT NULL
+                 THEN ST_SetSRID(ST_MakePoint(:longitud_origen, :latitud_origen), 4326)::geography
+                 ELSE NULL END,
+            :direccion_destino,
+            CASE WHEN :latitud_destino IS NOT NULL AND :longitud_destino IS NOT NULL
+                 THEN ST_SetSRID(ST_MakePoint(:longitud_destino, :latitud_destino), 4326)::geography
+                 ELSE NULL END,
             CAST(:paradas_intermedias AS jsonb),
             :tipo_vehiculo, :nota_conductor,
-            'reservado', :es_programado, :fecha_programada,
-            :distancia_km, :tiempo_minutos, :precio_estimado,
-            :metodo_pago, :centro_costo, NOW(), NOW(), :creado_por,
-            :cantidad_pasajeros, :cantidad_equipaje
+            :estado_db, :subestado_db,
+            :es_programado, :fecha_programada,
+            :distancia_metros, :tiempo_estimado_segundos, :precio_estimado,
+            :metodo_pago, :centro_costo,
+            NOW(), NOW(), NOW(),
+            :cantidad_pasajeros, :cantidad_valijas
         )
         RETURNING id
     """)
@@ -237,10 +322,11 @@ async def create_reserva(
         paradas_json = [p.model_dump() for p in data.paradas_intermedias]
 
     result = await db.execute(query, {
+        "control_base_id": control_base_id,
         "empresa_id": id_empresa_final,
         "empleado_id": user_id,
-        "turno_id": turno_id,
-        "pasajero_nombre": data.pasajero_nombre,
+        "turno_empleado_id": turno_id,
+        "nombre_pasajero": data.pasajero_nombre,
         "pasajero_telefono": data.pasajero_telefono,
         "direccion_origen": data.direccion_origen,
         "latitud_origen": data.latitud_origen,
@@ -251,16 +337,17 @@ async def create_reserva(
         "paradas_intermedias": json.dumps(paradas_json),
         "tipo_vehiculo": data.tipo_vehiculo.value,
         "nota_conductor": data.nota_conductor,
+        "estado_db": estado_db,
+        "subestado_db": subestado_db,
         "es_programado": data.es_programado,
         "fecha_programada": data.fecha_programada,
-        "distancia_km": distancia_km,
-        "tiempo_minutos": tiempo_minutos,
+        "distancia_metros": int(distancia_km * 1000) if distancia_km else None,
+        "tiempo_estimado_segundos": int(tiempo_minutos * 60) if tiempo_minutos else None,
         "precio_estimado": precio_estimado,
         "metodo_pago": data.metodo_pago.value,
         "centro_costo": data.centro_costo,
-        "creado_por": user_id,
         "cantidad_pasajeros": data.cantidad_pasajeros,
-        "cantidad_equipaje": data.cantidad_equipaje,
+        "cantidad_valijas": data.cantidad_equipaje,
     })
     await db.commit()
     row = result.first()
@@ -282,20 +369,23 @@ async def list_reservas(
 ):
     """
     Lista las reservas creadas por la empresa del empleado autenticado.
+
+    R13: lee de trip.viaje_solicitado (antes trip.reserva).
     """
     user_id, control_base_id, email, tipo, empresa_id, empresa_nombre, turno_id = current_user
 
     query_str = """
-        SELECT r.id FROM trip.reserva r
-        WHERE r.empresa_id = :empresa_id
+        SELECT vs.id FROM trip.viaje_solicitado vs
+        WHERE vs.empresa_id = :empresa_id
     """
     params = {"empresa_id": empresa_id, "limit": limit, "offset": offset}
 
     if estado:
-        query_str += " AND r.estado = :estado"
-        params["estado"] = estado.value
+        # Filtrar por subestado_despacho que es el que preserva el estado visible.
+        query_str += " AND vs.subestado_despacho = :subestado"
+        params["subestado"] = estado.value
 
-    query_str += " ORDER BY r.created_at DESC LIMIT :limit OFFSET :offset"
+    query_str += " ORDER BY vs.created_at DESC LIMIT :limit OFFSET :offset"
 
     result = await db.execute(text(query_str), params)
     rows = result.fetchall()
@@ -335,11 +425,14 @@ async def update_reserva_estado(
 ):
     """
     Permite transicionar de estado un viaje de forma controlada.
+
+    R13: lee y escribe en trip.viaje_solicitado.
+    Los 6 estados visibles se mapean a (estado, subestado_despacho).
     """
     user_id, control_base_id, email, tipo, empresa_id, empresa_nombre, turno_id = current_user
 
     check_query = text("""
-        SELECT id, estado FROM trip.reserva
+        SELECT id, estado, subestado_despacho FROM trip.viaje_solicitado
         WHERE id = :id AND empresa_id = :empresa_id
     """)
     result = await db.execute(check_query, {
@@ -354,7 +447,9 @@ async def update_reserva_estado(
             detail="Reserva no encontrada",
         )
 
-    estado_actual = row[1]
+    # Reconstruir el estado visible actual
+    estado_actual = _map_estado_visible(row[1], row[2])
+
     transiciones_permitidas = {
         "reservado": ["despachado", "cancelado"],
         "despachado": ["vehiculo_llego", "cancelado"],
@@ -370,14 +465,20 @@ async def update_reserva_estado(
             detail=f"No se puede cambiar de '{estado_actual}' a '{estado.value}'",
         )
 
+    # Mapear el nuevo estado visible a (estado_db, subestado_db)
+    nuevo_estado_db, nuevo_subestado_db = _map_estado_db(estado.value)
+
     update_query = text("""
-        UPDATE trip.reserva 
-        SET estado = :estado, updated_at = NOW()
+        UPDATE trip.viaje_solicitado
+        SET estado = :estado,
+            subestado_despacho = :subestado,
+            updated_at = NOW()
         WHERE id = :id
     """)
     await db.execute(update_query, {
         "id": UUID(id),
-        "estado": estado.value,
+        "estado": nuevo_estado_db,
+        "subestado": nuevo_subestado_db,
     })
     await db.commit()
 
@@ -396,11 +497,13 @@ async def cancelar_reserva(
 ):
     """
     Cancela una reserva existente.
+
+    R13: lee y escribe en trip.viaje_solicitado.
     """
     user_id, control_base_id, email, tipo, empresa_id, empresa_nombre, turno_id = current_user
 
     check_query = text("""
-        SELECT id, estado FROM trip.reserva
+        SELECT id, estado, subestado_despacho FROM trip.viaje_solicitado
         WHERE id = :id AND empresa_id = :empresa_id
     """)
     result = await db.execute(check_query, {
@@ -415,7 +518,7 @@ async def cancelar_reserva(
             detail="Reserva no encontrada",
         )
 
-    estado_actual = row[1]
+    estado_actual = _map_estado_visible(row[1], row[2])
     if estado_actual in ["completado", "cancelado"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -423,8 +526,10 @@ async def cancelar_reserva(
         )
 
     update_query = text("""
-        UPDATE trip.reserva 
-        SET estado = 'cancelado', updated_at = NOW()
+        UPDATE trip.viaje_solicitado
+        SET estado = 'cancelado',
+            subestado_despacho = NULL,
+            updated_at = NOW()
         WHERE id = :id
     """)
     await db.execute(update_query, {"id": UUID(id)})
@@ -450,21 +555,45 @@ async def cancelar_reserva(
 async def get_reserva_detail(
     id: str, current_user: EmpleadoUser, db: AsyncSession
 ) -> ReservaResponse:
-    """Obtiene el detalle completo de una reserva."""
+    """
+    Obtiene el detalle completo de una reserva.
+
+    R13: lee de trip.viaje_solicitado y desmapea el estado visible.
+    """
     user_id, control_base_id, email, tipo, empresa_id, empresa_nombre, turno_id = current_user
 
     query = text("""
-        SELECT 
-            id, empresa_id, empleado_id, turno_id,
-            pasajero_nombre, pasajero_telefono,
-            direccion_origen, latitud_origen, longitud_origen,
-            direccion_destino, latitud_destino, longitud_destino,
-            paradas_intermedias, tipo_vehiculo, nota_conductor,
-            estado, es_programado, fecha_programada,
-            distancia_estimada_km, tiempo_estimado_minutos, precio_estimado,
-            precio_final, metodo_pago, centro_costo, created_at, updated_at,
-            cantidad_pasajeros, cantidad_equipaje
-        FROM trip.reserva
+        SELECT
+            vs.id,
+            vs.empresa_id,
+            vs.empleado_id,
+            vs.turno_empleado_id,
+            vs.nombre_pasajero,
+            vs.pasajero_telefono,
+            vs.direccion_origen,
+            ST_Y(vs.origen::geometry) AS latitud_origen,
+            ST_X(vs.origen::geometry) AS longitud_origen,
+            vs.direccion_destino,
+            ST_Y(vs.destino::geometry) AS latitud_destino,
+            ST_X(vs.destino::geometry) AS longitud_destino,
+            vs.paradas_intermedias,
+            vs.tipo_vehiculo_solicitado,
+            vs.notas,
+            vs.estado,
+            vs.subestado_despacho,
+            vs.es_programado,
+            vs.fecha_programada,
+            vs.distancia_metros,
+            vs.tiempo_estimado_segundos,
+            vs.precio_estimado,
+            vs.precio_final,
+            vs.metodo_pago,
+            vs.centro_costo,
+            vs.created_at,
+            vs.updated_at,
+            vs.cantidad_pasajeros,
+            vs.cantidad_valijas
+        FROM trip.viaje_solicitado
         WHERE id = :id AND empresa_id = :empresa_id
     """)
     result = await db.execute(query, {
@@ -479,33 +608,40 @@ async def get_reserva_detail(
             detail="La reserva solicitada no existe",
         )
 
+    # Desmapear estado visible
+    estado_visible = _map_estado_visible(row[15], row[16])
+
+    # Convertir distancia (metros -> km) y tiempo (segundos -> minutos)
+    distancia_metros = row[19] if row[19] is not None else 0
+    tiempo_segundos = row[20] if row[20] is not None else 0
+
     return {
         "id": str(row[0]),
-        "empresa_id": str(row[1]),
-        "empleado_id": str(row[2]),
+        "empresa_id": str(row[1]) if row[1] else None,
+        "empleado_id": str(row[2]) if row[2] else None,
         "turno_id": str(row[3]) if row[3] else None,
         "pasajero_nombre": row[4],
         "pasajero_telefono": row[5],
         "direccion_origen": row[6],
-        "latitud_origen": row[7],
-        "longitud_origen": row[8],
+        "latitud_origen": float(row[7]) if row[7] is not None else None,
+        "longitud_origen": float(row[8]) if row[8] is not None else None,
         "direccion_destino": row[9],
-        "latitud_destino": row[10],
-        "longitud_destino": row[11],
+        "latitud_destino": float(row[10]) if row[10] is not None else None,
+        "longitud_destino": float(row[11]) if row[11] is not None else None,
         "paradas_intermedias": row[12] if row[12] else [],
         "tipo_vehiculo": row[13],
         "nota_conductor": row[14],
-        "estado": row[15],
-        "es_programado": row[16],
-        "fecha_programada": row[17].isoformat() if row[17] else None,
-        "distancia_estimada_km": float(row[18]) if row[18] else 0.0,
-        "tiempo_estimado_minutos": row[19] if row[19] else 0,
-        "precio_estimado": float(row[20]) if row[20] else 0.0,
-        "precio_final": float(row[21]) if row[21] else None,
-        "metodo_pago": row[22],
-        "centro_costo": row[23],
-        "created_at": row[24].isoformat(),
-        "updated_at": row[25].isoformat(),
-        "cantidad_pasajeros": row[26] if row[26] is not None else 1,
-        "cantidad_equipaje": row[27] if row[27] is not None else 0,
+        "estado": estado_visible,
+        "es_programado": row[17],
+        "fecha_programada": row[18].isoformat() if row[18] else None,
+        "distancia_estimada_km": float(distancia_metros) / 1000.0,
+        "tiempo_estimado_minutos": int(tiempo_segundos) // 60,
+        "precio_estimado": float(row[21]) if row[21] is not None else 0.0,
+        "precio_final": float(row[22]) if row[22] is not None else None,
+        "metodo_pago": row[23],
+        "centro_costo": row[24],
+        "created_at": row[25].isoformat(),
+        "updated_at": row[26].isoformat(),
+        "cantidad_pasajeros": row[27] if row[27] is not None else 1,
+        "cantidad_equipaje": row[28] if row[28] is not None else 0,
     }
