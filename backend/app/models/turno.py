@@ -64,7 +64,11 @@ class TurnoChofer(Base):
     snapshot_duracion_minima_horas = Column(Integer, nullable=True)
     snapshot_permite_extension = Column(Boolean, nullable=True)
     snapshot_hora_fin_extension = Column(Time, nullable=True)
-    snapshot_dia_contractual = Column(String(20), nullable=True)
+    snapshot_dia_contractual = Column(
+        String(20),
+        nullable=True,
+        comment="Día contractual al inicio del turno (ej. LUNES, MARTES). Snapshot inmutable."
+    )
     
     # ============================================
     # MARCAS DE TIEMPO
