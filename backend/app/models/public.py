@@ -18,9 +18,7 @@ class Comercio(Base):
     Un comercio adherido genera un QR para que los clientes pidan taxis sin app.
     """
     __tablename__ = "comercio"
-    __table_args__ = (
-        Index("idx_comercio_codigo_qr", "codigo_qr"),
-    )
+    __table_args__ = ()    
 
     
     id: Mapped[uuid.UUID] = mapped_column(
