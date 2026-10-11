@@ -481,6 +481,42 @@ class ContratoVehiculo(Base):
             "modalidad_computo IN ('DIARIO', 'SEMANAL', 'MENSUAL')",
             name="chk_contrato_modalidad_computo"
         ),
+        CheckConstraint(
+            "compensacion_km IN ('DIARIA', 'ACUMULADA', 'COMPENSADA')",
+            name="compensacion_km",
+        ),
+        CheckConstraint(
+            "estado_contrato IN ('PENDIENTE_CONFIGURACION', 'PROGRAMADO', 'ACTIVO', 'FINALIZADO')",
+            name="estado",
+        ),
+        CheckConstraint(
+            "(permite_extension = false AND hora_fin_extension IS NULL) OR (permite_extension = true AND hora_fin_extension IS NOT NULL)",
+            name="extension_valida",
+        ),
+        CheckConstraint(
+            "dia_inicio_semana IN ('lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo') OR dia_inicio_semana IS NULL",
+            name="dia_inicio_semana",
+        ),
+        CheckConstraint(
+            "(tipo_contrato = 'PORCENTAJE' AND porcentaje_chofer IS NOT NULL AND porcentaje_chofer >= 0 AND porcentaje_chofer <= 100) OR (tipo_contrato <> 'PORCENTAJE' AND porcentaje_chofer IS NULL)",
+            name="porcentaje",
+        ),
+        CheckConstraint(
+            "(estado_contrato = 'ACTIVO' AND activo = true) OR (estado_contrato IN ('PENDIENTE_CONFIGURACION', 'PROGRAMADO', 'FINALIZADO') AND activo = false)",
+            name="activo_estado",
+        ),
+        CheckConstraint(
+            "hora_fin IS NULL OR hora_inicio IS NULL OR hora_fin <> hora_inicio",
+            name="horario_valido",
+        ),
+        CheckConstraint(
+            "duracion_minima_horas IS NULL OR duracion_minima_horas >= 1",
+            name="duracion_minima",
+        ),
+        CheckConstraint(
+            "tipo_contrato <> 'AUTO_GESTION' OR propietario_id = chofer_id",
+            name="auto_gestion",
+        ),
         {"schema": "fleet"},
     )
     
