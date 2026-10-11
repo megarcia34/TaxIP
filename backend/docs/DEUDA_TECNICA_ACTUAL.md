@@ -1,9 +1,87 @@
 # DEUDA TECNICA ACTUAL — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-11 (cierre Ronda 14)
-**Ronda activa:** 14 cerrada (`ronda14-fase14-completa`)
+**Ultima actualizacion:** 2026-10-11 (cierre Ronda 15)
+**Ronda activa:** 15 cerrada (`ronda15-fase15-completa`)
 **Total items pendientes:** 0 (diff BD <-> ORM alineado)
 **Total criticos:** 0
+**Alembic head:** m3_017
+
+---
+---
+## RESUMEN DE RONDA 15 (2026-10-11)
+
+**Objetivo:** resolver deuda tecnica FUNCIONAL (no estructural).
+La alineacion estructural BD <-> ORM quedo completa en R14; R15 ataca
+las deudas funcionales y de proceso que el diff no captura.
+
+**Resultado:**
+- **P1 - metodo_pago catalogo sucio: CERRADO.**
+- **P2 - alembic check categorias C y D: CERRADO.**
+- **P3 - tooling: documentado (no resuelto).**
+- **P4 - documentacion: este documento.**
+
+**Fixes aplicados:**
+
+1. **P1 - Migracion `m3_016` limpiar catalogo metodo_pago** (commit `44c5147`):
+   - Catalogo `payment.metodo_pago` limpiado de 12 a 4 filas.
+   - Vocabulario canonico Momento 1: efectivo, tarjeta_debito, qr, transferencia.
+   - Filas eliminadas: efectivo duplicado, tarjeta_credito, billetera,
+     wallet, credito, debito, mercadopago x2.
+   - Agregado UNIQUE sobre nombre (`uq_metodo_pago_nombre`).
+   - Agregado CHECK con vocabulario canonico (`ck_metodo_pago_nombre`).
+   - Comment de tabla actualizado.
+   - ORM: `MetodoPago.__table_args__` actualizado con UniqueConstraint,
+     CheckConstraint y comment.
+   - Fix adicional: `payment_schemas.py:20` default `mercadopago` -> `efectivo`.
+   - Deuda documentada: `pagos.py:203` referencia `billetera` (Momento 3).
+
+2. **P2 - Migracion `m3_017` drop indice redundante + comments de tabla**
+   (commit `ad24c66`):
+   - Eliminado `payment.ix_qr_cobro_token` (redundante con `uq_qr_cobro_token`).
+   - 5 comments de tabla agregados al ORM y actualizados en DB:
+     - `auth.autorizacion_inicio`
+     - `auth.turno_empleado`
+     - `auth.usuario_rol`
+     - `fleet.contrato_qr` (texto corregido: "QRs generados para pagos
+       y trazabilidad de viajes")
+     - `fleet.documentos_chofer`
+   - Deuda `orm.comment_mojibake` cerrada (3 comments con mojibake
+     corregidos).
+
+3. **P3 - Documentacion de tooling** (este documento):
+   - 4 deudas de tooling documentadas (postergadas a R16+).
+   - Deuda nueva `orm.naming_convention_check_doble_prefijo` documentada
+     como resuelta.
+
+**Migraciones aplicadas:**
+
+- `m3_016` (commit `44c5147`): limpiar catalogo metodo_pago + UNIQUE + CHECK.
+- `m3_017` (commit `ad24c66`): drop ix_qr_cobro_token + 5 comments de tabla.
+
+**Deudas cerradas en R15:**
+
+- `metodo_pago.catalogo_sucio` (P1).
+- `orm.alembic_check_categoria_c` (ix_qr_cobro_token redundante).
+- `orm.alembic_check_categoria_d` (5 comments de tabla).
+- `orm.comment_mojibake` (3 comments residuales de R12).
+- `orm.naming_convention_check_doble_prefijo` (documentada como resuelta).
+
+**Deudas nuevas identificadas en R15:**
+
+- `orm.naming_convention_check_doble_prefijo` (RESUELTA).
+- `orm.alembic_check_categoria_a` (naming divergente, ~15 falsos positivos).
+- `orm.alembic_check_categoria_b` (FKs con ondelete distinto, ~35 items).
+- `pagos.py_203_billetera` (referencia a fila eliminada del catalogo).
+
+**Plan R16 (recomendado):**
+
+- Fix de tooling: `orm.ids_diff_no_estables`.
+- Decision de `ondelete` por FK (`orm.alembic_check_categoria_b`).
+- Deuda funcional heredada: G63, G67, G80.
+- Refactor funcional: `metodo_pago.fk_catalogo`,
+  `metodo_pago.flujo_propietario`, `metodo_pago.flujo_empresa`.
+
+**Ver:** `docs/CONTEXTO_RONDA_15.md` (este documento).
 
 ---
 ---
@@ -429,50 +507,154 @@ migraciones DDL basicas, limpiar redundancias en ORM.
 
 ### orm.db_desalineados — ACTUALIZADO 2026-10-08
 
-**Estado:** en progreso. R11 bajo el diff a **71 items** (-38% desde R10).
+**Estado:** CERRADO en R14. Diff BD <-> ORM en 0.
 
-**Datos reales (post R11):**
+**Datos historicos (post R11):**
 
-| Metrica | Original | R5 | R8 | R9 | R10 | R11 |
-|---|---|---|---|---|---|---|
-| Tablas faltantes | ~40 | 17 | ~16 | ~16 | 12 (10+2 schemas) | **0** |
-| Columnas faltantes | ~150 | 227 | 1 | 1 | 1 | **1** |
-| Indices faltantes | ~80 | 251 | 86 | 14 | 22 | **1** |
-| Constraints faltantes | ? | 541 | 274 | 61 | 48 | **49** |
-| Diferencias totales | ~500 | 1,280 | 404 | 332 | 114 | **71** |
+| Metrica | Original | R5 | R8 | R9 | R10 | R11 | R14 |
+|---|---|---|---|---|---|---|---|
+| Tablas faltantes | ~40 | 17 | ~16 | ~16 | 12 (10+2 schemas) | **0** | **0** |
+| Columnas faltantes | ~150 | 227 | 1 | 1 | 1 | **1** | **0** |
+| Indices faltantes | ~80 | 251 | 86 | 14 | 22 | **1** | **0** |
+| Constraints faltantes | ? | 541 | 274 | 61 | 48 | **49** | **0** |
+| Diferencias totales | ~500 | 1,280 | 404 | 332 | 114 | **71** | **0** |
 
-**Clasificacion por Tier (post R11):**
-- Tier 1 (critico): **17**
-- Tier 2 (importante): **46**
-- Tier 3 (cosmetico): **7**
-- Tier 4 (muerte): **1**
-
-**Distribucion por clasificacion (post R11):**
-- `constraint_falta`: 49 (CHECKs D-027 + FKs + UNIQUEs)
-- `comment_desalineado`: 13 (mojibake, todos requieren DB)
-- `constraint_sobra`: 6 (5 UNIQUEs Caso C + 1 metodo_pago)
-- `tabla_sobra`: 1 (trip.reserva)
-- `columna_falta`: 1 (usuario_rol.control_base_id)
-- `indice_falta`: 1 (redundante contrato_vehiculo)
-
-**Todo lo que queda requiere DB o decision funcional.**
+**Distribucion por clasificacion (post R14):**
+- Todas las clasificaciones en 0.
 
 **Riesgo:** cualquier `alembic revision --autogenerate` es DESTRUCTIVA.
 Verificado: ninguna migracion historica uso autogenerate.
-
-**Plan:** 5 fases (0 a 4). Fases 0-4a completas en R5-R7.
-Fase 4b (fleet.py) completa en R7.
-Fase 6 (indices reales) completa en R8.
-Fix de tooling (diff, introspector) completa en R9-R10.
-Migraciones m3_011 y m3_012 aplicadas en R10.
-Fase 4c (tablas faltantes) completa en R11.
-nullable_desalineado + comments Tipo A cerrados en R11.
 
 **Ver:**
 - `docs/orm_sync/orm_diff_reporte.md`
 - `docs/orm_sync/db_snapshot.json`
 - `docs/orm_sync/orm_snapshot.json`
 - `docs/orm_sync/orm_decisiones.md`
+
+## NUEVOS — Ronda 15 (2026-10-11)
+
+### orm.ids_diff_no_estables — NUEVA 2026-10-11
+
+Los IDs `D-XXXX` de `orm_diff.json` se regeneran en cada corrida de
+`diff.py`. No sirven como identificador persistente entre rondas.
+
+**Ejemplo:** un mismo item puede ser `D-0001` en una corrida y `D-0042`
+en la siguiente.
+
+**Accion futura:** cambiar el generador de IDs en `diff.py` para usar
+tuplas estables `(schema, tabla, columna, clasificacion,
+tipo_constraint, nombre)`.
+
+**Tier 2.** Toca `diff.py`. Postergado a R16+.
+
+### orm.snapshot_orm_stale — NUEVA 2026-10-11
+
+El `orm_snapshot.json` puede quedar desactualizado si se editan
+archivos del ORM sin regenerarlo. El diff entonces reporta falsos
+positivos.
+
+**Mitigacion actual:** regenerar siempre antes de comparar (los scripts
+`introspect_db.py` + `introspect_orm.py` corren al inicio de cada paso).
+
+**Accion futura:** agregar un timestamp en el snapshot y avisar si
+tiene mas de X horas.
+
+**Tier 3.** Postergado.
+
+### orm.diff_clasifica_mal_columnas_ausentes — NUEVA 2026-10-11
+
+Cuando una columna existe en DB y no en ORM, `diff.py` la clasifica
+como `comment_desalineado` (no como `columna_falta`) si la DB tiene
+comment en esa columna.
+
+**Impacto:** falsos positivos en el reporte.
+
+**Accion futura:** corregir la logica de clasificacion en `diff.py`.
+
+**Tier 3.** Postergado.
+
+### orm.diff_falsos_positivos_tipo_cambio — NUEVA 2026-10-11
+
+Cuando se cambia el tipo o nullable de una columna, `diff.py` puede
+reportarla como `columna_falta` en el proximo diff (en vez de
+`tipo_desalineado` o `nullable_desalineado`).
+
+**Accion futura:** corregir la deteccion de cambios de tipo en
+`diff.py`.
+
+**Tier 3.** Postergado.
+
+### orm.naming_convention_check_doble_prefijo — RESUELTA 2026-10-11
+
+La naming convention de `app/database.py` para CHECKs es
+`ck_%(table_name)s_%(constraint_name)s`. Al declarar:
+
+    CheckConstraint("...", name="ck_metodo_pago_nombre")
+
+SQLAlchemy genera `ck_metodo_pago_ck_metodo_pago_nombre` (doble
+prefijo).
+
+**Fix:** declarar `CheckConstraint("...", name="nombre")` para que
+la convencion genere `ck_metodo_pago_nombre`.
+
+**Documentado en:** este archivo + `m3_016`.
+
+**Estado:** RESUELTA. Aplicar en todos los CHECKs nuevos.
+
+### orm.alembic_check_categoria_a — NUEVA 2026-10-11
+
+`alembic check` reporta ~15 falsos positivos por naming divergente
+entre UNIQUE constraints y UNIQUE indexes:
+
+- `comercio_codigo_qr_key` (DB) vs `uq_comercio_codigo_qr` (ORM).
+- `usuario_email_key` (DB) vs `uq_usuario_email` (ORM).
+- `vehiculo_patente_key` (DB) vs `uq_vehiculo_patente` (ORM).
+- `marca_nombre_key` (DB) vs `uq_marca_nombre` (ORM).
+- `tipo_usuario_nombre_key` (DB) vs `uq_tipo_usuario_nombre` (ORM).
+- `factura_numero_factura_key` (DB) vs `uq_factura_numero_factura` (ORM).
+- ~9 mas.
+
+El `diff.py` los considera equivalentes. `alembic check` no.
+
+**Accion:** documentar. NO tocar. Usar `diff.py` como fuente de verdad.
+
+**Tier 3.** Postergado.
+
+### orm.alembic_check_categoria_b — NUEVA 2026-10-11
+
+`alembic check` reporta ~35 items por FKs con `ondelete` distinto
+entre ORM y DB. El ORM declara `ondelete` en `ForeignKey(...)`, la DB
+no lo tiene aplicado.
+
+Tablas afectadas: log_acciones, log_gps, autorizacion_inicio,
+perfil_general, usuario, usuario_rol, chofer_vehiculo, gasto_turno,
+gasto_vehiculo, mantenimiento_vehiculo, neumatico_* (7 tablas),
+turno_chofer, vehiculo, ciudad, provincia, configuracion_tarifa,
+transaccion, configuracion_tenant, control_base, calificacion,
+historial_estado_viaje, objeto_olvidado, panico, viaje_solicitado.
+
+**Accion futura:** decidir por cada FK si:
+  (a) aplicar ondelete en DB, o
+  (b) quitar ondelete del ORM, o
+  (c) dejar como deuda aceptada.
+
+**Tier 2.** Postergado a R16+.
+
+### pagos.py_203_billetera — NUEVA 2026-10-11
+
+`app/routers/pagos.py:203` referencia `payment.metodo_pago WHERE
+nombre = 'billetera'`. La fila `billetera` fue eliminada del catalogo
+en `m3_016` (pertenece al Momento 3 - billetera TaxIP futura).
+
+**Impacto:** el TOP_UP de wallet queda deshabilitado silenciosamente
+(0 transacciones afectadas al momento del cambio).
+
+**Accion futura:** implementar la billetera TaxIP, agregar `billetera`
+al CHECK de `metodo_pago` y al flujo de pagos.
+
+**Documentado en:** `m3_016` + comentario in-line en `pagos.py:203`.
+
+**Tier 2.** Postergado a cuando se implemente la billetera.
 
 ## NUEVOS — Ronda 10 (Fase 10)
 
@@ -502,28 +684,27 @@ CHECK de `fleet.gasto_turno` con nombre divergente entre ORM y DB.
 
 **Fix:** `m3_012` (`b8ffd5a`).
 
-### orm.unique_constraints_caso_c — NUEVA 2026-10-06
+### orm.unique_constraints_caso_c — CERRADA 2026-10-10
 
-5 UNIQUEs que el ORM declara y la DB no tiene:
+5 UNIQUEs que el ORM declaraba y la DB no tenia:
 - `auth.perfil_general.usuario_id`
 - `auth.reset_token.token`
 - `fleet.vehiculo.qr_uuid`
 - `tenant.configuracion_tenant.control_base_id`
 - `trip.calificacion.viaje_id`
 
-**Verificacion:** 0 duplicados en las 5 tablas.
-
-**Accion:** migracion `m3_013` (agregar UNIQUEs a DB con nombres del ORM).
+**Fix:** migracion `m3_013` (aplicada en R12).
 
 **Tier 2.**
 
-### metodo_pago.catalogo_sucio — ACTUALIZADA 2026-10-06
+### metodo_pago.catalogo_sucio — CERRADA 2026-10-11
 
-`payment.metodo_pago` tiene 2 pares de duplicados (`efectivo` x2,
-`mercadopago` x2). El ORM declara UNIQUE sobre `nombre`.
+`payment.metodo_pago` tenia 12 filas con 2 pares de duplicados
+(`efectivo` x2, `mercadopago` x2) y valores de otros dominios.
 
-**Accion:** limpiar el catalogo antes de agregar el UNIQUE. Requiere
-decision funcional (D-005). Postergado.
+**Fix:** migracion `m3_016` (aplicada en R15). Catalogo limpiado a
+4 filas (efectivo, tarjeta_debito, qr, transferencia). UNIQUE + CHECK
+agregados.
 
 **Tier 2.**
 
@@ -569,17 +750,13 @@ No deben considerarse parte del diff.
 
 ## NUEVOS — Ronda 6 (Fase 2, Sesion 1)
 
-### orm.reserva_modulo_activo — NUEVA 2026-10-02
+### orm.reserva_modulo_activo — CERRADA 2026-10-10
 
-La tabla `trip.reserva` NO existe en DB, pero el modulo de reservas
-corporativas la usa activamente.
+La tabla `trip.reserva` NO existia en DB, pero el modulo de reservas
+corporativas la usaba. Los endpoints `/api/reservas` estaban rotos.
 
-Los endpoints `/api/reservas` estan rotos actualmente (la tabla no existe).
-Requiere decision funcional: crear la tabla en DB o deprecar el modulo.
-
-**Tier 2.** Postergado a Fase 4d.
-
-**Ver:** `docs/orm_sync/orm_decisiones.md` (D-004).
+**Fix:** migracion y refactor en R13. Modulo reescrito sobre
+`trip.viaje_solicitado`.
 
 ### orm.foto_viaje_out_of_scope — NUEVA 2026-10-02
 
@@ -588,23 +765,12 @@ El item D-1125 (`foto_viaje.created_at` nullable desalineado) NO esta en
 
 **Tier 2.**
 
-### metodo_pago.catalogo_sucio — NUEVA 2026-10-01
-
-`payment.metodo_pago` tiene 12 filas con:
-- 2 duplicados: efectivo (x2), mercadopago (x2).
-- 1 sinonimo: wallet = billetera.
-- 1 pasarela mezclada: mercadopago (es proveedor, no metodo).
-
-**Impacto:** todos los reportes leen del catalogo sucio.
-
-**Tier 2.** Limpiar en Fase 4.
-
 ### metodo_pago.fk_catalogo — NUEVA 2026-10-01
 
 Refactor estructural: evaluar FK por `metodo_pago_id` en
 `trip.viaje_solicitado` y `fleet.ingreso_turno` (en vez de string).
 
-**Tier 2.** Refactor grande. NO en Fase 2.
+**Tier 2.** Refactor grande.
 
 ### metodo_pago.ingreso_turno — NUEVA 2026-10-01
 
@@ -619,7 +785,7 @@ Refactor estructural: evaluar FK por `metodo_pago_id` en
 
 MetodoPago del frontend limitado a 4 valores (deuda E2 original).
 
-**Tier 3.** Resolver en Fase 4 si se decide ampliar vocabulario.
+**Tier 3.** Resolver si se decide ampliar vocabulario.
 
 ---
 
@@ -654,61 +820,53 @@ como 2 items distintos.
 
 **Tier 2.** Parcialmente mitigado por Fix 2 de R8.
 
-### orm.naming_convention_check_divergente — ACTUALIZADA 2026-10-06
+### orm.naming_convention_check_divergente — CERRADA 2026-10-11
 
 La naming convention de `app/database.py` para CHECKs es
-`ck_%(table_name)s_%(constraint_name)s`. La DB tiene CHECKs con nombres
-que NO siguen esa convention.
+`ck_%(table_name)s_%(constraint_name)s`. La DB tenia CHECKs con nombres
+que NO seguian esa convention.
 
-**Progreso R10:**
-- `gasto_turno_monto_check` renombrado a `ck_gasto_turno_monto_check`
-  via `m3_012`. ✅
-- Quedan ~26 CHECKs con naming divergente en otros schemas.
+**Fix:** migracion `m3_015` (aplicada en R14). 16 CHECKs renombrados
+al naming canonico.
 
-**Tier 2.** Migracion `m3_014` planificada para R11.
+**Tier 2.**
 
-### orm.paso4_check_constraints_residual — ACTUALIZADO 2026-10-06
+### orm.paso4_check_constraints_residual — CERRADA 2026-10-11
 
 Los 8 CHECKs de `trip.viaje_solicitado` alineados en R8.
 `gasto_turno_monto_check` alineado en R10.
+16 CHECKs G2a alineados en R14.
 
-**Residual:** ~48 items de `constraint_falta`:
-- ~26 CHECKs con naming convention divergente (doble prefijo + sin
-  convention).
-- ~10 FKs reales faltantes.
-- ~10 UNIQUEs faltantes.
-- ~2 other.
+**Fix:** migracion `m3_015` (R14).
 
-**Tier 2.** Migracion `m3_014` planificada.
+**Tier 2.**
 
-**Ver:** `python scripts/orm_sync/filtrar_check.py --stats`.
-
-### orm.alembic_check_ruidoso — ACTUALIZADO 2026-10-06
+### orm.alembic_check_ruidoso — ACTUALIZADO 2026-10-11
 
 `alembic check` reporta cientos de operaciones de upgrade pendientes
-porque el ORM y la DB estan desalineados. NO es un gate util por paso.
+porque la DB y el ORM representan constraints de forma distinta
+(UNIQUE constraint vs index, nombres de FK, ondelete).
 
-**Tier 2.** Investigar en Fase 5.
+**Estado R15:** las categorias C (indice faltante) y D (comments de
+tabla) fueron cerradas. Las categorias A (naming divergente) y B
+(ondelete) quedan como deuda aceptada.
+
+**Accion:** documentar. NO usar `alembic check` como gate. Usar
+`diff.py` como fuente de verdad.
+
+**Tier 2.** Investigado en R15, no resuelto (postergado).
 
 ---
 
 ## NUEVOS — Ronda 8 (Fase 6 + fixes)
 
-### orm.unique_constraint_vs_unique_index — ACTUALIZADA 2026-10-06
+### orm.unique_constraint_vs_unique_index — CERRADA 2026-10-11
 
-El ORM declara `UniqueConstraint` y la DB tiene `CREATE UNIQUE INDEX`.
+El ORM declaraba `UniqueConstraint` y la DB tenia `CREATE UNIQUE INDEX`.
 Funcionalmente equivalentes.
 
-**Reduccion en R10:** el fix del introspector (`783363b`) elimino los
-falsos positivos por columnas corruptas. Los que quedan son:
-
-- 5 UNIQUEs que el ORM declara y la DB NO tiene (Caso C):
-  `auth.perfil_general`, `auth.reset_token`, `fleet.vehiculo.qr_uuid`,
-  `tenant.configuracion_tenant`, `trip.calificacion`.
-  → `m3_013` los agrega a DB.
-- 1 UNIQUE que el ORM declara y la DB NO tiene (por catalogo sucio):
-  `payment.metodo_pago.nombre`.
-  → Postergado hasta limpiar D-005.
+**Fix:** resuelto via `diff.py` matcheando por columnas + `m3_013` para
+los UNIQUEs faltantes + `m3_016` para el catalogo sucio.
 
 **Tier 2.**
 
@@ -719,51 +877,32 @@ constraint `comercio_codigo_qr_key`.
 
 **Tier 3.** Evaluar eliminacion en ronda de optimizacion.
 
-### orm.tabla_falta_ampliada — ACTUALIZADA 2026-10-05
+### orm.tabla_falta_ampliada — CERRADA 2026-10-08
 
-Tablas faltantes (~16):
+Tablas faltantes (~16) creadas en R11 (Fase 4c):
+- `comunicacion.conversacion`, `comunicacion.email_enviado`,
+  `comunicacion.mensaje`.
+- `rentabilidad.analisis_medios_pago`,
+  `rentabilidad.rentabilidad_diaria_vehiculo`,
+  `rentabilidad.rentabilidad_mensual_vehiculo`.
+- `auth.codigo_metadatos`, `auth.codigo_verificacion`,
+  `auth.plantilla_viaje`, `auth.prestadora_telefonica`.
+- `payment.qr_cobro`, `payment.configuracion_pasarela`.
+- `audit.alertas_vencimiento`.
+- `trip.broadcast_log`.
+- `fleet.historial_chofer_vehiculo`,
+  `fleet.relacion_propietario_vehiculo`.
 
-**Schema comunicacion (3):**
-- `comunicacion.conversacion` (7 cols).
-- `comunicacion.email_enviado` (9 cols).
-- `comunicacion.mensaje` (8 cols).
+**Tier 2.**
 
-**Schema rentabilidad (3):**
-- `rentabilidad.analisis_medios_pago` (10 cols).
-- `rentabilidad.rentabilidad_diaria_vehiculo` (13 cols).
-- `rentabilidad.rentabilidad_mensual_vehiculo` (13 cols).
+### metodo_pago.pasarela — CERRADA 2026-10-08
 
-**Schema auth (4):**
-- `auth.codigo_metadatos` (6 cols).
-- `auth.codigo_verificacion` (9 cols).
-- `auth.plantilla_viaje` (19 cols).
-- `auth.prestadora_telefonica` (6 cols).
+Las tablas `payment.qr_cobro` y `payment.configuracion_pasarela`
+estaban en DB pero no en ORM.
 
-**Schema payment (2):**
-- `payment.qr_cobro` (10 cols).
-- `payment.configuracion_pasarela` (7 cols).
+**Fix:** R11 (Fase 4c).
 
-**Schema audit (1):**
-- `audit.alertas_vencimiento` (8 cols).
-
-**Schema trip (1):**
-- `trip.broadcast_log` (11 cols).
-
-**Schema fleet (2):**
-- `fleet.historial_chofer_vehiculo` (6 cols).
-- `fleet.relacion_propietario_vehiculo` (7 cols).
-
-**Tier 2.** Fase 4c (crear modulos ORM).
-
-**Ver:** `docs/orm_sync/alembic_check_cierre_r8_2026-10-05.txt`.
-
-### metodo_pago.pasarela — ACTUALIZADA 2026-10-05
-
-Las tablas `payment.qr_cobro` (10 cols) y
-`payment.configuracion_pasarela` (7 cols) **YA EXISTEN en la DB** pero
-no estan declaradas en el ORM.
-
-**Tier 2.** Actualizar al planificar `/cobro-qr` (M3 pendiente).
+**Tier 2.**
 
 ---
 
@@ -846,7 +985,7 @@ Verificar LastWriteTime vs StartTime del proceso Python.
 ### G81 — DB y modelos ORM desincronizados silenciosamente
 
 Sintoma: INSERTs fallan por columna inexistente, sin error visible.
-**Relacionado con:** `orm.db_desalineados`.
+**Relacionado con:** `orm.db_desalineados` (cerrado en R14).
 
 ### J15 — No hay deteccion de viaje activo al abrir la app
 
@@ -874,7 +1013,6 @@ Comments de `tipo_ingreso`, `medio_pago`, `origen` mezclan vocabularios.
 `medio_pago` con espacio final en el comment.
 
 **Accion:** alinear comment del ORM con DB y canonizar vocabulario.
-Resuelto en D-005.
 
 ### G82 — 2026-09-30
 
@@ -888,8 +1026,7 @@ Propuesta: `reload=os.getenv("RELOAD", "false").lower() == "true"`.
 ### Backend heredadas
 
 - **A1** — Modelo Reserva apunta a tabla dropeada (trip.reserva).
-  **Confirmado 2026-10-01:** trip.reserva esta en ORM (29 columnas), no
-  en DB. **Reclasificado** (D-004): no borrar.
+  **RESUELTA en R13** (modulo deprecado).
 - **A2** — Schemas legacy snake_case mezclados en viajes/schemas.py.
 - **A5** — ~22 warnings Duplicate Operation ID en neumaticos OpenAPI.
 
@@ -960,6 +1097,45 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 
 ---
 
+## CERRADAS EN RONDA 15 (2026-10-11)
+
+### Deuda tecnica funcional — P1 (metodo_pago)
+
+- **metodo_pago.catalogo_sucio** — CERRADA. Catalogo limpiado de 12 a
+  4 filas (efectivo, tarjeta_debito, qr, transferencia). UNIQUE + CHECK
+  agregados. Migracion `m3_016`. Commit `44c5147`.
+
+### Deuda tecnica — P2 (alembic check)
+
+- **orm.alembic_check_categoria_c** (ix_qr_cobro_token) — CERRADA.
+  Indice redundante eliminado. Migracion `m3_017`. Commit `ad24c66`.
+- **orm.alembic_check_categoria_d** (5 comments de tabla) — CERRADA.
+  Comments declarados en ORM + corregidos en DB. Migracion `m3_017`.
+  Commit `ad24c66`.
+- **orm.comment_mojibake** — CERRADA (los 3 residuales de R12).
+  Comments de `fleet.contrato_qr` y `fleet.documentos_chofer`
+  corregidos.
+
+### Deuda tecnica — P3 (tooling)
+
+- **orm.ids_diff_no_estables** — documentada. Postergada.
+- **orm.snapshot_orm_stale** — documentada. Postergada.
+- **orm.diff_clasifica_mal_columnas_ausentes** — documentada.
+  Postergada.
+- **orm.diff_falsos_positivos_tipo_cambio** — documentada.
+  Postergada.
+
+### Deuda nueva descubierta en R15
+
+- **orm.naming_convention_check_doble_prefijo** — RESUELTA.
+  Documentada para evitar reaparicion.
+- **orm.alembic_check_categoria_a** — documentada. Postergada.
+- **orm.alembic_check_categoria_b** — documentada. Postergada.
+- **pagos.py_203_billetera** — documentada. Postergada a cuando
+  se implemente la billetera.
+
+---
+
 ## CERRADAS EN RONDA 10 (2026-10-06)
 
 ### Fixes de tooling
@@ -997,6 +1173,7 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 | Nuevos Ronda 8 (Fase 6) | 3 |
 | Nuevos Ronda 9 (Paso 9) | 3 (2 cerradas, 1 resuelta) |
 | Nuevos Ronda 10 (Fase 10) | 5 (4 cerradas, 1 nueva) |
+| **Nuevos Ronda 15** | **8 (1 resuelta, 7 documentadas)** |
 | Alta prioridad | 3 |
 | Media prioridad | 15 |
 | Baja prioridad | 21 |
@@ -1004,9 +1181,12 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 | **TOTAL PENDIENTES** | **~114 (items del diff) + deudas no-diff** |
 
 **Notas:**
-- El total del diff es 114. El "~114" del encabezado coincide con el
-  total de items. Las deudas no-diff (G63, G67, etc.) son items aparte
-  que no entran en el diff pero estan pendientes de resolucion.
+- El diff BD <-> ORM esta en 0 desde R14. R15 se enfoco en deuda
+  funcional (metodo_pago) y de proceso (alembic check, tooling).
+- Las deudas no-diff (G63, G67, etc.) son items aparte que no entran
+  en el diff pero estan pendientes de resolucion.
+- Las 8 deudas de R15 son todas de tooling/documentacion, excepto
+  `metodo_pago.catalogo_sucio` que ya fue cerrada (P1).
 
 ---
 
@@ -1020,7 +1200,10 @@ projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2.
 - **Baseline:** `docs/orm_sync/baseline_info.md`
 - **Handoff R9→R10:** `docs/CONTEXTO_RONDA_9 a 10.md`
 - **Handoff R10→R11:** `docs/CONTEXTO_RONDA_10 a 11.md`
+- **Handoff R14→R15:** `docs/CONTEXTO_RONDA_14 a 15.md`
+- **Contexto R15:** `docs/CONTEXTO_RONDA_15.md`
 - **Alembic check cierre R8:** `docs/orm_sync/alembic_check_cierre_r8_2026-10-05.txt`
+- **Alembic check R15:** `docs/orm_sync/alembic_check_r15_2026-10-11.txt`
 - **Backups:** `docs/backups/`
 - **Bitacoras:** `E:\Taxip\app chofer\BITACORA_M1.md`, `M2`, `M3`.
 
