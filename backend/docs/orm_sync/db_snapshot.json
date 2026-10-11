@@ -1,9 +1,9 @@
 {
   "meta": {
-    "capturado_en": "2026-10-11T13:27:00.105504+00:00",
+    "capturado_en": "2026-10-11T21:49:15.387963+00:00",
     "postgres_version": "PostgreSQL 17.0 on x86_64-windows, compiled by msvc-19.41.34120, 64-bit",
     "postgis_version": "3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
-    "alembic_head": "m3_015",
+    "alembic_head": "m3_017",
     "schemas_incluidos": [
       "audit",
       "auth",
@@ -24,7 +24,7 @@
       "total_tables": 90,
       "total_columns": 1064,
       "total_indexes": 287,
-      "total_constraints": 788
+      "total_constraints": 790
     }
   },
   "schemas": {
@@ -6617,7 +6617,7 @@
           ]
         },
         "contrato_qr": {
-          "comment": "QRs generados para contratos de vehículos, usados para trazabilidad y autorización de inicio de turno",
+          "comment": "QRs generados para pagos y trazabilidad de viajes",
           "columns": {
             "id": {
               "ordinal": 1,
@@ -8045,7 +8045,7 @@
           ]
         },
         "documentos_chofer": {
-          "comment": "Documentos subidos por choferes para aprobación municipal",
+          "comment": "Documentos subidos por choferes para aprobacion municipal",
           "columns": {
             "id": {
               "ordinal": 1,
@@ -16236,7 +16236,7 @@
           ]
         },
         "metodo_pago": {
-          "comment": null,
+          "comment": "Catalogo de metodos de pago para viajes comunes (Momento 1). Valores canonicos: efectivo, tarjeta_debito, qr, transferencia.",
           "columns": {
             "id": {
               "ordinal": 1,
@@ -16271,7 +16271,14 @@
               ]
             },
             "foreign_keys": [],
-            "unique": [],
+            "unique": [
+              {
+                "name": "uq_metodo_pago_nombre",
+                "columns": [
+                  "nombre"
+                ]
+              }
+            ],
             "check": [
               {
                 "name": "63670_63885_1_not_null",
@@ -16280,6 +16287,10 @@
               {
                 "name": "63670_63885_2_not_null",
                 "definition": "nombre IS NOT NULL"
+              },
+              {
+                "name": "ck_metodo_pago_nombre",
+                "definition": "((nombre)::text = ANY ((ARRAY['efectivo'::character varying, 'tarjeta_debito'::character varying, 'qr'::character varying, 'transferencia'::character varying])::text[]))"
               }
             ]
           },
@@ -16292,6 +16303,16 @@
               "definition": "CREATE UNIQUE INDEX metodo_pago_pkey ON payment.metodo_pago USING btree (id)",
               "columns": [
                 "id"
+              ]
+            },
+            {
+              "name": "uq_metodo_pago_nombre",
+              "unique": true,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX uq_metodo_pago_nombre ON payment.metodo_pago USING btree (nombre)",
+              "columns": [
+                "nombre"
               ]
             }
           ]
@@ -16823,16 +16844,6 @@
             ]
           },
           "indexes": [
-            {
-              "name": "ix_qr_cobro_token",
-              "unique": true,
-              "primary": false,
-              "method": "btree",
-              "definition": "CREATE UNIQUE INDEX ix_qr_cobro_token ON payment.qr_cobro USING btree (token)",
-              "columns": [
-                "token"
-              ]
-            },
             {
               "name": "ix_qr_cobro_viaje",
               "unique": false,
