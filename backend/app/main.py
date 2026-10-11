@@ -96,11 +96,12 @@ from app.routers import verificacion
 # ROUTER GEO
 from app.routers import geo
 
-# ROUTER DE NEUMATICOS
-from app.routers.propietario.neumaticos import router as propietario_neumaticos_router
-
 # Cargar variables de entorno
 load_dotenv()
+
+
+
+
 
 # ============================================
 # Lifespan context manager
@@ -215,9 +216,9 @@ app.include_router(geo.router)
 
 
 # ============================================
-# ROUTER DE NEUMATICOS
+# ROUTER DE NEUMATICOS: ya incluido en propietario_router
+# (eliminado include_router duplicado en R16 - deuda A5)
 # ============================================
-app.include_router(propietario_neumaticos_router, prefix="/api/propietario", tags=["Propietario - Neumaticos"])
 
 
 # ============================================
