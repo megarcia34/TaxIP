@@ -1,9 +1,9 @@
 {
   "meta": {
-    "capturado_en": "2026-10-10T15:22:05.181788+00:00",
+    "capturado_en": "2026-10-11T13:27:00.105504+00:00",
     "postgres_version": "PostgreSQL 17.0 on x86_64-windows, compiled by msvc-19.41.34120, 64-bit",
     "postgis_version": "3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
-    "alembic_head": "m3_014",
+    "alembic_head": "m3_015",
     "schemas_incluidos": [
       "audit",
       "auth",
@@ -1784,7 +1784,7 @@
                 "definition": "expira_en IS NOT NULL"
               },
               {
-                "name": "chk_codigo_verificacion_tipo",
+                "name": "ck_codigo_verificacion_tipo",
                 "definition": "((tipo)::text = ANY ((ARRAY['REGISTRO_CHOFER'::character varying, 'INICIO_TURNO'::character varying, 'RECUPERACION_PASSWORD'::character varying])::text[]))"
               }
             ]
@@ -3446,7 +3446,7 @@
                 "definition": "estado IS NOT NULL"
               },
               {
-                "name": "check_estado_turno",
+                "name": "ck_turno_empleado_estado",
                 "definition": "((estado)::text = ANY ((ARRAY['ACTIVO'::character varying, 'CERRADO'::character varying])::text[]))"
               }
             ]
@@ -7288,40 +7288,12 @@
                 "definition": "tipo_contrato IS NOT NULL"
               },
               {
-                "name": "check_auto_gestion",
-                "definition": "(((tipo_contrato)::text <> 'AUTO_GESTION'::text) OR (propietario_id = chofer_id))"
-              },
-              {
-                "name": "check_porcentaje",
-                "definition": "((((tipo_contrato)::text = 'PORCENTAJE'::text) AND (porcentaje_chofer IS NOT NULL) AND ((porcentaje_chofer >= (0)::numeric) AND (porcentaje_chofer <= (100)::numeric))) OR (((tipo_contrato)::text <> 'PORCENTAJE'::text) AND (porcentaje_chofer IS NULL)))"
-              },
-              {
-                "name": "ck_contrato_activo_estado",
+                "name": "ck_contrato_vehiculo_activo_estado",
                 "definition": "((((estado_contrato)::text = 'ACTIVO'::text) AND (activo = true)) OR (((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'FINALIZADO'::character varying])::text[])) AND (activo = false)))"
               },
               {
-                "name": "ck_contrato_compensacion_km",
-                "definition": "((compensacion_km)::text = ANY ((ARRAY['DIARIA'::character varying, 'ACUMULADA'::character varying, 'COMPENSADA'::character varying])::text[]))"
-              },
-              {
-                "name": "ck_contrato_dia_inicio_semana",
-                "definition": "(((dia_inicio_semana)::text = ANY ((ARRAY['lunes'::character varying, 'martes'::character varying, 'miercoles'::character varying, 'jueves'::character varying, 'viernes'::character varying, 'sabado'::character varying, 'domingo'::character varying])::text[])) OR (dia_inicio_semana IS NULL))"
-              },
-              {
-                "name": "ck_contrato_duracion_minima",
-                "definition": "((duracion_minima_horas IS NULL) OR (duracion_minima_horas >= 1))"
-              },
-              {
-                "name": "ck_contrato_estado",
-                "definition": "((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'ACTIVO'::character varying, 'FINALIZADO'::character varying])::text[]))"
-              },
-              {
-                "name": "ck_contrato_extension_valida",
-                "definition": "(((permite_extension = false) AND (hora_fin_extension IS NULL)) OR ((permite_extension = true) AND (hora_fin_extension IS NOT NULL)))"
-              },
-              {
-                "name": "ck_contrato_horario_valido",
-                "definition": "((hora_fin IS NULL) OR (hora_inicio IS NULL) OR (hora_fin <> hora_inicio))"
+                "name": "ck_contrato_vehiculo_auto_gestion",
+                "definition": "(((tipo_contrato)::text <> 'AUTO_GESTION'::text) OR (propietario_id = chofer_id))"
               },
               {
                 "name": "ck_contrato_vehiculo_chk_contrato_modalidad_computo",
@@ -7330,6 +7302,34 @@
               {
                 "name": "ck_contrato_vehiculo_chk_contrato_tratamiento_dia",
                 "definition": "((tratamiento_dia_no_trabajado)::text = ANY ((ARRAY['POR_DISPONIBILIDAD'::character varying, 'NO_COBRA'::character varying, 'DESCUENTO_PROPORCIONAL'::character varying])::text[]))"
+              },
+              {
+                "name": "ck_contrato_vehiculo_compensacion_km",
+                "definition": "((compensacion_km)::text = ANY ((ARRAY['DIARIA'::character varying, 'ACUMULADA'::character varying, 'COMPENSADA'::character varying])::text[]))"
+              },
+              {
+                "name": "ck_contrato_vehiculo_dia_inicio_semana",
+                "definition": "(((dia_inicio_semana)::text = ANY ((ARRAY['lunes'::character varying, 'martes'::character varying, 'miercoles'::character varying, 'jueves'::character varying, 'viernes'::character varying, 'sabado'::character varying, 'domingo'::character varying])::text[])) OR (dia_inicio_semana IS NULL))"
+              },
+              {
+                "name": "ck_contrato_vehiculo_duracion_minima",
+                "definition": "((duracion_minima_horas IS NULL) OR (duracion_minima_horas >= 1))"
+              },
+              {
+                "name": "ck_contrato_vehiculo_estado",
+                "definition": "((estado_contrato)::text = ANY ((ARRAY['PENDIENTE_CONFIGURACION'::character varying, 'PROGRAMADO'::character varying, 'ACTIVO'::character varying, 'FINALIZADO'::character varying])::text[]))"
+              },
+              {
+                "name": "ck_contrato_vehiculo_extension_valida",
+                "definition": "(((permite_extension = false) AND (hora_fin_extension IS NULL)) OR ((permite_extension = true) AND (hora_fin_extension IS NOT NULL)))"
+              },
+              {
+                "name": "ck_contrato_vehiculo_horario_valido",
+                "definition": "((hora_fin IS NULL) OR (hora_inicio IS NULL) OR (hora_fin <> hora_inicio))"
+              },
+              {
+                "name": "ck_contrato_vehiculo_porcentaje",
+                "definition": "((((tipo_contrato)::text = 'PORCENTAJE'::text) AND (porcentaje_chofer IS NOT NULL) AND ((porcentaje_chofer >= (0)::numeric) AND (porcentaje_chofer <= (100)::numeric))) OR (((tipo_contrato)::text <> 'PORCENTAJE'::text) AND (porcentaje_chofer IS NULL)))"
               }
             ]
           },
@@ -16541,11 +16541,11 @@
                 "definition": "metodo_pago IS NOT NULL"
               },
               {
-                "name": "pago_empresa_estado_check",
+                "name": "ck_pago_empresa_estado",
                 "definition": "((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'confirmado'::character varying, 'rechazado'::character varying, 'cancelado'::character varying])::text[]))"
               },
               {
-                "name": "pago_empresa_monto_check",
+                "name": "ck_pago_empresa_monto",
                 "definition": "(monto > (0)::numeric)"
               }
             ]
@@ -17596,11 +17596,11 @@
                 "definition": "id IS NOT NULL"
               },
               {
-                "name": "chk_escaneo_qr_resultado",
+                "name": "ck_escaneo_qr_resultado",
                 "definition": "((resultado IS NULL) OR ((resultado)::text = ANY ((ARRAY['EXITO'::character varying, 'RECHAZADO'::character varying, 'EXPIRADO'::character varying, 'ERROR'::character varying])::text[])))"
               },
               {
-                "name": "chk_escaneo_qr_tipo",
+                "name": "ck_escaneo_qr_tipo",
                 "definition": "((tipo_qr)::text = ANY ((ARRAY['OPERATIVO'::character varying, 'COMERCIO'::character varying, 'VEHICULO'::character varying, 'OTRO'::character varying])::text[]))"
               }
             ]
@@ -20354,7 +20354,7 @@
                 "definition": "puntaje IS NOT NULL"
               },
               {
-                "name": "calificacion_puntaje_check",
+                "name": "ck_calificacion_puntaje",
                 "definition": "((puntaje >= 1) AND (puntaje <= 5))"
               }
             ]

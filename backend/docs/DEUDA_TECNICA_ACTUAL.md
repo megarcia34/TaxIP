@@ -1,12 +1,86 @@
 # DEUDA TECNICA ACTUAL — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-10 (cierre Ronda 12)
-**Ronda activa:** 12 cerrada (`ronda12-fase12-completa`)
-**Total items pendientes:** ~27
-**Total criticos:** 1 (orm.db_desalineados)
+**Ultima actualizacion:** 2026-10-11 (cierre Ronda 14)
+**Ronda activa:** 14 cerrada (`ronda14-fase14-completa`)
+**Total items pendientes:** 0 (diff BD <-> ORM alineado)
+**Total criticos:** 0
 
 ---
 ---
+## RESUMEN DE RONDA 14 (2026-10-11)
+
+**Objetivo:** cerrar los 21 items restantes del diff (16 CHECKs G2a +
+5 FKs huerfanas) y alcanzar la alineacion completa BD <-> ORM.
+
+**Resultado:**
+- **Diff total: 21 -> 0** (-21, -100%).
+- Tier 1: 6 -> **0**.
+- Tier 2: 15 -> **0**.
+- `constraint_falta / check`: 16 -> **0**.
+- `constraint_falta / fk`: 5 -> **0**.
+
+**LA ALINEACION BD <-> ORM ESTA COMPLETA.**
+
+**Fixes aplicados:**
+
+1. **Fase R14.3 - Declarar 5 FKs en ORM** (commit `17f4d6d`):
+   - `corporate.cuenta_corriente.propietario_id` -> `auth.usuario.id`
+   - `trip.viaje_solicitado.empleado_id` -> `auth.usuario.id`
+   - `trip.viaje_solicitado.movimiento_cc_id` -> `corporate.movimiento_cuenta.id`
+   - `trip.viaje_solicitado.turno_empleado_id` -> `auth.turno_empleado.id`
+   - `trip.viaje_solicitado.cuenta_corriente_id` -> `corporate.cuenta_corriente.id`
+   - Correccion: `turno_empleado_id` apuntaba a `auth.usuario.id` en vez
+     de `auth.turno_empleado.id`.
+
+2. **Fase R14.1 - Migracion `m3_015`** (commit `3db3e7b`):
+   - Renombra 16 CHECKs al naming canonico `ck_<tabla>_<col>`.
+   - Aplicada en R14.
+   - Deuda `orm.naming_convention_check_divergente` cerrada.
+
+3. **Fase R14.2 - Declarar 16 CHECKs en ORM** (commits `0f4434c`, `f7c7413`,
+   `60bd195`, `80c030b`, `ed589a6`):
+   - `auth.py`: `ck_turno_empleado_estado`, `ck_codigo_verificacion_tipo`.
+   - `fleet.py`: 9 CHECKs en `contrato_vehiculo`.
+   - `payment.py`: `ck_pago_empresa_estado`, `ck_pago_empresa_monto`.
+   - `public.py`: `ck_escaneo_qr_resultado`, `ck_escaneo_qr_tipo`.
+   - `trip.py`: `ck_calificacion_puntaje`.
+
+**Migracion aplicada:**
+
+`m3_015` (commit `3db3e7b`):
+- 16 `ALTER TABLE ... RENAME CONSTRAINT`.
+
+**Deudas cerradas en R14:**
+
+- `orm.naming_convention_check_divergente` (Grupo 2).
+- `orm.paso4_check_constraints_residual`.
+
+**Deudas residuales (no-diff, funcionales):**
+
+- `metodo_pago.catalogo_sucio` (12 filas, refactor funcional).
+- `metodo_pago.fk_catalogo`.
+- `metodo_pago.frontend_e2`.
+- `metodo_pago.flujo_propietario` / `flujo_empresa`.
+- `metodo_pago.ingreso_turno`.
+- `flujo_caja.ingreso_turno`.
+- `orm.snapshot_orm_stale` (proceso).
+- `orm.ids_diff_no_estables` (tooling).
+- `orm.diff_clasifica_mal_columnas_ausentes` (tooling).
+- `orm.diff_falsos_positivos_tipo_cambio` (tooling).
+- `orm.alembic_check_ruidoso` (proceso).
+- `orm.modulo_duplicado_trip_service` (documentar).
+- `orm.ciclo_fk_usuario_control_base` (documentar).
+- Las deudas de Alta/Media/Baja prioridad ya documentadas en R12.
+
+**Plan R15 (recomendado):**
+
+- Refactor funcional de `metodo_pago` (catalogo sucio).
+- Verificacion de `alembic check` (¿ahora si es util?).
+- Limpieza de tooling (`orm.ids_diff_no_estables`, `orm.snapshot_orm_stale`).
+- Documentacion de deudas residuales.
+
+**Ver:** `docs/CONTEXTO_RONDA_14 a 15.md` (handoff, a crear).
+
 ## RESUMEN DE RONDA 13 (2026-10-10)
 
 **Objetivo:** cerrar 6 items del diff (tabla_sobra, columna_falta, indice_falta,
