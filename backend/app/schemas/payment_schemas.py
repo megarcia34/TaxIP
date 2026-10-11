@@ -17,7 +17,7 @@ class WalletBalanceResponse(BaseModel):
 class TopUpRequest(BaseModel):
     """Request to top up wallet"""
     monto: float = Field(..., gt=0, description="Amount to add")
-    metodo_pago: str = Field(default="mercadopago", description="mercadopago, tarjeta_credito, tarjeta_debito")
+    metodo_pago: str = Field(default="efectivo", description="efectivo, tarjeta_debito, qr, transferencia")
 
 
 class TopUpResponse(BaseModel):

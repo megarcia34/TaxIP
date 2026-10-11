@@ -199,7 +199,9 @@ async def pagar_viaje_con_wallet(
         "wallet_id": wallet_id
     })
     
-    # Get metodo_pago_id for 'billetera'
+    # Deuda Momento 3: 'billetera' fue removida del catalogo en m3_016.
+    # El TOP_UP de wallet queda deshabilitado hasta implementar billetera TaxIP.
+    # 0 transacciones afectadas (verificado 2026-10-11).
     metodo_query = text("SELECT id FROM payment.metodo_pago WHERE nombre = 'billetera'")
     metodo_result = await db.execute(metodo_query)
     metodo_pago_id = metodo_result.scalar()

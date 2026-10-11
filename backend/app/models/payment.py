@@ -18,7 +18,20 @@ from app.database import Base
 class MetodoPago(Base):
     """Payment methods"""
     __tablename__ = "metodo_pago"
-    __table_args__ = {"schema": "payment"}
+    __table_args__ = (
+    UniqueConstraint("nombre"),
+    CheckConstraint(
+        "nombre IN ('efectivo', 'tarjeta_debito', 'qr', 'transferencia')",
+        name="nombre",
+    ),
+    {
+        "schema": "payment",
+        "comment": (
+            "Catalogo de metodos de pago para viajes comunes (Momento 1). "
+            "Valores canonicos: efectivo, tarjeta_debito, qr, transferencia."
+        ),
+    },
+)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
