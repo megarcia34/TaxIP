@@ -460,7 +460,13 @@ class Panico(Base):
 class Calificacion(Base):
     """Ratings for drivers and passengers"""
     __tablename__ = "calificacion"
-    __table_args__ = {"schema": "trip"}
+    __table_args__ = (
+        CheckConstraint(
+            "puntaje >= 1 AND puntaje <= 5",
+            name="puntaje",
+        ),
+        {"schema": "trip"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
