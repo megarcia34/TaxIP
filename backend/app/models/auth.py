@@ -332,9 +332,12 @@ class UsuarioRol(Base):
             "uq_usuario_rol_activo",
             "usuario_id", "tipo_usuario_id",
             unique=True,
-            postgresql_where=text("activo = true"),
         ),
-        {"schema": "auth"},
+        {
+            "schema": "auth",
+            "comment": "Capacidades adicionales de una identidad de usuario "
+                       "(ej. propietario con capacidad conductor)",
+        },
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -425,7 +428,11 @@ class AutorizacionInicio(Base):
         Index("idx_autorizacion_inicio_contrato", "contrato_id"),
         Index("idx_autorizacion_inicio_expires", "expires_at"),
         Index("idx_autorizacion_inicio_token", "token"),
-        {"schema": "auth"},
+        {
+            "schema": "auth",
+            "comment": "Autorizaciones temporales de inicio de turno "
+                       "generadas via QR por el propietario",
+        },
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -489,7 +496,11 @@ class TurnoEmpleado(Base):
             "estado IN ('ACTIVO', 'CERRADO')",
             name="estado",
         ),
-        {"schema": "auth"},
+        {
+            "schema": "auth",
+            "comment": "Registro de turnos de empleados de empresas "
+                       "(recepcionistas)",
+        },
     )
 
     id: Mapped[uuid.UUID] = mapped_column(

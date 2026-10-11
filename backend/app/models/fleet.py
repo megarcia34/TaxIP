@@ -925,7 +925,10 @@ class ContratoQr(Base):
             "fecha_expiracion",
             postgresql_where=text("activo = true"),
         ),
-        {"schema": "fleet"},
+        {
+            "schema": "fleet",
+            "comment": "QRs generados para pagos y trazabilidad de viajes",            
+        },
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -972,7 +975,10 @@ class DocumentosChofer(Base):
         ),
         Index("idx_documentos_chofer_usuario", "usuario_id"),
         Index("idx_documentos_chofer_tipo", "tipo_documento"),
-        {"schema": "fleet"},
+        {
+            "schema": "fleet",
+            "comment": "Documentos subidos por choferes para aprobacion municipal",
+        },
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -1179,7 +1185,7 @@ class Modelo(Base):
     # Relationships
     marca: Mapped["Marca"] = relationship("Marca", back_populates="modelos", lazy="selectin")
 
-    # ============================================================
+# ============================================================
 # MODELO INGRESO_TURNO - RECAUDACIÃ“N POR JORNADA
 # ============================================================
 
