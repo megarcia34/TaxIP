@@ -7,6 +7,111 @@
 
 ---
 ---
+## RESUMEN DE RONDA 13 (2026-10-10)
+
+**Objetivo:** cerrar 6 items del diff (tabla_sobra, columna_falta, indice_falta,
+comment_desalineado, constraint_sobra, constraint_falta/fk) + refactor
+del router /api/reservas.
+
+**Resultado:**
+- Diff total: 27 -> **21** (-6, -22%).
+- Tier 1: 7 -> **6**.
+- Tier 2: 19 -> **15**.
+- Tier 4: 1 -> **0**.
+- `tabla_sobra`: 1 -> **0**.
+- `columna_falta`: 1 -> **0**.
+- `indice_falta`: 1 -> **0**.
+- `comment_desalineado`: 1 -> **0**.
+- `constraint_sobra`: 1 -> **0**.
+- `constraint_falta / fk`: 6 -> **5** (1 resuelto).
+- `constraint_falta / check`: 16 -> **16** (sin cambios).
+
+**Fixes aplicados:**
+
+1. **Item 1 - Deprecar `trip.reserva`** (tabla_sobra, D-0001).
+   - Eliminada la clase `Reserva` de `app/models/trip.py` (68 lineas).
+   - Eliminados los metodos huerfanos `crear_reserva` y `procesar_reserva`
+     de `app/services/trip_service.py` (89 lineas).
+   - Eliminado `app/models/trip_service.py` (modulo duplicado, roto,
+     sin uso).
+   - Reescrito `app/routers/reservas.py` sobre `trip.viaje_solicitado`
+     (+215/-79 lineas).
+   - Mapeo de estados visibles (reservado, despachado, vehiculo_llego,
+     pasajero_a_bordo, completado, cancelado) a la maquina canonica de
+     `viaje_solicitado` (estado + subestado_despacho).
+   - Impacto: -1 item.
+
+2. **Item 2 - Eliminar `usuario_rol.control_base_id`** (columna_falta +
+   FK, D-0004 + D-0005).
+   - Columna huerfana en DB: 0 filas con valor, 0 referencias en codigo.
+   - Comentario en ORM confirma decision previa (commit 2f93716,
+     26 Ago 2026).
+   - Migracion `m3_014` elimina la columna y su FK.
+   - Impacto: -2 items.
+
+3. **Item 3 - Eliminar `ix_contrato_vehiculo_estado_contrato`**
+   (indice_falta, D-0016).
+   - Indice redundante con `idx_contrato_estado` (misma columna, mismo
+     tipo, mismo partial=false).
+   - Creado por error en migracion `182d55b83b69` (17 Ago 2026).
+   - ORM declara `idx_contrato_estado` como canonico (commit 58a47f0,
+     R11).
+   - Migracion `m3_014` elimina el indice.
+   - Impacto: -1 item.
+
+4. **Item 4 - Quitar `unique=True` de `payment.metodo_pago.nombre`**
+   (constraint_sobra, D-0018).
+   - La DB no tiene UNIQUE sobre `nombre`.
+   - Catalogo sucio (2 duplicados literales, 2 sinonimos, 0 uso real).
+   - La limpieza funcional del catalogo queda para R14+.
+   - Impacto: -1 item.
+
+5. **Item 5 - Agregar `comment=` a `fleet.turno_chofer.snapshot_dia_contractual`**
+   (comment_desalineado, D-0017).
+   - Comment en DB: "Dia contractual al inicio del turno (ej. LUNES,
+     MARTES). Snapshot inmutable."
+   - El ORM no lo declaraba.
+   - Impacto: -1 item.
+
+**Migracion aplicada:**
+
+`m3_014` (commit `832ad7b`, aplicada en R13):
+- `ALTER TABLE auth.usuario_rol DROP CONSTRAINT fk_usuario_rol_control_base_id_control_base`.
+- `ALTER TABLE auth.usuario_rol DROP COLUMN control_base_id`.
+- `DROP INDEX fleet.ix_contrato_vehiculo_estado_contrato`.
+
+**Deudas cerradas en R13:**
+
+- `orm.reserva_modulo_activo` (D-0001).
+- `orm.unique_constraints_caso_c` (D-0018, ultimo item).
+- `orm.indice_redundante_contrato_vehiculo` (D-0016).
+- `orm.comment_mojibake` (D-0017, ultimo item).
+- `orm.ciclo_fk_usuario_control_base` (parcial: `usuario_rol.control_base_id`).
+
+**Deudas nuevas identificadas en R13:**
+
+- `orm.modulo_duplicado_trip_service`: `app/models/trip_service.py`
+  era un duplicado de `app/services/trip_service.py`, roto (importaba
+  `Reserva`), sin uso. Eliminado en R13.
+- `metodo_pago.catalogo_sucio` (revisada): 12 filas, 2 duplicados
+  literales (`efectivo` x2, `mercadopago` x2), 2 sinonimos
+  (`billetera`/`wallet`), 2 duplicados semanticos (`credito`/`tarjeta_credito`,
+  `debito`/`tarjeta_debito`), 1 valor que es pasarela (`mercadopago`).
+  0 transacciones la referencian. La FK `fk_transaccion_metodo_pago_id`
+  existe pero esta vacia. Refactor funcional programado para R14+.
+
+**Plan R14:**
+
+- P1: migracion `m3_015` - CHECKs G2a (16 items, ~16 CHECKs sin
+  convention). Requiere backup DB + decision de naming
+  (`ck_<tabla>_<col>`).
+- P2: FKs huerfanas de `trip.viaje_solicitado` (~4 items restantes):
+  `empleado_id`, `movimiento_cc_id`, `turno_empleado_id`,
+  `cuenta_corriente_id`. Requieren declarar las columnas con
+  `ForeignKey` en el ORM (las columnas ya existen, falta la FK).
+- P3: refactor funcional de `metodo_pago` (catalogo sucio).
+
+**Ver:** `docs/CONTEXTO_RONDA_13 a 14.md` (handoff, a crear).
 
 ## RESUMEN DE RONDA 12 (2026-10-10)
 
