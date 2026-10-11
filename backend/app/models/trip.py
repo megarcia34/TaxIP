@@ -249,10 +249,12 @@ class ViajeSolicitado(Base):
     )
     cuenta_corriente_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("corporate.cuenta_corriente.id", ondelete="NO ACTION"),
         nullable=True,
     )
     empleado_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="NO ACTION"),
         nullable=True,
     )
     es_anonimo: Mapped[bool] = mapped_column(
@@ -298,6 +300,7 @@ class ViajeSolicitado(Base):
     )
     movimiento_cc_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("corporate.movimiento_cuenta.id", ondelete="NO ACTION"),
         nullable=True,
     )
     origen_tipo: Mapped[Optional[str]] = mapped_column(
@@ -342,6 +345,7 @@ class ViajeSolicitado(Base):
     )
     turno_empleado_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("auth.turno_empleado.id", ondelete="NO ACTION"),
         nullable=True,
     )
 

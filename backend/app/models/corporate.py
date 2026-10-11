@@ -67,7 +67,11 @@ class CuentaCorriente(Base):
         nullable=True,
     )
     periodo_facturacion: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
-    propietario_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    propietario_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="NO ACTION"),
+        nullable=True,
+    )
     responsable_cobro: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     titular_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
     titular_tipo: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
