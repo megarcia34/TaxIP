@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Optional
 from sqlalchemy import (
     String, Boolean, DateTime, ForeignKey, Text, Integer, Date, Numeric, Index,
-    UniqueConstraint, text, func,
+    UniqueConstraint, text, func, CheckConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -485,6 +485,10 @@ class TurnoEmpleado(Base):
         Index("idx_turno_empleado_empresa_id", "empresa_id"),
         Index("idx_turno_empleado_estado", "estado"),
         Index("idx_turno_empleado_fecha_inicio", "fecha_inicio"),
+        CheckConstraint(
+            "estado IN ('ACTIVO', 'CERRADO')",
+            name="estado",
+        ),
         {"schema": "auth"},
     )
 
@@ -608,6 +612,10 @@ class CodigoVerificacion(Base):
         Index("idx_codigo_verificacion_expira", "expira_en"),
         Index("idx_codigo_verificacion_tipo_usado", "tipo", "usado"),
         Index("idx_codigo_verificacion_usuario_usado", "usuario_id", "usado"),
+        CheckConstraint(
+            "tipo IN ('REGISTRO_CHOFER', 'INICIO_TURNO', 'RECUPERACION_PASSWORD')",
+            name="tipo",
+        ),
         {"schema": "auth"},
     )
 
