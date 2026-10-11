@@ -14,6 +14,7 @@ Uso:
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 import sys
@@ -465,7 +466,7 @@ def diff_constraints(db_table, orm_table, schema, tabla):
     # Las FKs que matchean por (columnas, ref) no se reportan aunque
     # el nombre difiera.
 
-    # UNIQUEs - match por columnas    
+    # UNIQUEs - match por columnas
     db_uqs = {tuple(u["columns"]): u for u in db_cons.get("unique", [])}
     orm_uqs = {tuple(u["columns"]): u for u in orm_cons.get("unique", [])}
 
@@ -675,6 +676,41 @@ def diff_indexes(db_table, orm_table, schema, tabla):
 
 
 # ============================================================
+# IDs estables
+# ============================================================
+
+def _make_stable_id(item):
+    """Genera un ID estable para un item del diff.
+
+    R16 - deuda orm.ids_diff_no_estables: los IDs D-XXXX secuenciales
+    cambian entre corridas segun el orden de iteracion. Este hash es
+    determinista: el mismo item (schema, tabla, columna, clasificacion,
+    tipo_constraint, nombre) siempre produce el mismo ID.
+
+    Formato: D-<hash8> (8 chars hex).
+    """
+    partes = [
+        item.get("schema") or "",
+        item.get("tabla") or "",
+        item.get("columna") or "",
+        item.get("clasificacion") or "",
+        item.get("tipo_constraint") or "",
+    ]
+
+    detalle = item.get("detalle") or {}
+    db = detalle.get("db") or {}
+    orm = detalle.get("orm") or {}
+
+    # Nombre de constraint si esta disponible
+    nombre = (db.get("name") or orm.get("name") or "")
+    partes.append(str(nombre))
+
+    key = "|".join(partes)
+    h = hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
+    return f"D-{h}"
+
+
+# ============================================================
 # Construccion del diff completo
 # ============================================================
 
@@ -708,8 +744,8 @@ def build_diff(db, orm):
 
     # Asignar IDs, Tier y requiere_decision
     log("Clasificando items...")
-    for i, item in enumerate(diff, start=1):
-        item["id"] = f"D-{i:04d}"
+    for item in diff:
+        item["id"] = _make_stable_id(item)
         tier = assign_tier(item["schema"], item.get("tabla"), item["clasificacion"])
         item["tier"] = tier
 
