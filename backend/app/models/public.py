@@ -6,7 +6,7 @@ Tablas: comercio, escaneo_qr
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Index
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Index, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -66,6 +66,14 @@ class EscaneoQr(Base):
         Index("idx_escaneo_comercio", "comercio_id"),
         Index("idx_escaneo_qr_tipo", "tipo_qr"),
         Index("idx_escaneo_qr_autorizacion", "autorizacion_id"),
+        CheckConstraint(
+            "resultado IS NULL OR resultado IN ('EXITO', 'RECHAZADO', 'EXPIRADO', 'ERROR')",
+            name="resultado",
+        ),
+        CheckConstraint(
+            "tipo_qr IN ('OPERATIVO', 'COMERCIO', 'VEHICULO', 'OTRO')",
+            name="tipo",
+        ),
     )
 
     
