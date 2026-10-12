@@ -22,6 +22,9 @@ from app.schemas.turno_schemas import (
     CheckInDirectoRequest,
     CheckOutRequest,
     ValidarCodigoRequest,
+    # G67 - forzar cierre de viajes huerfanos
+    CerrarViajeHuerfanoRequest,
+    
     # Responses
     CheckInResponse,
     CheckOutResponse,
@@ -32,6 +35,9 @@ from app.schemas.turno_schemas import (
     ResumenResponse,
     VehiculoInfo,
     VehiculoDisponibleInfo,
+    # G67 - forzar cierre de viajes huerfanos
+    ViajesHuerfanosResponse,
+    CerrarViajeHuerfanoResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -720,18 +726,26 @@ async def check_out_turno(
     if request.km_final < km_inicial:
         raise HTTPException(400, f"El kilometraje final ({request.km_final}) no puede ser menor al inicial ({km_inicial})")
 
-    # 4. Verificar que no tenga viaje activo
+
+    # 4. Verificar que no tenga viaje activo.
+    # R17 - G67: si los hay, indicar al chofer como cerrarlos forzadamente.
     # NOTA: el estado real de un viaje en curso en TaxIP es 'en_curso'.
-    # 'iniciado' no existe como estado en trip.viaje_solicitado.
     query_viaje = text("""
-        SELECT id FROM trip.viaje_solicitado
+        SELECT COUNT(*) FROM trip.viaje_solicitado
         WHERE chofer_id = :user_id
           AND estado IN ('aceptado', 'en_curso')
-        LIMIT 1
     """)
     result = await db.execute(query_viaje, {"user_id": user_id})
-    if result.first():
-        raise HTTPException(400, "Tienes un viaje activo. Finalízalo antes de cerrar el turno.")
+    huerfanos = result.scalar() or 0
+    if huerfanos > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Tenes {huerfanos} viaje(s) sin cerrar. "
+                f"Cerralos forzadamente en "
+                f"/api/chofer/turno/viajes-huerfanos antes de cerrar el turno."
+            ),
+        )
 
     # 5. Cerrar turno usando el servicio existente
     try:
@@ -781,6 +795,129 @@ async def check_out_turno(
         await db.rollback()
         logger.error(f"Error en check-out: {str(e)}")
         raise HTTPException(500, f"Error al cerrar turno: {str(e)}")
+
+# ==========================================
+# R17 - G67: FORZAR CIERRE DE VIAJES HUERFANOS
+# ==========================================
+
+@router.get("/viajes-huerfanos", response_model=ViajesHuerfanosResponse)
+async def listar_viajes_huerfanos(
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Lista los viajes del chofer que bloquean el cierre de turno.
+
+    R17 - G67.
+
+    Devuelve los viajes en estado 'aceptado' o 'en_curso' del chofer.
+    El chofer debe cerrarlos forzadamente antes de poder hacer check-out.
+    """
+    user_id, control_base_id, email, tipo = current_user
+
+    query = text("""
+        SELECT
+            id, estado, created_at, iniciado_en,
+            direccion_origen, direccion_destino,
+            nombre_pasajero, precio_estimado, origen_tipo,
+            EXTRACT(EPOCH FROM (NOW() - created_at)) / 60 AS antiguedad_min
+        FROM trip.viaje_solicitado
+        WHERE chofer_id = :user_id
+          AND estado IN ('aceptado', 'en_curso')
+        ORDER BY created_at ASC
+    """)
+    result = await db.execute(query, {"user_id": str(user_id)})
+    rows = result.fetchall()
+
+    viajes = []
+    for row in rows:
+        viajes.append({
+            "viaje_id": row[0],
+            "estado": row[1],
+            "created_at": row[2],
+            "iniciado_en": row[3],
+            "direccion_origen": row[4],
+            "direccion_destino": row[5],
+            "pasajero_nombre": row[6],
+            "precio_estimado": float(row[7]) if row[7] else None,
+            "origen_tipo": row[8],
+            "antiguedad_minutos": int(row[9]) if row[9] else 0,
+        })
+
+    return {
+        "total": len(viajes),
+        "puede_cerrar_turno": len(viajes) == 0,
+        "viajes": viajes,
+    }
+
+
+@router.post(
+    "/viajes-huerfanos/{viaje_id}/cerrar",
+    response_model=CerrarViajeHuerfanoResponse,
+)
+async def cerrar_viaje_huerfano(
+    viaje_id: UUID,
+    request: CerrarViajeHuerfanoRequest,
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Cierra forzadamente un viaje huerfano del turno activo.
+
+    R17 - G67.
+
+    Reglas:
+    - Solo el chofer del turno puede cerrarlo.
+    - Solo viajes en estado 'aceptado' o 'en_curso'.
+    - 'aceptado' -> 'cancelado' (sin cobro).
+    - 'en_curso' -> 'finalizado' (con precio_estimado).
+    - Notifica al chofer y al propietario.
+    """
+    user_id, control_base_id, email, tipo = current_user
+
+    # 1. Buscar turno activo del chofer
+    turno_query = text("""
+        SELECT id FROM fleet.turno_chofer
+        WHERE chofer_id = :user_id AND estado = 'ACTIVO'
+        ORDER BY inicio_turno DESC
+        LIMIT 1
+    """)
+    turno_row = (await db.execute(turno_query, {"user_id": str(user_id)})).first()
+
+    if not turno_row:
+        raise HTTPException(400, "No tenes un turno activo")
+
+    turno_id = turno_row[0]
+
+    # 2. Llamar al servicio
+    try:
+        resultado = await TurnoService.forzar_cierre_viaje(
+            db=db,
+            turno_id=turno_id,
+            chofer_id=user_id,
+            viaje_id=viaje_id,
+            motivo=request.motivo,
+            notas=request.notas,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error en forzar cierre viaje {viaje_id}: {e}")
+        raise HTTPException(500, f"Error al cerrar viaje forzadamente: {str(e)}")
+
+    return CerrarViajeHuerfanoResponse(
+        success=True,
+        viaje_id=resultado["viaje_id"],
+        estado_previo=resultado["estado_previo"],
+        estado_nuevo=resultado["estado_nuevo"],
+        motivo=resultado["motivo"],
+        motivo_label=resultado["motivo_label"],
+        precio_final=resultado["precio_final"],
+        puede_cerrar_turno=resultado["puede_cerrar_turno"],
+        message="Viaje cerrado forzadamente",
+    )
+
 
 
 @router.get("/historial")

@@ -17,6 +17,7 @@ from uuid import UUID
 from datetime import datetime
 
 
+
 # ============================================
 # MODELO BASE CON CAMELCASE
 # ============================================
@@ -292,3 +293,71 @@ class AutorizacionTurnoResult(CamelCaseModel):
     fecha_inicio: Optional[datetime] = None
     fecha_fin: Optional[datetime] = None
     detalles_validacion: Optional[dict] = None
+
+# ============================================================
+# R17 - G67: Forzar cierre de viajes huerfanos
+# ============================================================
+
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime
+from uuid import UUID
+
+
+MOTIVOS_FORZAR_CIERRE = {
+    "pasajero_cancelo": "Pasajero cancelo",
+    "pasajero_no_aparecio": "Pasajero no aparecio",
+    "pasajero_pidio_bajarse": "Pasajero pidio bajarse",
+    "pasajero_abandono": "Pasajero abandono el vehiculo",
+    "emergencia": "Emergencia (medica/policial)",
+    "chofer_cancelo": "Chofer cancelo",
+    "error_sistema": "Error del sistema",
+    "otro": "Otro motivo (requiere notas)",
+}
+
+
+class ViajeHuerfanoInfo(BaseModel):
+    """Info de un viaje que bloquea el cierre de turno."""
+    viaje_id: UUID
+    estado: str
+    created_at: Optional[datetime] = None
+    iniciado_en: Optional[datetime] = None
+    direccion_origen: Optional[str] = None
+    direccion_destino: Optional[str] = None
+    pasajero_nombre: Optional[str] = None
+    precio_estimado: Optional[float] = None
+    antiguedad_minutos: Optional[int] = None
+    origen_tipo: Optional[str] = None
+
+
+class ViajesHuerfanosResponse(BaseModel):
+    """Listado de viajes huerfanos del chofer."""
+    total: int
+    puede_cerrar_turno: bool
+    viajes: List[ViajeHuerfanoInfo]
+
+
+class CerrarViajeHuerfanoRequest(BaseModel):
+    """Request para cerrar forzadamente un viaje huerfano."""
+    motivo: str = Field(
+        ...,
+        description=f"Motivo del cierre. Validos: {list(MOTIVOS_FORZAR_CIERRE.keys())}",
+    )
+    notas: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Notas adicionales (obligatorio si motivo='otro')",
+    )
+
+
+class CerrarViajeHuerfanoResponse(BaseModel):
+    """Response del cierre forzado de un viaje."""
+    success: bool
+    viaje_id: UUID
+    estado_previo: str
+    estado_nuevo: str
+    motivo: str
+    motivo_label: str
+    precio_final: Optional[float] = None
+    puede_cerrar_turno: bool
+    message: str

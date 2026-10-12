@@ -345,7 +345,283 @@ class TurnoService:
             "ingresos_registrados": 1 if recaudacion_ticketera > 0 else 0
         }
 
-      
+    @staticmethod
+    async def forzar_cierre_viaje(
+        db: AsyncSession,
+        turno_id: uuid.UUID,
+        chofer_id: uuid.UUID,
+        viaje_id: uuid.UUID,
+        motivo: str,
+        notas: Optional[str] = None,
+    ) -> dict:
+        """
+        Cierra forzadamente un viaje huerfano del turno.
+
+        R17 - G67.
+
+        Reglas:
+        - Solo el chofer del turno puede cerrarlo.
+        - Solo viajes en estado 'aceptado' o 'en_curso' del turno.
+        - 'aceptado' -> estado final 'cancelado', sin cobro.
+        - 'en_curso' -> estado final 'finalizado', con precio_estimado.
+        - Registra en viaje_solicitado, historial_estado_viaje y audit.
+        - Notifica al chofer y al propietario.
+        """
+        from app.schemas.turno_schemas import MOTIVOS_FORZAR_CIERRE
+
+        # 1. Validar motivo
+        if motivo not in MOTIVOS_FORZAR_CIERRE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Motivo invalido. Validos: {list(MOTIVOS_FORZAR_CIERRE.keys())}",
+            )
+
+        if motivo == "otro" and not notas:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El motivo 'otro' requiere notas.",
+            )
+
+        # 2. Validar que el turno pertenece al chofer y esta activo
+        turno = await db.get(TurnoChofer, turno_id)
+        if not turno:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Turno no encontrado",
+            )
+        if turno.chofer_id != chofer_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tenes permiso para cerrar viajes de este turno",
+            )
+
+        # 3. Leer el viaje
+        viaje_query = text("""
+            SELECT id, estado, chofer_id, vehiculo_id, turno_id,
+                   precio_estimado, precio_final, control_base_id,
+                   direccion_origen, direccion_destino
+            FROM trip.viaje_solicitado
+            WHERE id = :viaje_id
+            LIMIT 1
+        """)
+        viaje_row = (await db.execute(viaje_query, {"viaje_id": viaje_id})).first()
+
+        if not viaje_row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Viaje no encontrado",
+            )
+
+        (v_id, estado_previo, v_chofer_id, vehiculo_id, v_turno_id,
+         precio_estimado, precio_final, control_base_id,
+         direccion_origen, direccion_destino) = viaje_row
+
+        # 4. Validar pertenencia
+        if v_chofer_id != chofer_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="El viaje no pertenece a este chofer",
+            )
+        if v_turno_id != turno_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="El viaje no pertenece a este turno",
+            )
+        if estado_previo not in ("aceptado", "en_curso"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"El viaje ya esta en estado '{estado_previo}' y no puede cerrarse forzadamente",
+            )
+
+        # 5. Determinar estado final y precio
+        if estado_previo == "aceptado":
+            estado_nuevo = "cancelado"
+            precio_final_usado = None
+        else:  # en_curso
+            estado_nuevo = "finalizado"
+            precio_final_usado = float(precio_estimado) if precio_estimado else None
+
+        # 6. UPDATE del viaje
+        if estado_nuevo == "cancelado":
+            update_query = text("""
+                UPDATE trip.viaje_solicitado
+                SET estado = 'cancelado',
+                    cancelado_en = NOW(),
+                    cancelado_por = :chofer_id,
+                    motivo_cancelacion = :motivo_full,
+                    updated_at = NOW()
+                WHERE id = :viaje_id
+            """)
+        else:  # finalizado
+            update_query = text("""
+                UPDATE trip.viaje_solicitado
+                SET estado = 'finalizado',
+                    finalizado_en = NOW(),
+                    motivo_cancelacion = :motivo_full,
+                    precio_final = :precio_final,
+                    updated_at = NOW()
+                WHERE id = :viaje_id
+            """)
+
+        motivo_full = MOTIVOS_FORZAR_CIERRE[motivo]
+        if notas:
+            motivo_full += f" | Notas: {notas}"
+
+        params = {
+            "viaje_id": str(viaje_id),
+            "chofer_id": str(chofer_id),
+            "motivo_full": motivo_full[:500],
+        }
+        if estado_nuevo == "finalizado":
+            params["precio_final"] = precio_final_usado
+
+        await db.execute(update_query, params)
+
+        # 7. Historial
+        observacion = (
+            f"Viaje cerrado forzadamente por chofer. "
+            f"Motivo: {MOTIVOS_FORZAR_CIERRE[motivo]}."
+        )
+        if notas:
+            observacion += f" Notas: {notas}"
+
+        await db.execute(
+            text("""
+                INSERT INTO trip.historial_estado_viaje (
+                    id, viaje_id, estado, observacion, created_at
+                )
+                VALUES (gen_random_uuid(), :viaje_id, :estado, :obs, NOW())
+            """),
+            {
+                "viaje_id": str(viaje_id),
+                "estado": estado_nuevo,
+                "obs": observacion[:1000],
+            },
+        )
+
+        # 8. Audit
+        await db.execute(
+            text("""
+                INSERT INTO audit.log_acciones (
+                    id, usuario_id, email, accion, tabla_afectada,
+                    registro_id, datos_nuevos, control_base_id,
+                    ip_address, created_at
+                )
+                VALUES (
+                    gen_random_uuid(),
+                    :chofer_id,
+                    'system@g67.local',
+                    'FORZAR_CIERRE_VIAJE',
+                    'trip.viaje_solicitado',
+                    :viaje_id,
+                    jsonb_build_object(
+                        'motivo', :motivo,
+                        'motivo_label', :motivo_label,
+                        'notas', :notas,
+                        'estado_previo', :estado_previo,
+                        'estado_nuevo', :estado_nuevo,
+                        'precio_final', :precio_final
+                    ),
+                    :control_base_id,
+                    NULL,
+                    NOW()
+                )
+            """),
+            {
+                "chofer_id": str(chofer_id),
+                "viaje_id": str(viaje_id),
+                "motivo": motivo,
+                "motivo_label": MOTIVOS_FORZAR_CIERRE[motivo],
+                "notas": notas,
+                "estado_previo": estado_previo,
+                "estado_nuevo": estado_nuevo,
+                "precio_final": precio_final_usado,
+                "control_base_id": str(control_base_id),
+            },
+        )
+
+        # 9. Notificacion al chofer (confirmacion)
+        await db.execute(
+            text("""
+                INSERT INTO notification.notificacion (
+                    id, usuario_id, titulo, mensaje, tipo, leida, created_at
+                )
+                VALUES (
+                    gen_random_uuid(), :usuario_id,
+                    'Viaje cerrado forzadamente',
+                    :mensaje,
+                    'viaje',
+                    false,
+                    NOW()
+                )
+            """),
+            {
+                "usuario_id": str(chofer_id),
+                "mensaje": (
+                    f"Cerraste el viaje {str(viaje_id)[:8]} "
+                    f"con motivo: {MOTIVOS_FORZAR_CIERRE[motivo]}."
+                ),
+            },
+        )
+
+        # 10. Notificacion al propietario
+        prop_query = text("""
+            SELECT pv.propietario_id
+            FROM fleet.propietario_vehiculo pv
+            WHERE pv.vehiculo_id = :vehiculo_id AND pv.activo = true
+            LIMIT 1
+        """)
+        prop_row = (await db.execute(prop_query, {"vehiculo_id": vehiculo_id})).first()
+
+        if prop_row:
+            propietario_id = prop_row[0]
+            mensaje_prop = (
+                f"El chofer cerro forzadamente el viaje {str(viaje_id)[:8]}. "
+                f"Motivo: {MOTIVOS_FORZAR_CIERRE[motivo]}."
+            )
+            if notas:
+                mensaje_prop += f" Notas: {notas}"
+
+            await db.execute(
+                text("""
+                    INSERT INTO notification.notificacion (
+                        id, usuario_id, titulo, mensaje, tipo, leida, created_at
+                    )
+                    VALUES (
+                        gen_random_uuid(), :usuario_id,
+                        'Viaje cerrado forzadamente',
+                        :mensaje,
+                        'alerta',
+                        false,
+                        NOW()
+                    )
+                """),
+                {
+                    "usuario_id": str(propietario_id),
+                    "mensaje": mensaje_prop[:1000],
+                },
+            )
+
+        await db.commit()
+
+        # 11. Verificar si quedan huerfanos
+        check_query = text("""
+            SELECT COUNT(*) FROM trip.viaje_solicitado
+            WHERE chofer_id = :chofer_id
+              AND estado IN ('aceptado', 'en_curso')
+        """)
+        huerfanos_restantes = (await db.execute(check_query, {"chofer_id": str(chofer_id)})).scalar() or 0
+
+        return {
+            "viaje_id": viaje_id,
+            "estado_previo": estado_previo,
+            "estado_nuevo": estado_nuevo,
+            "motivo": motivo,
+            "motivo_label": MOTIVOS_FORZAR_CIERRE[motivo],
+            "precio_final": precio_final_usado,
+            "puede_cerrar_turno": huerfanos_restantes == 0,
+        }
+
 
 
     @staticmethod
