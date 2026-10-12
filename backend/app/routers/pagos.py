@@ -188,55 +188,17 @@ async def pagar_viaje_con_wallet(
     nuevo_saldo = saldo_actual - monto
     
     # Update wallet balance
-    update_wallet = text("""
-        UPDATE payment.billetera
-        SET saldo = :nuevo_saldo, updated_at = NOW()
-        WHERE id = :wallet_id
-    """)
-    
-    await db.execute(update_wallet, {
-        "nuevo_saldo": nuevo_saldo,
-        "wallet_id": wallet_id
-    })
-    
-    # Deuda Momento 3: 'billetera' fue removida del catalogo en m3_016.
-    # El TOP_UP de wallet queda deshabilitado hasta implementar billetera TaxIP.
-    # 0 transacciones afectadas (verificado 2026-10-11).
-    metodo_query = text("SELECT id FROM payment.metodo_pago WHERE nombre = 'billetera'")
-    metodo_result = await db.execute(metodo_query)
-    metodo_pago_id = metodo_result.scalar()
-    
-    # Create transaction
-    insert_trans = text("""
-        INSERT INTO payment.transaccion (
-            id, billetera_id, viaje_id, metodo_pago_id, tipo,
-            monto, saldo_despues, estado, created_at
-        )
-        VALUES (
-            gen_random_uuid(), :wallet_id, :viaje_id, :metodo_pago_id, 'TRIP_PAYMENT',
-            :monto, :saldo_despues, 'COMPLETADO', NOW()
-        )
-        RETURNING id
-    """)
-    
-    trans_result = await db.execute(insert_trans, {
-        "wallet_id": wallet_id,
-        "viaje_id": request.viaje_id,
-        "metodo_pago_id": metodo_pago_id,
-        "monto": monto,
-        "saldo_despues": nuevo_saldo
-    })
-    
-    # Update trip as paid
-    update_trip = text("""
-        UPDATE trip.viaje_solicitado
-        SET estado = 'pagado', updated_at = NOW()
-        WHERE id = :viaje_id
-    """)
-    
-    await db.execute(update_trip, {"viaje_id": request.viaje_id})
-    
-    await db.commit()
+    # R18 - G63/R15: billetera TaxIP es Momento 3 (futuro).
+    # 'billetera' fue removida del catalogo en m3_016.
+    # El pago con billetera queda deshabilitado hasta implementar la wallet.
+    # Ver deuda pagos.py_203_billetera en DEUDA_TECNICA_ACTUAL.md.
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail=(
+            "El pago con billetera TaxIP no esta implementado todavia. "
+            "Se habilitara cuando se lance la wallet (Momento 3)."
+        ),
+    )
     
     return PagarViajeConWalletResponse(
         success=True,
