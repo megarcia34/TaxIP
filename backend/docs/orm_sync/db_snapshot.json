@@ -1,9 +1,9 @@
 {
   "meta": {
-    "capturado_en": "2026-10-12T20:32:43.269473+00:00",
+    "capturado_en": "2026-10-12T21:44:20.344722+00:00",
     "postgres_version": "PostgreSQL 17.0 on x86_64-windows, compiled by msvc-19.41.34120, 64-bit",
     "postgis_version": "3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
-    "alembic_head": "m3_018",
+    "alembic_head": "m3_019",
     "schemas_incluidos": [
       "audit",
       "auth",
@@ -24,7 +24,7 @@
       "total_tables": 90,
       "total_columns": 1064,
       "total_indexes": 285,
-      "total_constraints": 790
+      "total_constraints": 791
     }
   },
   "schemas": {
@@ -16564,6 +16564,10 @@
               {
                 "name": "ck_pago_empresa_estado",
                 "definition": "((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'confirmado'::character varying, 'rechazado'::character varying, 'cancelado'::character varying])::text[]))"
+              },
+              {
+                "name": "ck_pago_empresa_metodo_pago",
+                "definition": "((metodo_pago)::text = ANY ((ARRAY['efectivo'::character varying, 'transferencia'::character varying, 'tarjeta_debito'::character varying, 'tarjeta_credito'::character varying, 'deposito'::character varying, 'cheque'::character varying, 'otros'::character varying])::text[]))"
               },
               {
                 "name": "ck_pago_empresa_monto",
