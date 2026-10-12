@@ -241,9 +241,9 @@ async def calcular_rentabilidad_viaje(
     comision_porcentaje = 0
     if metodo_pago == "qr":
         comision_porcentaje = config["comision_qr"] / 100
-    elif metodo_pago == "debito":
+    elif metodo_pago == "tarjeta_debito":
         comision_porcentaje = config["comision_debito"] / 100
-    elif metodo_pago == "credito":
+    elif metodo_pago == "tarjeta_credito":
         comision_porcentaje = config["comision_credito"] / 100
     
     comision_bancaria = ingreso_bruto * comision_porcentaje * (1 + config["iva"] / 100)
