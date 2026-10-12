@@ -239,17 +239,6 @@ porque la DB y el ORM representan constraints de forma distinta
 
 ---
 
-### G80 — App apunta a Metro (no funciona fuera de WiFi dev)
-
-La app en el celular apunta a 192.168.1.14:8081. Para pruebas en terreno:
-build preview o production apuntando al backend publico.
-
-**Bloqueada por:** falta definir URL del backend publico (deploy a produccion).
-Cuando se haga el deploy del backend, esta deuda se resuelve en la misma
-ronda (configurar `eas.json` + variables de entorno por perfil).
-
-**Tier 3.** Postergada hasta ronda de despliegue.
-
 ## DEUDAS DE EXPO-ROUTER CON REACT 19 (workaround activo)
 
 - **G77** — Bug de expo-router 57.0.24 con React 19 (2 useEffect sin deps).
@@ -321,7 +310,16 @@ atrapado igual que antes).
 **Accion:** agregar en ronda dedicada a frontend (app chofer).
 
 **Tier 3.**
+### metodo_pago.fk_catalogo — VIA MUERTA 2026-10-12
 
+**Evaluada en R18.** Analisis empirico:
+- 53 viajes, 100% dentro del vocabulario canonico.
+- 71 usos del string en el codigo, todos coherentes.
+- CHECK en `viaje_solicitado` ya garantiza integridad.
+- No hay fragilidad (case, espacios).
+- El refactor a FK rompe la API del frontend sin aportar valor claro.
+
+**Decision:** NO HACER. El sistema de strings funciona bien.
 
 
 **FIN DEL DOCUMENTO**
