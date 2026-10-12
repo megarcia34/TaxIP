@@ -29,6 +29,8 @@ from app.schemas.reserva_schemas import (
 
 from .services import calcular_distancia, calcular_tiempo_estimado
 
+from app.core.metrics import metrics, Keys
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -323,6 +325,8 @@ async def finalizar_viaje(
     El viaje se finaliza igual: no se bloquea por un problema de cálculo.
 
     Libera al chofer (fleet.chofer_vehiculo.estado_laboral = 'libre').
+
+    R17 - G63: los fallbacks se registran en metricas y auditoria.
     """
     driver_id, control_base_id, _, _ = current_user
 
@@ -413,9 +417,10 @@ async def finalizar_viaje(
         distancia_km = distancia_metros_persistida / 1000.0
         tiempo_minutos = tiempo_segundos_persistido // 60
         logger.info(
-            f"Usando distancia/tiempo persistidos para viaje {viaje_id}: "
-            f"{distancia_km:.2f} km, {tiempo_minutos} min."
+            f"[G63] Fallback directions: datos persistidos para viaje "
+            f"{viaje_id}: {distancia_km:.2f} km, {tiempo_minutos} min."
         )
+        metrics.increment(Keys.FALLBACK_DIRECTIONS_PERSISTIDOS)
 
     # Fallback 2: Haversine sobre las coordenadas
     if distancia_km is None or tiempo_minutos is None:
@@ -425,9 +430,10 @@ async def finalizar_viaje(
         distancia_km = distancia_metros_haversine / 1000.0
         tiempo_minutos = calcular_tiempo_estimado(distancia_metros_haversine) // 60
         logger.warning(
-            f"Usando Haversine para viaje {viaje_id}: "
+            f"[G63] Fallback directions: Haversine para viaje {viaje_id}: "
             f"{distancia_km:.2f} km, {tiempo_minutos} min."
         )
+        metrics.increment(Keys.FALLBACK_DIRECTIONS_HAVERSINE)
 
     distancia_metros_final = int(distancia_km * 1000)
     tiempo_segundos_final = tiempo_minutos * 60
@@ -475,15 +481,55 @@ async def finalizar_viaje(
 
     except Exception as e:
         logger.error(
-            f"Error calculando precio_final para viaje {viaje_id}: {e}. "
-            f"Fallback a precio_estimado={precio_estimado_persistido}."
+            f"[G63] Fallback precio: viaje={viaje_id}, "
+            f"tenant={control_base_id}, error={e}. "
+            f"Usando precio_estimado={precio_estimado_persistido}."
         )
+        metrics.increment(Keys.FALLBACK_PRECIO_MOTOR_ERROR)
         precio_final = (
             float(precio_estimado_persistido)
             if precio_estimado_persistido
             else 0.0
         )
         precio_calculado_con = "fallback_estimado"
+
+        # R17 - G63: registrar fallback en auditoria forense.
+        try:
+            await db.execute(
+                text("""
+                    INSERT INTO audit.log_acciones
+                        (id, usuario_id, email, accion, tabla_afectada,
+                         registro_id, datos_nuevos, control_base_id,
+                         ip_address, created_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        :driver_id,
+                        'system@g63.local',
+                        'FALLBACK_PRECIO',
+                        'trip.viaje_solicitado',
+                        :viaje_id,
+                        jsonb_build_object(
+                            'precio_estimado', :precio_est,
+                            'motivo', :motivo
+                        ),
+                        :control_base_id,
+                        NULL,
+                        NOW()
+                    )
+                """),
+                {
+                    "driver_id": str(driver_id),
+                    "viaje_id": str(viaje_id),
+                    "precio_est": float(precio_estimado_persistido or 0),
+                    "motivo": str(e)[:500],
+                    "control_base_id": str(control_base_id),
+                },
+            )
+        except Exception as audit_err:
+            # No romper el flujo si falla la auditoria
+            logger.warning(
+                f"[G63] No se pudo registrar fallback en audit: {audit_err}"
+            )
 
     # ------------------------------------------------------------
     # 5. UPDATE atómico del viaje

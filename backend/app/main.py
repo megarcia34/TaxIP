@@ -57,6 +57,7 @@ from app.routers.chofer_turnos import router as chofer_turnos_router
 from app.routers.chofer_splash import router as chofer_splash_router
 from app.database import get_db, AsyncSessionLocal
 from app.websocket.handlers import handle_websocket
+from app.dependencies import get_current_super_admin_user
 
 # Importar routers principales
 from app.routers import auth, choferes, chofer_registro, chofer_documentos, control_base
@@ -367,3 +368,24 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/health/metrics")
+async def health_metrics(
+    current_user: tuple = Depends(get_current_super_admin_user),
+):
+    """
+    Metricas en memoria de la app.
+
+    R17 - G63: alerta si el motor de precios cae a fallback.
+
+    Devuelve contadores acumulados desde el inicio del proceso.
+    Solo accesible para super_admin.
+
+    NO reemplaza monitoreo real (Sentry, Grafana). Cuando se integre
+    uno, este endpoint se puede dejar como fallback o eliminar.
+    """
+    from app.core.metrics import metrics
+    return {
+        "counters": metrics.snapshot(),
+    }
