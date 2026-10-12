@@ -256,7 +256,7 @@ class RechazarLiquidacionRequest(BaseModel):
 
 
 class RegistrarPagoRequest(BaseModel):
-    metodo_pago: str = Field(..., description="EFECTIVO, TRANSFERENCIA, DEBITO, CREDITO, QR")
+    metodo_pago: str = Field(..., description="EFECTIVO, TRANSFERENCIA")
     referencia: Optional[str] = Field(None, max_length=100)
 
 

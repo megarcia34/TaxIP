@@ -326,7 +326,10 @@ async def registrar_pago(
             detail=f"La liquidación debe estar APROBADA para pagar. Estado actual: {liquidacion.estado}"
         )
 
-    metodos_validos = ["EFECTIVO", "TRANSFERENCIA", "DEBITO", "CREDITO", "QR"]
+    # R18: vocabulario canonico de liquidacion propietario -> chofer.
+    # Distinto al vocabulario de viajes comunes (Momento 1).
+    # Solo se aceptan efectivo y transferencia.
+    metodos_validos = ["EFECTIVO", "TRANSFERENCIA"]
     if request.metodo_pago not in metodos_validos:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

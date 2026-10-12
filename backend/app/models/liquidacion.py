@@ -6,7 +6,7 @@ Tablas: liquidacion, liquidacion_detalle, liquidacion_estado_historial, liquidac
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Numeric, Text, JSON, Integer, Index
+from sqlalchemy import Column, String, DateTime, ForeignKey, Numeric, Text, JSON, Integer, Index, CheckConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
@@ -22,6 +22,10 @@ class Liquidacion(Base):
         Index("ix_liquidacion_chofer_id", "chofer_id"),
         Index("ix_liquidacion_propietario_id", "propietario_id"),
         Index("ix_liquidacion_control_base_id", "control_base_id"),
+        CheckConstraint(
+            "metodo_pago IS NULL OR metodo_pago IN ('EFECTIVO', 'TRANSFERENCIA')",
+            name="metodo_pago",
+        ),
         {"schema": "fleet"}
     )
 
