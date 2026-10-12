@@ -35,12 +35,6 @@ lineas.
 ## ALTA PRIORIDAD
 
 
-### G80 — App apunta a Metro (no funciona fuera de WiFi dev)
-
-La app en el celular apunta a 192.168.1.14:8081. Para pruebas en terreno:
-build preview o production apuntando al backend publico.
-
----
 
 ## MEDIA PRIORIDAD
 
@@ -244,6 +238,17 @@ porque la DB y el ORM representan constraints de forma distinta
   El `diff.py` los considera equivalentes. NO tocar.
 
 ---
+
+### G80 — App apunta a Metro (no funciona fuera de WiFi dev)
+
+La app en el celular apunta a 192.168.1.14:8081. Para pruebas en terreno:
+build preview o production apuntando al backend publico.
+
+**Bloqueada por:** falta definir URL del backend publico (deploy a produccion).
+Cuando se haga el deploy del backend, esta deuda se resuelve en la misma
+ronda (configurar `eas.json` + variables de entorno por perfil).
+
+**Tier 3.** Postergada hasta ronda de despliegue.
 
 ## DEUDAS DE EXPO-ROUTER CON REACT 19 (workaround activo)
 
