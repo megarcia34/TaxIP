@@ -1,4 +1,4 @@
-﻿"""
+"""
 TaxIP 2.0 - Entry point de la aplicacion FastAPI.
 
 FIX CRITICO (2026-09-24): en Windows, Python del sistema usa cp1252 para
@@ -100,7 +100,11 @@ from app.routers import geo
 load_dotenv()
 
 
-
+# R16: forzar UTF-8 para evitar UnicodeEncodeError en produccion.
+# Ver deuda N10 y logs.auth_prints.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, 'reconfigure'):
+        _stream.reconfigure(encoding='utf-8', errors='replace')
 
 
 # ============================================

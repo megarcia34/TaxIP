@@ -40,9 +40,7 @@ from app.models.trip import TipoVehiculo
 
 from .schemas import (
     ViajeEstadoResponse,
-    HistorialViajeResponse,
-    SolicitarViajeRequest,
-    SolicitarViajeResponse,
+    HistorialViajeResponse,    
     SolicitarViajeCalleRequest,
     CancelarViajeRequest,
     CalificarViajeRequest,
@@ -401,105 +399,12 @@ async def solicitar_viaje_calle(
     return await formatear_respuesta_viaje(row)
 
 # ============================================
-# SOLICITAR VIAJE (LEGACY - DEPRECADO)
+# SOLICITAR VIAJE (LEGACY) - ELIMINADO EN R16
 # ============================================
-# A3: Endpoint sin clientes reales.
-# Auditoria 2026-09-25: los 2 usos detectados (proxy dashboard huerfano +
-# helper viajeApi.solicitar) nunca llegan con auth valido. El proxy va sin
-# token (401) y el helper usa auth de dashboard (403, no es pasajero).
-# No hay reemplazo directo identificado en el codigo. Candidato a eliminar
-# en Fase 2 tras auditar el flujo completo de pedidos multi-canal.
-
-@router.post("/solicitar", response_model=SolicitarViajeResponse, deprecated=True)
-async def solicitar_viaje(
-    request: SolicitarViajeRequest,
-    current_user: tuple = Depends(get_current_passenger_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    [DEPRECADO 2026-09-25] Solicitar un viaje legacy.
-
-    Asigna directo un chofer libre sin broadcast. Sin clientes reales.
-    Candidato a eliminar.
-    """
-
-    user_id, control_base_id, _, _ = current_user
-
-    if not control_base_id:
-        default_cb = await db.execute(text("SELECT id FROM tenant.control_base LIMIT 1"))
-        control_base_id = default_cb.scalar()
-        if not control_base_id:
-            raise HTTPException(status_code=400, detail="No hay empresa configurada")
-
-    driver_query = text("""
-        SELECT cv.id, cv.usuario_id, cv.vehiculo_id
-        FROM fleet.chofer_vehiculo cv
-        WHERE cv.control_base_id = :control_base_id
-          AND cv.estado_laboral = 'libre'
-          AND cv.activo = true
-        LIMIT 1
-    """)
-
-    driver_result = await db.execute(driver_query, {"control_base_id": control_base_id})
-    driver_row = driver_result.first()
-
-    if not driver_row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No hay conductores disponibles"
-        )
-
-    chofer_vehiculo_id = driver_row[0]
-    chofer_id = driver_row[1]
-    vehiculo_id = driver_row[2]
-
-    viaje_id = uuid_lib.uuid4()
-
-    insert_query = text("""
-        INSERT INTO trip.viaje_solicitado (
-            id, control_base_id, pasajero_id, chofer_id, vehiculo_id,
-            direccion_origen, direccion_destino,
-            estado, created_at
-        )
-        VALUES (
-            :id, :control_base_id, :pasajero_id, :chofer_id, :vehiculo_id,
-            :direccion_origen, :direccion_destino,
-            'pendiente', NOW()
-        )
-        RETURNING id
-    """)
-
-    await db.execute(insert_query, {
-        "id": viaje_id,
-        "control_base_id": control_base_id,
-        "pasajero_id": user_id,
-        "chofer_id": chofer_id,
-        "vehiculo_id": vehiculo_id,
-        "direccion_origen": request.direccion_origen,
-        "direccion_destino": request.direccion_destino
-    })
-
-    update_driver = text("""
-        UPDATE fleet.chofer_vehiculo
-        SET estado_laboral = 'ocupado'
-        WHERE id = :chofer_vehiculo_id
-    """)
-    await db.execute(update_driver, {"chofer_vehiculo_id": chofer_vehiculo_id})
-
-    await db.commit()
-
-    return SolicitarViajeResponse(
-        success=True,
-        viaje_id=viaje_id,
-        estado="pendiente",
-        mensaje="Viaje solicitado. Esperando confirmación del conductor.",
-        tiempo_estimado_segundos=None,
-        precio_estimado=None
-    )
-
-
-
-
+# Deuda G74: el endpoint POST /viajes/solicitar (legacy) fue eliminado.
+# Auditoria 2026-09-25: 0 clientes reales.
+# El endpoint publico equivalente es /viajes/public/solicitar.
+# ============================================
 
 
 # ============================================

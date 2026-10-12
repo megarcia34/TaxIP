@@ -191,39 +191,14 @@ class HistorialViajesResponse(BaseModel):
 
 
 # ============================================
-# SOLICITAR VIAJE
+# SOLICITAR VIAJE - ELIMINADO EN R16
 # ============================================
-
-class SolicitarViajeRequest(BaseModel):
-    """Solicitar un nuevo viaje"""
-    direccion_origen: str
-    direccion_destino: str
-    origen_lat: Optional[float] = None
-    origen_lng: Optional[float] = None
-    destino_lat: Optional[float] = None
-    destino_lng: Optional[float] = None
-    metodo_pago: str = "efectivo"
-    tipo_vehiculo: Optional[str] = "standard"
-    notas: Optional[str] = None
-    pasajero_nombre: Optional[str] = None
-    # M3: broadcast a choferes cercanos (default True)
-    usar_broadcast: bool = True
-
-    class Config:
-        from_attributes = True
-
-
-class SolicitarViajeResponse(BaseModel):
-    """Respuesta al solicitar un viaje"""
-    success: bool
-    viaje_id: UUID
-    estado: str
-    mensaje: str
-    tiempo_estimado_segundos: Optional[int] = None
-    precio_estimado: Optional[float] = None
-
-    class Config:
-        from_attributes = True
+# Deuda G74: SolicitarViajeRequest y SolicitarViajeResponse fueron
+# eliminados junto con el endpoint legacy POST /viajes/solicitar.
+# Auditoria 2026-09-25: 0 clientes reales.
+# El endpoint publico equivalente es /api/viajes/public/solicitar, que
+# usa SolicitarViajePublicoRequest y SolicitarViajePublicoResponse.
+# ============================================
 
 
 # ============================================
