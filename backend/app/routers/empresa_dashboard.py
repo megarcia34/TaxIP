@@ -787,7 +787,20 @@ async def registrar_pago_empresa(
         raise HTTPException(status_code=400, detail="El monto debe ser mayor a 0")
     
     # Validar método de pago
-    metodos_validos = ["transferencia", "efectivo", "tarjeta", "deposito", "otros"]
+    # R18: vocabulario de metodos de pago corporativos (empresa -> TaxIP).
+    # Distinto al vocabulario de viajes comunes (Momento 1).
+    # Incluye tarjeta_credito porque los viajes corporativos son de alto
+    # valor y la comision del 3.50% no afecta significativamente el margen.
+    metodos_validos = [
+        "efectivo",
+        "transferencia",
+        "tarjeta_debito",
+        "tarjeta_credito",
+        "deposito",
+        "cheque",
+        "otros",
+    ]
+
     if metodo_pago not in metodos_validos:
         raise HTTPException(status_code=400, detail=f"Método de pago inválido. Permitidos: {metodos_validos}")
     

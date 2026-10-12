@@ -407,6 +407,7 @@ class PagoEmpresa(Base):
         Index("idx_pago_empresa_fecha", "fecha_pago"),
         Index("idx_pago_empresa_empresa", "empresa_id"),
         Index("idx_pago_empresa_factura", "factura_id"),
+
         CheckConstraint(
             "estado IN ('pendiente', 'confirmado', 'rechazado', 'cancelado')",
             name="estado",
@@ -414,6 +415,11 @@ class PagoEmpresa(Base):
         CheckConstraint(
             "monto > 0",
             name="monto",
+        ),
+        CheckConstraint(
+            "metodo_pago IN ('efectivo', 'transferencia', 'tarjeta_debito', "
+            "'tarjeta_credito', 'deposito', 'cheque', 'otros')",
+            name="metodo_pago",
         ),
         {"schema": "payment"},
     )
