@@ -293,5 +293,23 @@ que se cierran. Las deudas nuevas se agregan en su seccion de prioridad.
 - **Bitacoras:** `E:\Taxip\app chofer\BITACORA_M1.md`, `M2`, `M3`.
 
 ---
+## Tocar Frontend
+
+### G63.frontend_propietario — NUEVA 2026-10-12
+
+Backend de G63 completo (contadores + audit + 2 endpoints), pero
+**falta el frontend del propietario**.
+
+El propietario debería ver en el dashboard:
+- Badge con total de fallbacks.
+- Listado de viajes afectados.
+- Detalle de cada fallback (precio estimado, motivo, fecha, vehículo).
+
+Sin frontend, el endpoint `/api/propietario/metricas/fallbacks` existe
+pero nadie lo consulta.
+
+**Accion:** agregar en ronda dedicada a frontend.
+
+**Tier 3.**
 
 **FIN DEL DOCUMENTO**
