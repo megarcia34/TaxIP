@@ -34,15 +34,6 @@ lineas.
 
 ## ALTA PRIORIDAD
 
-### G63 — Alerta si el motor de precios cae a fallback
-
-`precio_final` puede caer a `precio_estimado` si el motor unificado falla.
-Requiere infra de monitoreo (Sentry, Grafana o similar). Fase 2.
-
-### G67 — `check_out_turno` sin escapatoria si hay viajes huerfanos
-
-El chofer queda atrapado sin poder cerrar turno. Requiere decision de
-negocio: auto-cancelar huerfanos con motivo, o boton "forzar cierre".
 
 ### G80 — App apunta a Metro (no funciona fuera de WiFi dev)
 
@@ -308,8 +299,24 @@ El propietario debería ver en el dashboard:
 Sin frontend, el endpoint `/api/propietario/metricas/fallbacks` existe
 pero nadie lo consulta.
 
-**Accion:** agregar en ronda dedicada a frontend.
+### G67.frontend_chofer — NUEVA 2026-10-12
+
+Backend de G67 completo (2 endpoints + notificaciones), pero **falta el
+frontend del chofer** para que pueda usar la funcionalidad.
+
+El chofer debería ver en la app:
+- Mensaje al intentar cerrar turno con viajes huerfanos.
+- Pantalla con el listado de viajes huerfanos.
+- Modal para elegir motivo + notas al cerrar cada uno.
+- Habilitar el check-out normal una vez cerrados todos.
+
+Sin frontend, los endpoints existen pero el chofer no los usa (y queda
+atrapado igual que antes).
+
+**Accion:** agregar en ronda dedicada a frontend (app chofer).
 
 **Tier 3.**
+
+
 
 **FIN DEL DOCUMENTO**

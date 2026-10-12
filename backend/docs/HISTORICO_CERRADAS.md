@@ -10,7 +10,7 @@ migraciones y commits. NO contiene deuda pendiente.
 ---
 
 ## Indice
-
+- [Ronda 17 (2026-10-12)](#ronda-17-2026-10-12)
 - [Ronda 16 (2026-10-12)](#ronda-16-2026-10-12)
 - [Ronda 15 (2026-10-11)](#ronda-15-2026-10-11)
 - [Ronda 14 (2026-10-11)](#ronda-14-2026-10-11)
@@ -25,6 +25,63 @@ migraciones y commits. NO contiene deuda pendiente.
 - [Ronda 5 (2026-10-01)](#ronda-5-2026-10-01)
 
 ---
+## Ronda 17 (2026-10-12)
+
+**Objetivo:** cerrar deuda funcional de alta prioridad: G63 (alerta fallback
+de precios) y G67 (forzar cierre de turno con viajes huerfanos).
+
+**Resultado:**
+- **G63 - Alerta fallback de precios: CERRADO.**
+- **G67 - Forzar cierre de turno: CERRADO.**
+- **G80 - App apunta a Metro: POSTERGADO** (fuera de este repo).
+
+**Fixes aplicados:**
+
+1. **G63 - Alerta fallback de precios** (commit `9ad8fff`):
+   - Nuevo modulo `app/core/metrics.py` (contadores thread-safe en memoria).
+   - Integracion en `routes_lifecycle.py`:
+     - 3 contadores: `fallback.directions.persistidos`,
+       `fallback.directions.haversine`, `fallback.precio.motor_error`.
+     - Audit forense en `audit.log_acciones` con `accion='FALLBACK_PRECIO'`.
+   - Endpoint `GET /health/metrics` (super_admin).
+   - Endpoint `GET /api/propietario/metricas/fallbacks` (propietario).
+   - Documentacion: deuda `G63.frontend_propietario` (falta UI del dashboard).
+
+2. **G67 - Forzar cierre de turno con viajes huerfanos** (commit `dcb4bbe`):
+   - Schemas nuevos en `app/schemas/turno_schemas.py`:
+     - `MOTIVOS_FORZAR_CIERRE` (8 motivos).
+     - `ViajeHuerfanoInfo`, `ViajesHuerfanosResponse`.
+     - `CerrarViajeHuerfanoRequest`, `CerrarViajeHuerfanoResponse`.
+   - Metodo `forzar_cierre_viaje` en `TurnoService`:
+     - `aceptado` -> `cancelado` (sin cobro).
+     - `en_curso` -> `finalizado` (con precio_estimado).
+     - Auditoria en `audit.log_acciones` con `accion='FORZAR_CIERRE_VIAJE'`.
+     - Notificaciones al chofer y al propietario.
+   - Endpoints nuevos en `app/routers/chofer_turnos.py`:
+     - `GET /api/chofer/turno/viajes-huerfanos` (listado).
+     - `POST /api/chofer/turno/viajes-huerfanos/{viaje_id}/cerrar` (cierre).
+   - Modificacion del `check_out` para devolver error especifico con
+     instrucciones de como cerrar los huerfanos.
+   - Documentacion: deuda `G67.frontend_chofer` (falta UI del chofer).
+
+**Migraciones aplicadas:** ninguna (solo endpoints y logica).
+
+**Deudas cerradas en R17:**
+
+- `G63` - Alerta fallback de precios.
+- `G67` - Forzar cierre de turno con viajes huerfanos.
+
+**Deudas nuevas identificadas en R17:**
+
+- `G63.frontend_propietario` (falta UI del dashboard del propietario).
+- `G67.frontend_chofer` (falta UI del chofer).
+
+**Commits de la ronda:** `9ad8fff`, `dcb4bbe`.
+
+**Tag:** `ronda17-fase17-completa`.
+
+---
+
 
 ## Ronda 16 (2026-10-12)
 
