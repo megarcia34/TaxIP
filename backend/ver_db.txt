@@ -1,3 +1,96 @@
+                                          Tabla ½fleet.chofer_vehiculo╗
+        Columna        |            Tipo             | Ordenamiento | Nulable  |             Por omisi¾n
+-----------------------+-----------------------------+--------------+----------+-------------------------------------
+ id                    | uuid                        |              | not null | gen_random_uuid()
+ usuario_id            | uuid                        |              | not null |
+ vehiculo_id           | uuid                        |              |          |
+ control_base_id       | uuid                        |              | not null |
+ latitud               | numeric(10,8)               |              |          |
+ longitud              | numeric(11,8)               |              |          |
+ ubicacion             | geography(Point,4326)       |              |          |
+ estado_laboral        | character varying(20)       |              |          | 'fuera_servicio'::character varying
+ estado_panico         | boolean                     |              |          | false
+ calificacion_promedio | numeric(3,2)                |              |          | 5.0
+ total_calificaciones  | integer                     |              |          | 0
+ ultima_conexion       | timestamp without time zone |              |          | now()
+ activo                | boolean                     |              |          | true
+ created_at            | timestamp without time zone |              |          | now()
+ updated_at            | timestamp without time zone |              |          | now()
+ estado_aprobacion     | character varying(20)       |              |          | 'pendiente'::character varying
+ total_viajes          | integer                     |              |          | 0
+═ndices:
+    "chofer_vehiculo_pkey" PRIMARY KEY, btree (id)
+    "idx_chofer_vehiculo_ubicacion" gist (ubicacion)
+Restricciones CHECK:
+    "ck_chofer_vehiculo_chk_estado_aprobacion" CHECK (estado_aprobacion::text = ANY (ARRAY['pendiente'::character varying, 'en_revision'::character varying, 'aprobado'::character varying, 'rechazado'::character varying]::text[]))
+Restricciones de llave forßnea:
+    "fk_chofer_vehiculo_control_base_id" FOREIGN KEY (control_base_id) REFERENCES tenant.control_base(id)
+    "fk_chofer_vehiculo_usuario_id" FOREIGN KEY (usuario_id) REFERENCES auth.usuario(id) ON DELETE CASCADE
+    "fk_chofer_vehiculo_vehiculo_id" FOREIGN KEY (vehiculo_id) REFERENCES fleet.vehiculo(id) ON DELETE CASCADE
+Referenciada por:
+    TABLE "trip.viaje_solicitado" CONSTRAINT "fk_viaje_solicitado_chofer_vehiculo" FOREIGN KEY (chofer_vehiculo_id) REFERENCES fleet.chofer_vehiculo(id) ON DELETE SET NULL
+
+
+(venv) PS D:\aTaxip\backend>
+(venv) PS D:\aTaxip\backend> pyrthon ver_db.py
+pyrthon : El término 'pyrthon' no se reconoce como nombre de un cmdlet, función, archivo de script o programa
+ejecutable. Compruebe si escribió correctamente el nombre o, si incluyó una ruta de acceso, compruebe que dicha ruta
+es correcta e inténtelo de nuevo.
+En línea: 1 Carácter: 1
++ pyrthon ver_db.py
++ ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (pyrthon:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+(venv) PS D:\aTaxip\backend> dir
+
+
+    Directorio: D:\aTaxip\backend
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         25/8/2026     18:19                .pytest_cache
+d-----         30/9/2026     09:01                app
+d-----        13/10/2026     16:38                docs
+d-----         23/9/2026     08:30                logs
+d-----         25/8/2026     21:58                migrations
+d-----         6/10/2026     20:10                scripts
+d-----         25/8/2026     11:59                uploads
+d-----         25/8/2026     12:08                venv
+d-----        11/10/2026     19:42                __pycache__
+-a----         17/9/2026     18:50           3153 .env
+-a----         24/8/2026     09:46           3152 .env.dev
+-a----         30/9/2026     07:42            799 .env.example.txt
+-a----         4/10/2026     19:20            251 .gitignore
+-a----          1/9/2026     19:05              0 236d0eeac9d3_modulo1_fundacion_autenticacion.py
+-a----         21/7/2026     18:33            783 alembic.ini
+-a----          9/9/2026     19:54            415 buscar_choferes.py
+-a----          9/9/2026     18:03            991 config.json
+-a----         16/9/2026     19:53           3925 diagnostico-openapi.log
+-a----        13/10/2026     08:11        4477526 docs_backup_20261013_081144.zip
+-a----         12/9/2026     09:26           1955 limpiar_duplicados.py
+-a----          7/9/2026     20:24          16775 Pendiente no prioritario Módulo Objetos Olvidados.docx
+-a----          7/9/2026     19:35          20247 PENDIENTE NO PRIORITARIO.docx
+-a----          2/9/2026     07:48            612 python verificar_estado.py
+-a----          9/9/2026     17:55          31174 python verificar_estado_consolidado.py --config config.json
+-a----          8/6/2026     09:21           1071 readme.md
+-a----         20/8/2026     19:43            466 requirements.txt
+-a----        11/10/2026     19:41            983 run.py
+-a----         16/9/2026     19:59           5218 schemas-m3.log
+-a----         21/9/2026     19:44        2568374 server.log
+-a----          2/9/2026     07:40           1312 subir_documentos.py
+-a----          2/9/2026     07:44            772 subir_selfie.py
+-a----          2/9/2026     07:42            731 subir_selfie.txt
+-a----          2/9/2026     07:38            835 test_upload.py
+-a----         31/8/2026     23:13           5859 ver_db.py
+-a----         25/9/2026     07:58          98800 ver_db.txt
+-a----         17/9/2026     20:04         110244 _scan_viaje_campos.txt
+
+
+(venv) PS D:\aTaxip\backend> python ver_db.py
+🔌 Conectando a: postgresql://postgres:***@localhost:5432/taxip_db
+✅ Conexión exitosa!
 ================================================================================
 🔍 DIAGNÓSTICO COMPLETO DE BASE DE DATOS (REAL)
 ================================================================================
@@ -58,7 +151,7 @@
       usuario_id                | uuid                 | NOT NULL
       latitud                   | numeric              | NOT NULL
       longitud                  | numeric              | NOT NULL
-      timestamp                 | timestamp without time zone | NULL DEFAULT now()
+      created_at                | timestamp without time zone | NULL DEFAULT now()
 
 📌 SCHEMA: auth
 ------------------------------------------------------------
@@ -99,22 +192,6 @@
       propietario_id            | uuid                 | NOT NULL
       created_at                | timestamp with time zone | NOT NULL DEFAULT now()
 
-   📍 TABLA: codigo_metadatos_backup_20260921
-      id                        | uuid                 | NULL
-      codigo_id                 | uuid                 | NULL
-      contrato_id               | uuid                 | NULL
-      vehiculo_id               | uuid                 | NULL
-      propietario_id            | uuid                 | NULL
-      created_at                | timestamp with time zone | NULL
-
-   📍 TABLA: codigo_metadatos_backup_20260922
-      id                        | uuid                 | NULL
-      codigo_id                 | uuid                 | NULL
-      contrato_id               | uuid                 | NULL
-      vehiculo_id               | uuid                 | NULL
-      propietario_id            | uuid                 | NULL
-      created_at                | timestamp with time zone | NULL
-
    📍 TABLA: codigo_verificacion
       id                        | uuid                 | NOT NULL DEFAULT gen_random_uuid()
       usuario_id                | uuid                 | NOT NULL
@@ -124,28 +201,6 @@
       intentos                  | integer              | NOT NULL DEFAULT 0
       creado_en                 | timestamp with time zone | NOT NULL DEFAULT now()
       expira_en                 | timestamp with time zone | NOT NULL
-      metadata                  | jsonb                | NULL
-
-   📍 TABLA: codigo_verificacion_backup_megarcia_20260921
-      id                        | uuid                 | NULL
-      usuario_id                | uuid                 | NULL
-      codigo                    | character varying    | NULL
-      tipo                      | character varying    | NULL
-      usado                     | boolean              | NULL
-      intentos                  | integer              | NULL
-      creado_en                 | timestamp with time zone | NULL
-      expira_en                 | timestamp with time zone | NULL
-      metadata                  | jsonb                | NULL
-
-   📍 TABLA: codigo_verificacion_backup_megarcia_20260922
-      id                        | uuid                 | NULL
-      usuario_id                | uuid                 | NULL
-      codigo                    | character varying    | NULL
-      tipo                      | character varying    | NULL
-      usado                     | boolean              | NULL
-      intentos                  | integer              | NULL
-      creado_en                 | timestamp with time zone | NULL
-      expira_en                 | timestamp with time zone | NULL
       metadata                  | jsonb                | NULL
 
    📍 TABLA: direccion_frecuente
@@ -274,7 +329,6 @@
       fecha_fin                 | date                 | NULL
       created_at                | timestamp without time zone | NOT NULL DEFAULT now()
       updated_at                | timestamp without time zone | NOT NULL DEFAULT now()
-      control_base_id           | uuid                 | NULL
 
 📌 SCHEMA: comunicacion
 ------------------------------------------------------------
@@ -1355,151 +1409,150 @@
 🔗 RELACIONES (FOREIGN KEYS)
 ================================================================================
    audit.alerta_desvio.viaje_id → trip.viaje_solicitado.id
-   audit.log_acciones.control_base_id → tenant.control_base.id
    audit.log_acciones.usuario_id → auth.usuario.id
+   audit.log_acciones.control_base_id → tenant.control_base.id
    audit.log_gps.viaje_id → trip.viaje_solicitado.id
    audit.log_gps.usuario_id → auth.usuario.id
-   auth.autorizacion_inicio.contrato_id → fleet.contrato_vehiculo.id
    auth.autorizacion_inicio.created_by → auth.usuario.id
-   auth.autorizacion_inicio.control_base_id → tenant.control_base.id
-   auth.autorizacion_inicio.vehiculo_id → fleet.vehiculo.id
+   auth.autorizacion_inicio.contrato_id → fleet.contrato_vehiculo.id
    auth.autorizacion_inicio.chofer_id → auth.usuario.id
-   auth.codigo_metadatos.vehiculo_id → fleet.vehiculo.id
+   auth.autorizacion_inicio.vehiculo_id → fleet.vehiculo.id
+   auth.autorizacion_inicio.control_base_id → tenant.control_base.id
    auth.codigo_metadatos.propietario_id → auth.usuario.id
    auth.codigo_metadatos.codigo_id → auth.codigo_verificacion.id
    auth.codigo_metadatos.contrato_id → fleet.contrato_vehiculo.id
+   auth.codigo_metadatos.vehiculo_id → fleet.vehiculo.id
    auth.codigo_verificacion.usuario_id → auth.usuario.id
    auth.direccion_frecuente.usuario_id → auth.usuario.id
-   auth.perfil_general.usuario_id → auth.usuario.id
    auth.perfil_general.ciudad_id → geo.ciudad.id
+   auth.perfil_general.usuario_id → auth.usuario.id
    auth.plantilla_viaje.empresa_id → tenant.empresa.id
    auth.plantilla_viaje.usuario_id → auth.usuario.id
    auth.refresh_token.usuario_id → auth.usuario.id
    auth.reset_token.usuario_id → auth.usuario.id
-   auth.taxista_favorito.chofer_id → auth.usuario.id
    auth.taxista_favorito.pasajero_id → auth.usuario.id
-   auth.turno_empleado.empresa_id → tenant.empresa.id
+   auth.taxista_favorito.chofer_id → auth.usuario.id
    auth.turno_empleado.empleado_id → auth.usuario.id
+   auth.turno_empleado.empresa_id → tenant.empresa.id
    auth.usuario.tipo_usuario_id → auth.tipo_usuario.id
-   auth.usuario.suspendido_por → auth.usuario.id
    auth.usuario.control_base_id → tenant.control_base.id
-   auth.usuario_empresa.empresa_id → tenant.empresa.id
+   auth.usuario.suspendido_por → auth.usuario.id
    auth.usuario_empresa.usuario_id → auth.usuario.id
-   auth.usuario_rol.control_base_id → tenant.control_base.id
-   auth.usuario_rol.usuario_id → auth.usuario.id
+   auth.usuario_empresa.empresa_id → tenant.empresa.id
    auth.usuario_rol.tipo_usuario_id → auth.tipo_usuario.id
+   auth.usuario_rol.usuario_id → auth.usuario.id
    comunicacion.conversacion.participante_1 → auth.usuario.id
    comunicacion.conversacion.participante_2 → auth.usuario.id
    comunicacion.email_enviado.usuario_id → auth.usuario.id
-   comunicacion.mensaje.remitente_id → auth.usuario.id
-   comunicacion.mensaje.viaje_id → trip.viaje_solicitado.id
    comunicacion.mensaje.conversacion_id → comunicacion.conversacion.id
+   comunicacion.mensaje.viaje_id → trip.viaje_solicitado.id
+   comunicacion.mensaje.remitente_id → auth.usuario.id
    corporate.cuenta_corriente.propietario_id → auth.usuario.id
    corporate.cuenta_corriente.empresa_id → tenant.empresa.id
    corporate.factura_corporativa.empresa_id → tenant.empresa.id
+   corporate.movimiento_cuenta.viaje_id → trip.viaje_solicitado.id
    corporate.movimiento_cuenta.created_by → auth.usuario.id
    corporate.movimiento_cuenta.cuenta_id → corporate.cuenta_corriente.id
-   corporate.movimiento_cuenta.viaje_id → trip.viaje_solicitado.id
-   corporate.pago_corporativo.movimiento_cc_id → corporate.movimiento_cuenta.id
-   corporate.pago_corporativo.confirmado_por → auth.usuario.id
-   corporate.pago_corporativo.factura_id → corporate.factura_corporativa.id
    corporate.pago_corporativo.empresa_id → tenant.empresa.id
+   corporate.pago_corporativo.factura_id → corporate.factura_corporativa.id
+   corporate.pago_corporativo.confirmado_por → auth.usuario.id
+   corporate.pago_corporativo.movimiento_cc_id → corporate.movimiento_cuenta.id
    fleet.categoria_gasto.control_base_id → tenant.control_base.id
    fleet.chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.chofer_vehiculo.control_base_id → tenant.control_base.id
    fleet.chofer_vehiculo.usuario_id → auth.usuario.id
-   fleet.contrato_qr.contrato_id → fleet.contrato_vehiculo.id
    fleet.contrato_qr.created_by → auth.usuario.id
-   fleet.contrato_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.contrato_qr.contrato_id → fleet.contrato_vehiculo.id
    fleet.contrato_vehiculo.chofer_id → auth.usuario.id
    fleet.contrato_vehiculo.control_base_id → tenant.control_base.id
    fleet.contrato_vehiculo.propietario_id → auth.usuario.id
+   fleet.contrato_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.documento_propietario.propietario_id → auth.usuario.id
    fleet.documento_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.documentos_chofer.usuario_id → auth.usuario.id
-   fleet.foto_vehiculo.subida_por → auth.usuario.id
    fleet.foto_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.foto_vehiculo.subida_por → auth.usuario.id
    fleet.gasto_turno.turno_id → fleet.turno_chofer.id
    fleet.gasto_turno.categoria_id → fleet.categoria_gasto.id
    fleet.gasto_vehiculo.propietario_id → auth.usuario.id
-   fleet.gasto_vehiculo.categoria_id → fleet.categoria_gasto.id
    fleet.gasto_vehiculo.vehiculo_id → fleet.vehiculo.id
-   fleet.historial_chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.gasto_vehiculo.categoria_id → fleet.categoria_gasto.id
    fleet.historial_chofer_vehiculo.chofer_id → auth.usuario.id
+   fleet.historial_chofer_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.ingreso_turno.viaje_id → trip.viaje_solicitado.id
-   fleet.ingreso_turno.turno_id → fleet.turno_chofer.id
    fleet.ingreso_turno.transaccion_id → payment.transaccion.id
+   fleet.ingreso_turno.turno_id → fleet.turno_chofer.id
    fleet.ingreso_turno.declarado_por → auth.usuario.id
    fleet.liquidacion.contrato_id → fleet.contrato_vehiculo.id
-   fleet.liquidacion.chofer_id → auth.usuario.id
-   fleet.liquidacion.propietario_id → auth.usuario.id
+   fleet.liquidacion.aprobada_por → auth.usuario.id
    fleet.liquidacion.rechazada_por → auth.usuario.id
    fleet.liquidacion.pagada_por → auth.usuario.id
-   fleet.liquidacion.aprobada_por → auth.usuario.id
    fleet.liquidacion.control_base_id → tenant.control_base.id
    fleet.liquidacion.turno_id → fleet.turno_chofer.id
    fleet.liquidacion.vehiculo_id → fleet.vehiculo.id
-   fleet.liquidacion_ajuste.usuario_id → auth.usuario.id
+   fleet.liquidacion.chofer_id → auth.usuario.id
+   fleet.liquidacion.propietario_id → auth.usuario.id
    fleet.liquidacion_ajuste.control_base_id → tenant.control_base.id
+   fleet.liquidacion_ajuste.usuario_id → auth.usuario.id
    fleet.liquidacion_ajuste.liquidacion_id → fleet.liquidacion.id
    fleet.liquidacion_detalle.liquidacion_id → fleet.liquidacion.id
    fleet.liquidacion_estado_historial.cambiado_por → auth.usuario.id
-   fleet.liquidacion_estado_historial.liquidacion_id → fleet.liquidacion.id
    fleet.liquidacion_estado_historial.control_base_id → tenant.control_base.id
+   fleet.liquidacion_estado_historial.liquidacion_id → fleet.liquidacion.id
    fleet.mantenimiento_vehiculo.propietario_id → auth.usuario.id
    fleet.mantenimiento_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.modelo.marca_id → fleet.marca.id
-   fleet.neumatico_historial_posicion.control_base_id → tenant.control_base.id
+   fleet.neumatico_historial_posicion.operacion_id → fleet.neumatico_operacion.id
    fleet.neumatico_historial_posicion.vehiculo_id → fleet.vehiculo.id
    fleet.neumatico_historial_posicion.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
-   fleet.neumatico_historial_posicion.operacion_id → fleet.neumatico_operacion.id
+   fleet.neumatico_historial_posicion.control_base_id → tenant.control_base.id
+   fleet.neumatico_imagen.control_base_id → tenant.control_base.id
    fleet.neumatico_imagen.subido_por → auth.usuario.id
    fleet.neumatico_imagen.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
-   fleet.neumatico_imagen.control_base_id → tenant.control_base.id
    fleet.neumatico_imagen.operacion_id → fleet.neumatico_operacion.id
-   fleet.neumatico_medicion.historial_posicion_id → fleet.neumatico_historial_posicion.id
    fleet.neumatico_medicion.medido_por → auth.usuario.id
    fleet.neumatico_medicion.control_base_id → tenant.control_base.id
-   fleet.neumatico_operacion.creado_por → auth.usuario.id
-   fleet.neumatico_operacion.control_base_id → tenant.control_base.id
+   fleet.neumatico_medicion.historial_posicion_id → fleet.neumatico_historial_posicion.id
    fleet.neumatico_operacion.vehiculo_id → fleet.vehiculo.id
-   fleet.neumatico_operacion_detalle.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
+   fleet.neumatico_operacion.control_base_id → tenant.control_base.id
+   fleet.neumatico_operacion.creado_por → auth.usuario.id
    fleet.neumatico_operacion_detalle.operacion_id → fleet.neumatico_operacion.id
-   fleet.neumatico_sugerencia.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
-   fleet.neumatico_sugerencia.atendida_por → auth.usuario.id
-   fleet.neumatico_sugerencia.vehiculo_id → fleet.vehiculo.id
+   fleet.neumatico_operacion_detalle.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
    fleet.neumatico_sugerencia.control_base_id → tenant.control_base.id
-   fleet.neumatico_vehiculo.control_base_id → tenant.control_base.id
+   fleet.neumatico_sugerencia.atendida_por → auth.usuario.id
+   fleet.neumatico_sugerencia.neumatico_vehiculo_id → fleet.neumatico_vehiculo.id
+   fleet.neumatico_sugerencia.vehiculo_id → fleet.vehiculo.id
    fleet.neumatico_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.neumatico_vehiculo.control_base_id → tenant.control_base.id
    fleet.notificacion_vencimiento.propietario_id → auth.usuario.id
-   fleet.propietario_vehiculo.propietario_id → auth.usuario.id
    fleet.propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
+   fleet.propietario_vehiculo.propietario_id → auth.usuario.id
    fleet.relacion_propietario_vehiculo.vehiculo_id → fleet.vehiculo.id
    fleet.relacion_propietario_vehiculo.propietario_id → auth.usuario.id
-   fleet.turno_chofer.chofer_id → auth.usuario.id
    fleet.turno_chofer.contrato_id → fleet.contrato_vehiculo.id
    fleet.turno_chofer.vehiculo_id → fleet.vehiculo.id
+   fleet.turno_chofer.chofer_id → auth.usuario.id
    fleet.vehiculo.control_base_id → tenant.control_base.id
    geo.ciudad.provincia_id → geo.provincia.id
    geo.provincia.pais_id → geo.pais.id
    notification.notificacion.usuario_id → auth.usuario.id
    payment.billetera.usuario_id → auth.usuario.id
    payment.configuracion_tarifa.control_base_id → tenant.control_base.id
-   payment.configuracion_tarifa_vehiculo.configuracion_tarifa_id → payment.configuracion_tarifa.id
    payment.configuracion_tarifa_vehiculo.tipo_vehiculo_id → trip.tipo_vehiculo.id
+   payment.configuracion_tarifa_vehiculo.configuracion_tarifa_id → payment.configuracion_tarifa.id
    payment.factura_empresa.empresa_id → tenant.empresa.id
    payment.pago_empresa.empresa_id → tenant.empresa.id
-   payment.pago_empresa.factura_id → payment.factura_empresa.id
    payment.pago_empresa.confirmado_por → auth.usuario.id
+   payment.pago_empresa.factura_id → payment.factura_empresa.id
    payment.qr_cobro.viaje_id → trip.viaje_solicitado.id
    payment.transaccion.billetera_id → payment.billetera.id
    payment.transaccion.metodo_pago_id → payment.metodo_pago.id
    payment.transaccion.viaje_id → trip.viaje_solicitado.id
    public.comercio.control_base_id → tenant.control_base.id
-   public.escaneo_qr.autorizacion_id → auth.autorizacion_inicio.id
-   public.escaneo_qr.viaje_id → trip.viaje_solicitado.id
-   public.escaneo_qr.comercio_id → public.comercio.id
    public.escaneo_qr.contrato_id → fleet.contrato_vehiculo.id
+   public.escaneo_qr.autorizacion_id → auth.autorizacion_inicio.id
+   public.escaneo_qr.comercio_id → public.comercio.id
+   public.escaneo_qr.viaje_id → trip.viaje_solicitado.id
    rentabilidad.analisis_medios_pago.vehiculo_id → fleet.vehiculo.id
    rentabilidad.rentabilidad_diaria_vehiculo.vehiculo_id → fleet.vehiculo.id
    rentabilidad.rentabilidad_mensual_vehiculo.vehiculo_id → fleet.vehiculo.id
@@ -1508,34 +1561,34 @@
    tenant.control_base.ciudad_id → geo.ciudad.id
    tenant.empresa.suspendido_por → auth.usuario.id
    tenant.empresa.control_base_id → tenant.control_base.id
-   tenant.factura.control_base_id → tenant.control_base.id
    tenant.factura.pagada_por → auth.usuario.id
-   trip.broadcast_log.chofer_id → auth.usuario.id
+   tenant.factura.control_base_id → tenant.control_base.id
    trip.broadcast_log.viaje_id → trip.viaje_solicitado.id
    trip.broadcast_log.vehiculo_id → fleet.vehiculo.id
-   trip.calificacion.viaje_id → trip.viaje_solicitado.id
+   trip.broadcast_log.chofer_id → auth.usuario.id
    trip.calificacion.calificado_id → auth.usuario.id
+   trip.calificacion.viaje_id → trip.viaje_solicitado.id
    trip.calificacion.calificador_id → auth.usuario.id
    trip.foto_viaje.viaje_id → trip.viaje_solicitado.id
    trip.foto_viaje.usuario_id → auth.usuario.id
    trip.historial_estado_viaje.viaje_id → trip.viaje_solicitado.id
-   trip.objeto_olvidado.viaje_id → trip.viaje_solicitado.id
    trip.objeto_olvidado.pasajero_id → auth.usuario.id
    trip.objeto_olvidado.chofer_id → auth.usuario.id
+   trip.objeto_olvidado.viaje_id → trip.viaje_solicitado.id
    trip.panico.viaje_id → trip.viaje_solicitado.id
    trip.panico.usuario_id → auth.usuario.id
-   trip.viaje_solicitado.control_base_id → tenant.control_base.id
-   trip.viaje_solicitado.chofer_vehiculo_id → fleet.chofer_vehiculo.id
+   trip.viaje_solicitado.empleado_id → auth.usuario.id
+   trip.viaje_solicitado.chofer_id → auth.usuario.id
+   trip.viaje_solicitado.comercio_id → public.comercio.id
    trip.viaje_solicitado.turno_id → fleet.turno_chofer.id
+   trip.viaje_solicitado.chofer_vehiculo_id → fleet.chofer_vehiculo.id
+   trip.viaje_solicitado.control_base_id → tenant.control_base.id
+   trip.viaje_solicitado.pasajero_id → auth.usuario.id
+   trip.viaje_solicitado.vehiculo_id → fleet.vehiculo.id
    trip.viaje_solicitado.movimiento_cc_id → corporate.movimiento_cuenta.id
    trip.viaje_solicitado.cuenta_corriente_id → corporate.cuenta_corriente.id
    trip.viaje_solicitado.empresa_id → tenant.empresa.id
    trip.viaje_solicitado.turno_empleado_id → auth.turno_empleado.id
-   trip.viaje_solicitado.empleado_id → auth.usuario.id
-   trip.viaje_solicitado.chofer_id → auth.usuario.id
-   trip.viaje_solicitado.pasajero_id → auth.usuario.id
-   trip.viaje_solicitado.vehiculo_id → fleet.vehiculo.id
-   trip.viaje_solicitado.comercio_id → public.comercio.id
 
 ================================================================================
 🏷️ ENUMS
