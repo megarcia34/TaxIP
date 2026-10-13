@@ -435,7 +435,7 @@ async def listar_choferes_pendientes(
         FROM fleet.chofer_vehiculo cv
         JOIN auth.usuario u ON u.id = cv.usuario_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
-        JOIN fleet.vehiculo v ON v.id = cv.vehiculo_id
+        LEFT JOIN fleet.vehiculo v ON v.id = cv.vehiculo_id
         WHERE cv.control_base_id = :control_base_id
           AND cv.estado_aprobacion = 'pendiente'
         ORDER BY cv.created_at ASC
@@ -457,7 +457,7 @@ async def listar_choferes_pendientes(
                 "marca": row[7],
                 "modelo": row[8],
                 "anio": row[9]
-            },
+            } if row[6] is not None else None,
             "fecha_registro": row[10]
         }
         for row in rows
