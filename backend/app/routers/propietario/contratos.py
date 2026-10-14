@@ -82,14 +82,14 @@ async def crear_contrato(
         raise HTTPException(status_code=404, detail="Propietario no encontrado o inactivo")
     
     # 2. Validar propiedad del vehículo
-    es_valido, mensaje = await verificar_propiedad_vehiculo(
+    es_valido, mensaje, status_code = await verificar_propiedad_vehiculo(
         data.vehiculo_id,
         propietario_id,
         control_base_id,
         db
     )
     if not es_valido:
-        raise HTTPException(status_code=404, detail=mensaje)
+        raise HTTPException(status_code=status_code or 400, detail=mensaje)
     
     # 3. Validar chofer
     es_valido, mensaje = await verificar_chofer_valido(
@@ -396,14 +396,14 @@ async def configurar_contrato(
     chofer_id = row[1]
     
     # 3a. Validar propiedad del vehículo
-    es_valido, mensaje = await verificar_propiedad_vehiculo(
+    es_valido, mensaje, status_code = await verificar_propiedad_vehiculo(
         vehiculo_id,
         propietario_id,
         control_base_id,
         db
     )
     if not es_valido:
-        raise HTTPException(status_code=404, detail=f"Vehículo ya no es válido: {mensaje}")
+        raise HTTPException(status_code=status_code or 400, detail=mensaje)
     
     # 3b. Validar chofer
     es_valido, mensaje = await verificar_chofer_valido(

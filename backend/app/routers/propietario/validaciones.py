@@ -281,16 +281,15 @@ def validar_dias_contractuales(
 # ============================================
 # 6. VALIDACIÓN DE PROPIEDAD DEL VEHÍCULO
 # ============================================
-
 async def verificar_propiedad_vehiculo(
     vehiculo_id: UUID,
     propietario_id: UUID,
     control_base_id: UUID,
     db: AsyncSession
-) -> Tuple[bool, Optional[str]]:
-    """Verifica que el vehículo pertenece al propietario y tenant correctos"""
+) -> Tuple[bool, Optional[str], Optional[int]]:
+    """Verifica que el vehiculo pertenece al propietario, al tenant correcto y esta aprobado"""
     query = text("""
-        SELECT pv.id, v.activo
+        SELECT pv.id, v.activo, v.estado_aprobacion, v.patente
         FROM fleet.propietario_vehiculo pv
         JOIN fleet.vehiculo v ON v.id = pv.vehiculo_id
         WHERE pv.vehiculo_id = :vehiculo_id
@@ -306,11 +305,22 @@ async def verificar_propiedad_vehiculo(
         "control_base_id": control_base_id
     })
     row = result.first()
-    
+
     if not row:
-        return False, "El vehículo no pertenece al propietario o no está activo"
-    
-    return True, None
+        return False, "El vehiculo no pertenece al propietario o no esta activo", 404
+
+    # Validar que el vehiculo este aprobado por el tenant
+    estado_aprobacion = row[2]
+    patente = row[3]
+
+    if estado_aprobacion != 'aprobado':
+        return False, (
+            f"El vehiculo {patente} no esta aprobado por el tenant "
+            f"(estado actual: {estado_aprobacion}). No se puede crear el contrato "
+            f"hasta que sea aprobado."
+        ), 400
+
+    return True, None, None
 
 
 # ============================================
