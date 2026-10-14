@@ -1060,3 +1060,69 @@ class GraficoIngresosGastosResponse(BaseModel):
     ingresos: List[float]
     gastos: List[float]
     utilidad: List[float]
+
+
+
+# ============================================
+# PERFIL DEL PROPIETARIO
+# ============================================
+
+class PerfilPropietarioUpdate(BaseModel):
+    """Actualizacion de perfil del propietario (todos los campos opcionales)."""
+    nombre: Optional[str] = Field(None, min_length=1, max_length=100)
+    apellido: Optional[str] = Field(None, min_length=1, max_length=100)
+    telefono: Optional[str] = Field(None, min_length=5, max_length=50)
+    documento: Optional[str] = Field(None, min_length=5, max_length=50)
+    direccion: Optional[str] = Field(None, max_length=500)
+    ciudad_id: Optional[UUID] = None
+    codigo_postal: Optional[str] = Field(None, max_length=20)
+    fecha_nacimiento: Optional[date] = None
+    foto_perfil_url: Optional[str] = Field(None, max_length=500)
+    cuit_cuil: Optional[str] = Field(None, min_length=11, max_length=11, pattern=r"^\d{11}$")
+    condicion_impositiva: Optional[Literal[
+        "responsable_inscripto",
+        "monotributo",
+        "exento",
+        "consumidor_final",
+        "no_categorizado",
+    ]] = None
+
+
+# ============================================
+# CUENTAS DE COBRO
+# ============================================
+
+class CuentaCobroCreate(BaseModel):
+    """Creacion de cuenta de cobro."""
+    tipo: Literal["cbu", "cvu"]
+    numero: str = Field(..., min_length=22, max_length=22, pattern=r"^\d{22}$")
+    alias: Optional[str] = Field(None, max_length=50)
+    banco: str = Field(..., min_length=2, max_length=100)
+    titular: Optional[str] = Field(None, max_length=200)
+
+
+class CuentaCobroUpdate(BaseModel):
+    """Actualizacion de cuenta de cobro (todos los campos opcionales)."""
+    tipo: Optional[Literal["cbu", "cvu"]] = None
+    numero: Optional[str] = Field(None, min_length=22, max_length=22, pattern=r"^\d{22}$")
+    alias: Optional[str] = Field(None, max_length=50)
+    banco: Optional[str] = Field(None, min_length=2, max_length=100)
+    titular: Optional[str] = Field(None, max_length=200)
+
+
+class CuentaCobroResponse(BaseModel):
+    """Respuesta de cuenta de cobro."""
+    id: UUID
+    usuario_id: UUID
+    tipo: str
+    numero: str
+    alias: Optional[str]
+    banco: str
+    titular: Optional[str]
+    predeterminada: bool
+    activo: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
