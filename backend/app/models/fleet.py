@@ -37,6 +37,10 @@ class Vehiculo(Base):
             "capacidad_baul IN ('sin_baul', 'baul_chico', 'baul_mediano', 'baul_grande', 'van_carga')",
             name="ck_vehiculo_capacidad_baul"
         ),
+        CheckConstraint(
+            "estado_aprobacion IN ('pendiente', 'en_revision', 'aprobado', 'rechazado')",
+            name="estado_aprobacion"
+        ),
         {"schema": "fleet"},
     )
 
@@ -125,6 +129,69 @@ class Vehiculo(Base):
         comment="cantidad de parches",
     )
 
+    # ============================================================
+    # COLUMNAS AGREGADAS EN R19 (aprobacion y ciclo de vida)
+    # ============================================================
+    estado_aprobacion: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        server_default="pendiente",
+        doc="Estado de aprobacion del vehiculo por el tenant",
+    )
+    documentacion_completa: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default="false",
+        doc="True cuando estan cargados los 4 documentos obligatorios",
+    )
+    fecha_vencimiento_taxi: Mapped[Optional[date]] = mapped_column(
+        Date,
+        nullable=True,
+        doc="Fecha de vencimiento del taxi por antiguedad maxima",
+    )
+    override_antiguedad: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default="false",
+        doc="True si el tenant aprobo por excepcion un vehiculo vencido",
+    )
+    en_revision_desde: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        doc="Inicio del plazo de revision tras cambio de documentos",
+    )
+    en_revision_expira_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        doc="Fin del plazo de revision; si vence, se bloquea el vehiculo",
+    )
+    aprobado_por: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=True,
+        doc="Admin del tenant que aprobo el vehiculo",
+    )
+    aprobado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        doc="Fecha y hora de aprobacion",
+    )
+    rechazado_por: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=True,
+        doc="Admin del tenant que rechazo el vehiculo",
+    )
+    rechazado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        doc="Fecha y hora de rechazo",
+    )
+    motivo_rechazo: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        doc="Motivo del rechazo del vehiculo",
+    )
 
     control_base: Mapped["ControlBase"] = relationship(
         "ControlBase",

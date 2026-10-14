@@ -1,9 +1,9 @@
 {
   "meta": {
-    "capturado_en": "2026-10-12T22:25:11.067263+00:00",
+    "capturado_en": "2026-10-14T01:53:56.058678+00:00",
     "postgres_version": "PostgreSQL 17.0 on x86_64-windows, compiled by msvc-19.41.34120, 64-bit",
     "postgis_version": "3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
-    "alembic_head": "m3_020",
+    "alembic_head": "m3_021",
     "schemas_incluidos": [
       "audit",
       "auth",
@@ -22,9 +22,9 @@
     "stats": {
       "total_schemas": 12,
       "total_tables": 90,
-      "total_columns": 1064,
+      "total_columns": 1077,
       "total_indexes": 285,
-      "total_constraints": 792
+      "total_constraints": 802
     }
   },
   "schemas": {
@@ -14591,6 +14591,138 @@
               "numeric_scale": null,
               "datetime_precision": null,
               "comment": null
+            },
+            "estado_aprobacion": {
+              "ordinal": 22,
+              "type": "character varying(20)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": "'pendiente'::character varying",
+              "character_maximum_length": 20,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "documentacion_completa": {
+              "ordinal": 23,
+              "type": "boolean",
+              "base_type": "bool",
+              "nullable": false,
+              "default": "false",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "fecha_vencimiento_taxi": {
+              "ordinal": 24,
+              "type": "date",
+              "base_type": "date",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 0,
+              "comment": null
+            },
+            "override_antiguedad": {
+              "ordinal": 25,
+              "type": "boolean",
+              "base_type": "bool",
+              "nullable": false,
+              "default": "false",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "en_revision_desde": {
+              "ordinal": 26,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "en_revision_expira_en": {
+              "ordinal": 27,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "aprobado_por": {
+              "ordinal": 28,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "aprobado_en": {
+              "ordinal": 29,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "rechazado_por": {
+              "ordinal": 30,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "rechazado_en": {
+              "ordinal": 31,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "motivo_rechazo": {
+              "ordinal": 32,
+              "type": "text",
+              "base_type": "text",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
             }
           },
           "constraints": {
@@ -14602,6 +14734,21 @@
             },
             "foreign_keys": [
               {
+                "name": "fk_vehiculo_aprobado_por",
+                "columns": [
+                  "aprobado_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
+                "on_update": "NO ACTION"
+              },
+              {
                 "name": "fk_vehiculo_control_base_id",
                 "columns": [
                   "control_base_id"
@@ -14609,6 +14756,21 @@
                 "references": {
                   "schema": "tenant",
                   "table": "control_base",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
+                "on_update": "NO ACTION"
+              },
+              {
+                "name": "fk_vehiculo_rechazado_por",
+                "columns": [
+                  "rechazado_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
                   "columns": [
                     "id"
                   ]
@@ -14649,6 +14811,18 @@
                 "definition": "equipamiento IS NOT NULL"
               },
               {
+                "name": "63668_63776_22_not_null",
+                "definition": "estado_aprobacion IS NOT NULL"
+              },
+              {
+                "name": "63668_63776_23_not_null",
+                "definition": "documentacion_completa IS NOT NULL"
+              },
+              {
+                "name": "63668_63776_25_not_null",
+                "definition": "override_antiguedad IS NOT NULL"
+              },
+              {
                 "name": "63668_63776_3_not_null",
                 "definition": "patente IS NOT NULL"
               },
@@ -14659,6 +14833,10 @@
               {
                 "name": "ck_vehiculo_ck_vehiculo_estado_vehiculo",
                 "definition": "((estado_vehiculo)::text = ANY ((ARRAY['regular'::character varying, 'bueno'::character varying, 'excelente'::character varying])::text[]))"
+              },
+              {
+                "name": "ck_vehiculo_estado_aprobacion",
+                "definition": "((estado_aprobacion)::text = ANY ((ARRAY['pendiente'::character varying, 'en_revision'::character varying, 'aprobado'::character varying, 'rechazado'::character varying])::text[]))"
               }
             ]
           },
@@ -18916,6 +19094,30 @@
               "numeric_scale": 2,
               "datetime_precision": null,
               "comment": "Multiplicador de desgaste para neumáticos delanteros vs traseros (ej: 1.5 = 50% más desgaste)"
+            },
+            "antiguedad_maxima_taxi_anios": {
+              "ordinal": 33,
+              "type": "integer",
+              "base_type": "int4",
+              "nullable": false,
+              "default": "10",
+              "character_maximum_length": null,
+              "numeric_precision": 32,
+              "numeric_scale": 0,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "dias_revision_documentos": {
+              "ordinal": 34,
+              "type": "integer",
+              "base_type": "int4",
+              "nullable": false,
+              "default": "7",
+              "character_maximum_length": null,
+              "numeric_precision": 32,
+              "numeric_scale": 0,
+              "datetime_precision": null,
+              "comment": null
             }
           },
           "constraints": {
@@ -18954,6 +19156,22 @@
               {
                 "name": "63666_63711_1_not_null",
                 "definition": "id IS NOT NULL"
+              },
+              {
+                "name": "63666_63711_33_not_null",
+                "definition": "antiguedad_maxima_taxi_anios IS NOT NULL"
+              },
+              {
+                "name": "63666_63711_34_not_null",
+                "definition": "dias_revision_documentos IS NOT NULL"
+              },
+              {
+                "name": "ck_configuracion_tenant_antiguedad_maxima",
+                "definition": "(antiguedad_maxima_taxi_anios > 0)"
+              },
+              {
+                "name": "ck_configuracion_tenant_dias_revision",
+                "definition": "(dias_revision_documentos > 0)"
               }
             ]
           },

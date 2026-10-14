@@ -6,7 +6,7 @@ Tablas: control_base, configuracion_tenant, empresa
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, Text, Integer, Date, Index
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, Text, Integer, Date, Index, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -60,8 +60,17 @@ class ControlBase(Base):
 class Configuracion(Base):
     """Tenant configuration"""
     __tablename__ = "configuracion_tenant"
-    __table_args__ = {"schema": "tenant"}
-
+    __table_args__ = (
+        CheckConstraint(
+            "antiguedad_maxima_taxi_anios > 0",
+            name="antiguedad_maxima"
+        ),
+        CheckConstraint(
+            "dias_revision_documentos > 0",
+            name="dias_revision"
+        ),
+        {"schema": "tenant"},
+    )
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -201,6 +210,22 @@ class Configuracion(Base):
         comment="Kilómetros estimados de vida útil total de un neumático",
     )
 
+    # ============================================================
+    # COLUMNAS AGREGADAS EN R19 (aprobacion y ciclo de vida)
+    # ============================================================
+    antiguedad_maxima_taxi_anios: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default="10",
+        doc="Antiguedad maxima en anios para un taxi",
+    )
+    dias_revision_documentos: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default="7",
+        doc="Dias para que el tenant revise cambios de documentacion",
+    )
+
     # Relationships
     control_base: Mapped["ControlBase"] = relationship("ControlBase", back_populates="configuracion")
 
@@ -249,12 +274,12 @@ class Empresa(Base):
 
 
 # ============================================================
-# MODELO FACTURA - FACTURACIÓN DE TENANT
+# MODELO FACTURA - FACTURACION DE TENANT
 # ============================================================
 
 class Factura(Base):
     """
-    Tenant invoices (canon mensual por vehículo)
+    Tenant invoices (canon mensual por vehiculo)
     Tabla: tenant.factura
     """
     __tablename__ = "factura"
