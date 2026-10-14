@@ -194,7 +194,15 @@ class Usuario(Base):
 class PerfilGeneral(Base):
     """Extended user profile information"""
     __tablename__ = "perfil_general"
-    __table_args__ = {"schema": "auth"}
+    __table_args__ = (
+        CheckConstraint(
+            "condicion_impositiva IS NULL OR condicion_impositiva IN ("
+            "'responsable_inscripto', 'monotributo', 'exento', "
+            "'consumidor_final', 'no_categorizado')",
+            name="condicion_impositiva"
+        ),
+        {"schema": "auth"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -222,7 +230,9 @@ class PerfilGeneral(Base):
     barrio: Mapped[str] = mapped_column(String(100), nullable=True)
     codigo_postal: Mapped[str] = mapped_column(String(20), nullable=True)
     tipo_conductor: Mapped[str] = mapped_column(String(50), nullable=True)
-    agencia: Mapped[str] = mapped_column(String(100), nullable=True)    
+    agencia: Mapped[str] = mapped_column(String(100), nullable=True)
+    cuit_cuil: Mapped[Optional[str]] = mapped_column(String(11), nullable=True)
+    condicion_impositiva: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime,

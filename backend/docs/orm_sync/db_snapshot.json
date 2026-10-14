@@ -1,9 +1,9 @@
 {
   "meta": {
-    "capturado_en": "2026-10-14T01:53:56.058678+00:00",
+    "capturado_en": "2026-10-14T20:06:07.633747+00:00",
     "postgres_version": "PostgreSQL 17.0 on x86_64-windows, compiled by msvc-19.41.34120, 64-bit",
     "postgis_version": "3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
-    "alembic_head": "m3_021",
+    "alembic_head": "m3_022",
     "schemas_incluidos": [
       "audit",
       "auth",
@@ -21,10 +21,10 @@
     "warnings": [],
     "stats": {
       "total_schemas": 12,
-      "total_tables": 90,
-      "total_columns": 1077,
-      "total_indexes": 285,
-      "total_constraints": 802
+      "total_tables": 91,
+      "total_columns": 1090,
+      "total_indexes": 288,
+      "total_constraints": 815
     }
   },
   "schemas": {
@@ -2211,6 +2211,30 @@
               "numeric_scale": null,
               "datetime_precision": null,
               "comment": null
+            },
+            "cuit_cuil": {
+              "ordinal": 17,
+              "type": "character varying(11)",
+              "base_type": "varchar",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": 11,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "condicion_impositiva": {
+              "ordinal": 18,
+              "type": "character varying(50)",
+              "base_type": "varchar",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": 50,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
             }
           },
           "constraints": {
@@ -2264,6 +2288,10 @@
               {
                 "name": "63665_63759_1_not_null",
                 "definition": "id IS NOT NULL"
+              },
+              {
+                "name": "ck_perfil_general_condicion_impositiva",
+                "definition": "((condicion_impositiva IS NULL) OR ((condicion_impositiva)::text = ANY ((ARRAY['responsable_inscripto'::character varying, 'monotributo'::character varying, 'exento'::character varying, 'consumidor_final'::character varying, 'no_categorizado'::character varying])::text[])))"
               }
             ]
           },
@@ -16236,6 +16264,244 @@
               "columns": [
                 "configuracion_tarifa_id",
                 "tipo_vehiculo_id"
+              ]
+            }
+          ]
+        },
+        "cuenta_cobro": {
+          "comment": null,
+          "columns": {
+            "id": {
+              "ordinal": 1,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": false,
+              "default": "gen_random_uuid()",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "usuario_id": {
+              "ordinal": 2,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "tipo": {
+              "ordinal": 3,
+              "type": "character varying(10)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": 10,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "numero": {
+              "ordinal": 4,
+              "type": "character varying(22)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": 22,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "alias": {
+              "ordinal": 5,
+              "type": "character varying(50)",
+              "base_type": "varchar",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": 50,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "banco": {
+              "ordinal": 6,
+              "type": "character varying(100)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": 100,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "titular": {
+              "ordinal": 7,
+              "type": "character varying(200)",
+              "base_type": "varchar",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": 200,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "predeterminada": {
+              "ordinal": 8,
+              "type": "boolean",
+              "base_type": "bool",
+              "nullable": false,
+              "default": "false",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "activo": {
+              "ordinal": 9,
+              "type": "boolean",
+              "base_type": "bool",
+              "nullable": false,
+              "default": "true",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "created_at": {
+              "ordinal": 10,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": false,
+              "default": "now()",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "updated_at": {
+              "ordinal": 11,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": false,
+              "default": "now()",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            }
+          },
+          "constraints": {
+            "primary_key": {
+              "name": "cuenta_cobro_pkey",
+              "columns": [
+                "id"
+              ]
+            },
+            "foreign_keys": [
+              {
+                "name": "cuenta_cobro_usuario_id_fkey",
+                "columns": [
+                  "usuario_id"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "unique": [],
+            "check": [
+              {
+                "name": "63670_238020_10_not_null",
+                "definition": "created_at IS NOT NULL"
+              },
+              {
+                "name": "63670_238020_11_not_null",
+                "definition": "updated_at IS NOT NULL"
+              },
+              {
+                "name": "63670_238020_1_not_null",
+                "definition": "id IS NOT NULL"
+              },
+              {
+                "name": "63670_238020_2_not_null",
+                "definition": "usuario_id IS NOT NULL"
+              },
+              {
+                "name": "63670_238020_3_not_null",
+                "definition": "tipo IS NOT NULL"
+              },
+              {
+                "name": "63670_238020_4_not_null",
+                "definition": "numero IS NOT NULL"
+              },
+              {
+                "name": "63670_238020_6_not_null",
+                "definition": "banco IS NOT NULL"
+              },
+              {
+                "name": "63670_238020_8_not_null",
+                "definition": "predeterminada IS NOT NULL"
+              },
+              {
+                "name": "63670_238020_9_not_null",
+                "definition": "activo IS NOT NULL"
+              },
+              {
+                "name": "ck_cuenta_cobro_tipo",
+                "definition": "((tipo)::text = ANY ((ARRAY['cbu'::character varying, 'cvu'::character varying])::text[]))"
+              }
+            ]
+          },
+          "indexes": [
+            {
+              "name": "cuenta_cobro_pkey",
+              "unique": true,
+              "primary": true,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX cuenta_cobro_pkey ON payment.cuenta_cobro USING btree (id)",
+              "columns": [
+                "id"
+              ]
+            },
+            {
+              "name": "idx_cuenta_cobro_usuario",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX idx_cuenta_cobro_usuario ON payment.cuenta_cobro USING btree (usuario_id, activo)",
+              "columns": [
+                "usuario_id",
+                "activo"
+              ]
+            },
+            {
+              "name": "uq_cuenta_cobro_predeterminada",
+              "unique": true,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX uq_cuenta_cobro_predeterminada ON payment.cuenta_cobro USING btree (usuario_id) WHERE ((predeterminada = true) AND (activo = true))",
+              "columns": [
+                "usuario_id"
               ]
             }
           ]

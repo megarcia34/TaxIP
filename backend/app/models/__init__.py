@@ -89,6 +89,7 @@ from app.models.payment import (
     ConfiguracionTarifaVehiculo,
     ConfiguracionPasarela,
     QrCobro,
+    CuentaCobro,
 )
 
 # Trip
@@ -203,6 +204,7 @@ __all__ = [
     "ConfiguracionTarifaVehiculo",
     "ConfiguracionPasarela",
     "QrCobro",
+    "CuentaCobro",
 
     # Trip
     "ViajeSolicitado",

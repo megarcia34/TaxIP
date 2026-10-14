@@ -539,3 +539,43 @@ class QrCobro(Base):
     expira_en: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     pagado_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=False), nullable=True)
     control_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+
+class CuentaCobro(Base):
+    """Cuentas de cobro del propietario (CBU/CVU)"""
+    __tablename__ = "cuenta_cobro"
+    __table_args__ = (
+        Index("idx_cuenta_cobro_usuario", "usuario_id", "activo"),
+        CheckConstraint(
+            "tipo IN ('cbu', 'cvu')",
+            name="tipo",
+        ),
+        {"schema": "payment"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(String(10), nullable=False)
+    numero: Mapped[str] = mapped_column(String(22), nullable=False)
+    alias: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    banco: Mapped[str] = mapped_column(String(100), nullable=False)
+    titular: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    predeterminada: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    activo: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
