@@ -18,6 +18,7 @@ from app.schemas.admin_schemas import (
     RankingChoferResponse,
     SolicitudActivaResponse
 )
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/control-base", tags=["Dashboard"])
 
@@ -498,7 +499,6 @@ async def aprobar_chofer(
     
     return {"success": True, "message": "Chofer aprobado correctamente"}
 
-
 @router.put("/rechazar-chofer/{chofer_vehiculo_id}")
 async def rechazar_chofer(
     chofer_vehiculo_id: UUID,
@@ -532,6 +532,7 @@ async def rechazar_chofer(
     await db.commit()
     
     return {"success": True, "message": "Chofer rechazado"}
+
 
 
 # ============================================
@@ -900,3 +901,305 @@ async def exportar_estadisticas(
         )
     except ImportError:
         raise HTTPException(status_code=500, detail="openpyxl no instalado")
+
+    
+
+# ============================================================
+# VALIDACION DE VEHICULOS POR EL TENANT
+# ============================================================
+
+from pydantic import BaseModel, Field
+
+
+class RechazarVehiculoRequest(BaseModel):
+    motivo: str = Field(..., min_length=15, max_length=500)
+
+
+@router.get("/vehiculos-pendientes")
+async def listar_vehiculos_pendientes(
+    current_user: tuple = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Lista vehiculos con documentacion completa, listos para validar.
+    """
+    control_base_id = current_user[1]
+
+    query = text("""
+        SELECT
+            v.id,
+            v.patente,
+            v.marca,
+            v.modelo,
+            v.anio,
+            v.numero_licencia,
+            v.fecha_vencimiento_taxi,
+            v.created_at,
+            u.id as propietario_id,
+            u.email as propietario_email,
+            COALESCE(p.nombre, '') as propietario_nombre,
+            COALESCE(p.apellido, '') as propietario_apellido,
+            p.telefono as propietario_telefono
+        FROM fleet.vehiculo v
+        INNER JOIN fleet.propietario_vehiculo pv
+            ON pv.vehiculo_id = v.id AND pv.activo = true
+        INNER JOIN auth.usuario u ON u.id = pv.propietario_id
+        LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+        WHERE v.control_base_id = :control_base_id
+          AND v.estado_aprobacion = 'pendiente'
+          AND v.documentacion_completa = true
+          AND v.activo = true
+        ORDER BY v.created_at ASC
+    """)
+
+    result = await db.execute(query, {"control_base_id": control_base_id})
+    rows = result.all()
+
+    vehiculos = []
+    for row in rows:
+        vehiculo_id = row[0]
+        docs_query = text("""
+            SELECT tipo_documento, numero, fecha_vencimiento
+            FROM fleet.documento_vehiculo
+            WHERE vehiculo_id = :vehiculo_id
+        """)
+        docs_result = await db.execute(docs_query, {"vehiculo_id": vehiculo_id})
+        documentos = {
+            d[0]: {
+                "numero": d[1],
+                "fecha_vencimiento": str(d[2]) if d[2] else None
+            }
+            for d in docs_result.all()
+        }
+
+        vehiculos.append({
+            "vehiculo_id": str(row[0]),
+            "patente": row[1],
+            "marca": row[2],
+            "modelo": row[3],
+            "anio": row[4],
+            "numero_licencia": row[5],
+            "fecha_vencimiento_taxi": str(row[6]) if row[6] else None,
+            "created_at": row[7],
+            "propietario": {
+                "usuario_id": str(row[8]),
+                "email": row[9],
+                "nombre": row[10],
+                "apellido": row[11],
+                "telefono": row[12]
+            },
+            "documentos": documentos,
+            "documentacion_completa": True
+        })
+
+    return vehiculos
+
+
+@router.get("/vehiculos-incompletos")
+async def listar_vehiculos_incompletos(
+    current_user: tuple = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Lista vehiculos con documentacion incompleta (no validables aun).
+    """
+    control_base_id = current_user[1]
+
+    TIPOS_OBLIGATORIOS = {'SEGURO', 'VTV', 'CEDULA_VERDE', 'HABILITACION'}
+
+    query = text("""
+        SELECT
+            v.id,
+            v.patente,
+            v.marca,
+            v.modelo,
+            v.anio,
+            v.numero_licencia,
+            v.fecha_vencimiento_taxi,
+            v.created_at,
+            v.estado_aprobacion,
+            u.id as propietario_id,
+            u.email as propietario_email,
+            COALESCE(p.nombre, '') as propietario_nombre,
+            COALESCE(p.apellido, '') as propietario_apellido,
+            p.telefono as propietario_telefono
+        FROM fleet.vehiculo v
+        INNER JOIN fleet.propietario_vehiculo pv
+            ON pv.vehiculo_id = v.id AND pv.activo = true
+        INNER JOIN auth.usuario u ON u.id = pv.propietario_id
+        LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+        WHERE v.control_base_id = :control_base_id
+          AND v.documentacion_completa = false
+          AND v.activo = true
+        ORDER BY v.created_at ASC
+    """)
+
+    result = await db.execute(query, {"control_base_id": control_base_id})
+    rows = result.all()
+
+    vehiculos = []
+    for row in rows:
+        vehiculo_id = row[0]
+        docs_query = text("""
+            SELECT tipo_documento
+            FROM fleet.documento_vehiculo
+            WHERE vehiculo_id = :vehiculo_id
+        """)
+        docs_result = await db.execute(docs_query, {"vehiculo_id": vehiculo_id})
+        tipos_presentes = {d[0] for d in docs_result.all()}
+        faltantes = list(TIPOS_OBLIGATORIOS - tipos_presentes)
+
+        vehiculos.append({
+            "vehiculo_id": str(row[0]),
+            "patente": row[1],
+            "marca": row[2],
+            "modelo": row[3],
+            "anio": row[4],
+            "numero_licencia": row[5],
+            "fecha_vencimiento_taxi": str(row[6]) if row[6] else None,
+            "created_at": row[7],
+            "estado_aprobacion": row[8],
+            "propietario": {
+                "usuario_id": str(row[9]),
+                "email": row[10],
+                "nombre": row[11],
+                "apellido": row[12],
+                "telefono": row[13]
+            },
+            "documentos_faltantes": faltantes,
+            "documentacion_completa": False
+        })
+
+    return vehiculos
+
+
+@router.put("/aprobar-vehiculo/{vehiculo_id}")
+async def aprobar_vehiculo(
+    vehiculo_id: UUID,
+    current_user: tuple = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Aprueba un vehiculo pendiente o en revision.
+    """
+    control_base_id = current_user[1]
+    admin_id = current_user[0]
+
+    query = text("""
+        SELECT id, estado_aprobacion, documentacion_completa
+        FROM fleet.vehiculo
+        WHERE id = :vehiculo_id
+          AND control_base_id = :control_base_id
+          AND activo = true
+    """)
+    result = await db.execute(query, {
+        "vehiculo_id": vehiculo_id,
+        "control_base_id": control_base_id
+    })
+    row = result.first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+
+    estado_actual = row[1]
+    doc_completa = row[2]
+
+    if estado_actual not in ('pendiente', 'en_revision'):
+        raise HTTPException(
+            status_code=400,
+            detail=f"El vehiculo no puede aprobarse en estado '{estado_actual}'"
+        )
+
+    if not doc_completa:
+        raise HTTPException(
+            status_code=400,
+            detail="El vehiculo no tiene la documentacion completa"
+        )
+
+    update = text("""
+        UPDATE fleet.vehiculo
+        SET estado_aprobacion = 'aprobado',
+            aprobado_por = :admin_id,
+            aprobado_en = NOW(),
+            rechazado_por = NULL,
+            rechazado_en = NULL,
+            motivo_rechazo = NULL,
+            en_revision_desde = NULL,
+            en_revision_expira_en = NULL
+        WHERE id = :vehiculo_id
+    """)
+    await db.execute(update, {
+        "admin_id": admin_id,
+        "vehiculo_id": vehiculo_id
+    })
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "Vehiculo aprobado correctamente",
+        "vehiculo_id": str(vehiculo_id)
+    }
+
+
+@router.put("/rechazar-vehiculo/{vehiculo_id}")
+async def rechazar_vehiculo(
+    vehiculo_id: UUID,
+    data: RechazarVehiculoRequest,
+    current_user: tuple = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Rechaza un vehiculo con motivo.
+    """
+    control_base_id = current_user[1]
+    admin_id = current_user[0]
+
+    query = text("""
+        SELECT id, estado_aprobacion
+        FROM fleet.vehiculo
+        WHERE id = :vehiculo_id
+          AND control_base_id = :control_base_id
+          AND activo = true
+    """)
+    result = await db.execute(query, {
+        "vehiculo_id": vehiculo_id,
+        "control_base_id": control_base_id
+    })
+    row = result.first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Vehiculo no encontrado")
+
+    estado_actual = row[1]
+
+    if estado_actual == 'rechazado':
+        raise HTTPException(
+            status_code=400,
+            detail="El vehiculo ya esta rechazado"
+        )
+
+    update = text("""
+        UPDATE fleet.vehiculo
+        SET estado_aprobacion = 'rechazado',
+            rechazado_por = :admin_id,
+            rechazado_en = NOW(),
+            motivo_rechazo = :motivo,
+            aprobado_por = NULL,
+            aprobado_en = NULL,
+            en_revision_desde = NULL,
+            en_revision_expira_en = NULL
+        WHERE id = :vehiculo_id
+    """)
+    await db.execute(update, {
+        "admin_id": admin_id,
+        "motivo": data.motivo,
+        "vehiculo_id": vehiculo_id
+    })
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "Vehiculo rechazado correctamente",
+        "vehiculo_id": str(vehiculo_id),
+        "motivo": data.motivo
+    }
