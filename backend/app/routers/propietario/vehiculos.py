@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from uuid import UUID
 from typing import Optional
+from datetime import date
 import uuid as uuid_lib
 import qrcode
 from io import BytesIO
@@ -21,7 +22,7 @@ class VehiculoCreate(BaseModel):
     patente: str = Field(..., min_length=5, max_length=10)
     marca: str = Field(..., min_length=2, max_length=50)
     modelo: str = Field(..., min_length=1, max_length=50)
-    anio: Optional[int] = None
+    anio: int = Field(..., ge=1900, le=2100)
     numero_licencia: Optional[str] = None
 
 
@@ -93,12 +94,66 @@ async def crear_vehiculo(
     result = await db.execute(query_check, {"patente": data.patente.upper()})
     if result.first():
         raise HTTPException(status_code=400, detail="Ya existe un vehículo con esa patente")
-    
+
+    # ============================================================
+    # VALIDACION 1: antiguedad maxima del taxi (configurable por tenant)
+    # ============================================================
+    query_config = text("""
+        SELECT antiguedad_maxima_taxi_anios
+        FROM tenant.configuracion_tenant
+        WHERE control_base_id = :control_base_id
+    """)
+    result_config = await db.execute(query_config, {"control_base_id": control_base_id})
+    config_row = result_config.first()
+
+    antiguedad_maxima = config_row[0] if config_row else 10
+
+    anio_actual = date.today().year
+
+    if anio_actual - data.anio > antiguedad_maxima:
+        anio_vencimiento = data.anio + antiguedad_maxima
+        raise HTTPException(
+            status_code=400,
+            detail=f"Este vehiculo supera la antiguedad maxima permitida. Vencimiento 31-12-{anio_vencimiento}."
+        )
+
+    # ============================================================
+    # VALIDACION 2: numero de licencia unico a nivel tenant
+    # ============================================================
+    if data.numero_licencia:
+        query_licencia = text("""
+            SELECT v.id, v.patente
+            FROM fleet.vehiculo v
+            WHERE v.control_base_id = :control_base_id
+              AND v.numero_licencia = :numero_licencia
+              AND v.activo = true
+        """)
+        result_licencia = await db.execute(query_licencia, {
+            "control_base_id": control_base_id,
+            "numero_licencia": data.numero_licencia
+        })
+        if result_licencia.first():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ya existe un vehiculo con la licencia {data.numero_licencia} en tu flota. Para transferir la licencia, dar de baja el vehiculo anterior."
+            )
+
+    # ============================================================
+    # Calcular fecha de vencimiento del taxi
+    # ============================================================
+    anio_vencimiento = data.anio + antiguedad_maxima
+    fecha_vencimiento_taxi = date(anio_vencimiento, 12, 31)
+
     qr_uuid = uuid_lib.uuid4()
-    
     insert_vehiculo = text("""
-        INSERT INTO fleet.vehiculo (id, control_base_id, patente, marca, modelo, anio, numero_licencia, qr_uuid, qr_activo, activo, created_at)
-        VALUES (gen_random_uuid(), :control_base_id, :patente, :marca, :modelo, :anio, :numero_licencia, :qr_uuid, true, true, NOW())
+        INSERT INTO fleet.vehiculo (
+            id, control_base_id, patente, marca, modelo, anio, numero_licencia,
+            qr_uuid, qr_activo, activo, fecha_vencimiento_taxi, created_at
+        )
+        VALUES (
+            gen_random_uuid(), :control_base_id, :patente, :marca, :modelo, :anio, :numero_licencia,
+            :qr_uuid, true, true, :fecha_vencimiento_taxi, NOW()
+        )
         RETURNING id
     """)
     result = await db.execute(insert_vehiculo, {
@@ -108,7 +163,8 @@ async def crear_vehiculo(
         "modelo": data.modelo,
         "anio": data.anio,
         "numero_licencia": data.numero_licencia,
-        "qr_uuid": qr_uuid
+        "qr_uuid": qr_uuid,
+        "fecha_vencimiento_taxi": fecha_vencimiento_taxi
     })
     vehiculo_id = result.scalar()
     
