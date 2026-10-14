@@ -109,6 +109,86 @@ TIPOS_DOCUMENTO_PROPIETARIO = {
     }
 }
 
+# ============================================================
+# TIPOS OBLIGATORIOS PARA documentacion_completa
+# ============================================================
+
+TIPOS_OBLIGATORIOS_VEHICULO = {'SEGURO', 'VTV', 'CEDULA_VERDE', 'HABILITACION'}
+
+
+async def recalcular_documentacion_y_estado(
+    db: AsyncSession,
+    vehiculo_id: UUID,
+    propietario_id: UUID
+) -> None:
+    """
+    Recalcula documentacion_completa y dispara en_revision si corresponde.
+
+    - documentacion_completa = true si estan los 4 documentos obligatorios.
+    - Si el vehiculo estaba 'aprobado' y hay cambios de docs, pasa a 'en_revision'
+      con plazo configurable por tenant.
+    """
+    # 1. Contar tipos de documentos presentes
+    query_tipos = text("""
+        SELECT DISTINCT tipo_documento
+        FROM fleet.documento_vehiculo
+        WHERE vehiculo_id = :vehiculo_id
+    """)
+    result_tipos = await db.execute(query_tipos, {"vehiculo_id": vehiculo_id})
+    tipos_presentes = {row[0] for row in result_tipos.all()}
+
+    doc_completa = TIPOS_OBLIGATORIOS_VEHICULO.issubset(tipos_presentes)
+
+    # 2. Leer estado actual del vehiculo
+    query_vehiculo = text("""
+        SELECT estado_aprobacion, control_base_id
+        FROM fleet.vehiculo
+        WHERE id = :vehiculo_id
+    """)
+    result_vehiculo = await db.execute(query_vehiculo, {"vehiculo_id": vehiculo_id})
+    vehiculo_row = result_vehiculo.first()
+
+    if not vehiculo_row:
+        return
+
+    estado_actual = vehiculo_row[0]
+    control_base_id = vehiculo_row[1]
+
+    # 3. Si estaba aprobado, pasar a en_revision con plazo configurable
+    if estado_actual == 'aprobado':
+        query_dias = text("""
+            SELECT dias_revision_documentos
+            FROM tenant.configuracion_tenant
+            WHERE control_base_id = :control_base_id
+        """)
+        result_dias = await db.execute(query_dias, {"control_base_id": control_base_id})
+        dias_row = result_dias.first()
+        dias_revision = dias_row[0] if dias_row else 7
+
+        update = text("""
+            UPDATE fleet.vehiculo
+            SET documentacion_completa = :doc_completa,
+                estado_aprobacion = 'en_revision',
+                en_revision_desde = NOW(),
+                en_revision_expira_en = NOW() + make_interval(days => :dias_revision)
+            WHERE id = :vehiculo_id
+        """)
+        await db.execute(update, {
+            "doc_completa": doc_completa,
+            "dias_revision": dias_revision,
+            "vehiculo_id": vehiculo_id
+        })
+    else:
+        # Solo actualizar documentacion_completa, sin tocar estado
+        update = text("""
+            UPDATE fleet.vehiculo
+            SET documentacion_completa = :doc_completa
+            WHERE id = :vehiculo_id
+        """)
+        await db.execute(update, {
+            "doc_completa": doc_completa,
+            "vehiculo_id": vehiculo_id
+        })
 
 # ============================================================
 # DOCUMENTOS DE VEHÍCULO
@@ -158,8 +238,11 @@ async def crear_documento_vehiculo(
     await db.commit()
     await db.refresh(documento)
 
-    vehiculo = await db.get(Vehiculo, vehiculo_id)
+    # Recalcular documentacion_completa y disparar en_revision si corresponde
+    await recalcular_documentacion_y_estado(db, vehiculo_id, propietario_id)
+    await db.commit()
 
+    vehiculo = await db.get(Vehiculo, vehiculo_id)
     return DocumentoVehiculoResponse(
         id=documento.id,
         vehiculo_id=documento.vehiculo_id,
@@ -315,6 +398,11 @@ async def actualizar_documento_vehiculo(
     documento.updated_at = datetime.now()
 
     await db.commit()
+
+    # Recalcular documentacion_completa y disparar en_revision si corresponde
+    await recalcular_documentacion_y_estado(db, documento.vehiculo_id, propietario_id)
+    await db.commit()
+
     await db.refresh(documento)
     await db.refresh(documento, attribute_names=["vehiculo"])
 
@@ -358,11 +446,16 @@ async def eliminar_documento_vehiculo(
     if not prop_vehiculo.scalar_one_or_none():
         raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este documento")
 
+    vehiculo_id = documento.vehiculo_id
+
     await db.delete(documento)
     await db.commit()
 
-    return {"success": True, "message": "Documento eliminado correctamente"}
+    # Recalcular documentacion_completa y disparar en_revision si corresponde
+    await recalcular_documentacion_y_estado(db, vehiculo_id, propietario_id)
+    await db.commit()
 
+    return {"success": True, "message": "Documento eliminado correctamente"}
 
 @router.post("/vehiculos/documentos/{documento_id}/comprobante")
 async def subir_comprobante_documento(
