@@ -153,7 +153,7 @@ class MovimientoCuenta(Base):
 
     # Relationships
     cuenta: Mapped["CuentaCorriente"] = relationship("CuentaCorriente", back_populates="movimientos")
-    viaje: Mapped["ViajeSolicitado"] = relationship("ViajeSolicitado", lazy="selectin")
+    viaje: Mapped["ViajeSolicitado"] = relationship("ViajeSolicitado", foreign_keys="MovimientoCuenta.viaje_id", lazy="selectin")
 
 
 class FacturaCorporativa(Base):
