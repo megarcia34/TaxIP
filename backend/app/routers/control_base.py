@@ -421,7 +421,7 @@ async def listar_choferes_pendientes(
     control_base_id = current_user[1]
     
     query = text("""
-        SELECT 
+        SELECT
             cv.id as chofer_vehiculo_id,
             u.id as usuario_id,
             u.email,
@@ -432,7 +432,21 @@ async def listar_choferes_pendientes(
             v.marca,
             v.modelo,
             v.anio,
-            cv.created_at as registro_fecha
+            cv.created_at as registro_fecha,
+            EXISTS (
+                SELECT 1 FROM fleet.propietario_vehiculo pv
+                INNER JOIN fleet.vehiculo veh ON veh.id = pv.vehiculo_id
+                WHERE pv.propietario_id = u.id
+                  AND pv.activo = true
+                  AND veh.activo = true
+            ) as es_propietario,
+            (
+                SELECT COUNT(*) FROM fleet.propietario_vehiculo pv
+                INNER JOIN fleet.vehiculo veh ON veh.id = pv.vehiculo_id
+                WHERE pv.propietario_id = u.id
+                  AND pv.activo = true
+                  AND veh.activo = true
+            ) as cantidad_vehiculos
         FROM fleet.chofer_vehiculo cv
         JOIN auth.usuario u ON u.id = cv.usuario_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
@@ -459,7 +473,9 @@ async def listar_choferes_pendientes(
                 "modelo": row[8],
                 "anio": row[9]
             } if row[6] is not None else None,
-            "fecha_registro": row[10]
+            "fecha_registro": row[10],
+            "es_propietario": row[11],
+            "cantidad_vehiculos": row[12]
         }
         for row in rows
     ]
