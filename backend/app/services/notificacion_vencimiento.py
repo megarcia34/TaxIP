@@ -38,7 +38,7 @@ class NotificacionVencimientoService:
 
         for doc in documentos:
             try:
-                logger.info(f"📝 Procesando: {doc['subtipo']} - {doc['numero']} ({doc['dias_restantes']} días)")
+                logger.info(f"📩 Procesando: {doc['subtipo']} - {doc['numero']} ({doc['dias_restantes']} dias)")
 
                 ya_notificado = await self._ya_notificado_recientemente(
                     doc["documento_id"],
@@ -46,7 +46,7 @@ class NotificacionVencimientoService:
                 )
 
                 if ya_notificado:
-                    logger.info(f"⏭️ Documento {doc['subtipo']} ya notificado recientemente")
+                    logger.info(f"⏭ Documento {doc['subtipo']} ya notificado")
                     continue
 
                 email = await self._obtener_email_propietario(doc["propietario_id"])
@@ -82,7 +82,7 @@ class NotificacionVencimientoService:
                         "dias": doc["dias_restantes"],
                         "estado": "enviado"
                     })
-                    logger.info(f"✅ Notificación enviada para {doc['subtipo']} - {doc['numero']}")
+                    logger.info(f"✅ Notificacion enviada para {doc['subtipo']} - {doc['numero']}")
                 else:
                     resultados["errores"] += 1
                     logger.error(f"❌ Error enviando email para {doc['subtipo']}")
@@ -90,6 +90,11 @@ class NotificacionVencimientoService:
             except Exception as e:
                 logger.error(f"❌ Error procesando documento {doc.get('subtipo', 'unknown')}: {e}")
                 resultados["errores"] += 1
+                # Rollback parcial para no abortar el resto del batch
+                try:
+                    await self.db.rollback()
+                except Exception:
+                    pass
 
         logger.info(f"📊 Resumen: {resultados['enviados']} enviados, {resultados['errores']} errores")
         return resultados
@@ -98,7 +103,7 @@ class NotificacionVencimientoService:
         """Obtiene documentos con vencimiento en los próximos 30 días"""
         query = text("""
             WITH documentos_propietario AS (
-                SELECT 
+                SELECT
                     dp.id as documento_id,
                     'propietario' as entidad_tipo,
                     dp.propietario_id,
@@ -110,7 +115,7 @@ class NotificacionVencimientoService:
                 WHERE dp.fecha_vencimiento IS NOT NULL
             ),
             documentos_vehiculo AS (
-                SELECT 
+                SELECT
                     dv.id as documento_id,
                     'vehiculo' as entidad_tipo,
                     pv.propietario_id,
@@ -122,12 +127,27 @@ class NotificacionVencimientoService:
                 JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = dv.vehiculo_id
                 WHERE dv.activo = true
             ),
+            documentos_chofer AS (
+                SELECT
+                    dc.id as documento_id,
+                    'chofer' as entidad_tipo,
+                    dc.usuario_id as propietario_id,
+                    dc.tipo_documento as subtipo,
+                    COALESCE(dc.tipo_documento, '') as numero,
+                    dc.fecha_vencimiento,
+                    'documentos_chofer' as tabla
+                FROM fleet.documentos_chofer dc
+                WHERE dc.fecha_vencimiento IS NOT NULL
+                  AND dc.activo = true
+            ),
             all_documentos AS (
                 SELECT * FROM documentos_propietario
                 UNION ALL
                 SELECT * FROM documentos_vehiculo
+                UNION ALL
+                SELECT * FROM documentos_chofer
             )
-            SELECT 
+            SELECT
                 documento_id,
                 entidad_tipo,
                 propietario_id,
@@ -135,7 +155,7 @@ class NotificacionVencimientoService:
                 numero,
                 fecha_vencimiento,
                 (fecha_vencimiento - NOW()::DATE) as dias_restantes,
-                CASE 
+                CASE
                     WHEN (fecha_vencimiento - NOW()::DATE) < 0 THEN 'vencido'
                     WHEN (fecha_vencimiento - NOW()::DATE) <= 7 THEN 'critico'
                     WHEN (fecha_vencimiento - NOW()::DATE) <= 15 THEN 'urgente'
@@ -166,13 +186,15 @@ class NotificacionVencimientoService:
         ]
 
     async def _ya_notificado_recientemente(self, documento_id: str, nivel: str) -> bool:
-        """Verifica si ya se envió notificación para este documento y nivel en las últimas 24h"""
+        """
+        Verifica si ya se envio notificacion para este documento y nivel.
+        La constraint uq_notificacion_documento_nivel es UNIQUE (documento_id, nivel),
+        por lo que solo puede existir 1 notificacion por nivel.
+        """
         query = text("""
             SELECT COUNT(*) FROM fleet.notificacion_vencimiento
             WHERE documento_id = :documento_id
               AND nivel = :nivel
-              AND email_enviado = true
-              AND created_at > NOW() - INTERVAL '1 day'
         """)
         result = await self.db.execute(query, {
             "documento_id": UUID(documento_id),
