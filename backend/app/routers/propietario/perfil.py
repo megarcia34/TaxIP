@@ -205,3 +205,127 @@ async def solicitar_ser_chofer(
         "message": "Solicitud iniciada. Puede cargar sus documentos cuando desee.",
         "chofer_vehiculo_id": str(chofer_vehiculo_id)
     }
+
+
+@router.post("/enviar-a-revision")
+async def enviar_a_revision(
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Envia a revision los vehiculos y la postulacion como chofer (todo o nada).
+
+    Regla TODO O NADA:
+    - TODOS los vehiculos activos deben tener documentacion_completa = true.
+    - Si tiene chofer_vehiculo activo: los 5 docs de chofer deben estar completos.
+    - Si falla alguna validacion, NO se envia nada (error 400).
+
+    Accion:
+    - Vehiculos en estado 'pendiente' con docs completos -> 'en_revision'.
+    - chofer_vehiculo activo -> 'en_revision'.
+    """
+    user_id, control_base_id, email, tipo = current_user
+
+    # 1. Validar propietario
+    if tipo.lower() != "propietario":
+        raise HTTPException(status_code=403, detail="No eres propietario")
+
+    # 2. Verificar que tenga al menos 1 vehiculo activo
+    query_count = text("""
+        SELECT COUNT(*) FROM fleet.propietario_vehiculo pv
+        JOIN fleet.vehiculo v ON v.id = pv.vehiculo_id
+        WHERE pv.propietario_id = :user_id
+          AND pv.activo = true
+          AND v.activo = true
+    """)
+    result = await db.execute(query_count, {"user_id": user_id})
+    total = result.scalar() or 0
+
+    if total == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Debe cargar al menos un vehiculo antes de enviar a revision."
+        )
+
+    # 3. Verificar que TODOS los vehiculos tengan docs completos
+    query_incompletos = text("""
+        SELECT v.patente
+        FROM fleet.propietario_vehiculo pv
+        JOIN fleet.vehiculo v ON v.id = pv.vehiculo_id
+        WHERE pv.propietario_id = :user_id
+          AND pv.activo = true
+          AND v.activo = true
+          AND v.documentacion_completa = false
+    """)
+    result = await db.execute(query_incompletos, {"user_id": user_id})
+    incompletos = result.all()
+
+    if incompletos:
+        patentes = [r[0] for r in incompletos]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Los siguientes vehiculos tienen documentacion incompleta: {', '.join(patentes)}. Complete o elimine estos vehiculos antes de enviar."
+        )
+
+    # 4. Verificar docs del chofer (si tiene postulacion activa)
+    query_chofer = text("""
+        SELECT id, estado_aprobacion FROM fleet.chofer_vehiculo
+        WHERE usuario_id = :user_id AND activo = true
+    """)
+    result = await db.execute(query_chofer, {"user_id": user_id})
+    chofer_row = result.first()
+
+    tiene_postulacion_chofer = chofer_row is not None
+    chofer_vehiculo_id = chofer_row[0] if chofer_row else None
+    chofer_estado = chofer_row[1] if chofer_row else None
+
+    if tiene_postulacion_chofer and chofer_estado == 'pendiente':
+        query_docs = text("""
+            SELECT COUNT(DISTINCT tipo_documento)
+            FROM fleet.documentos_chofer
+            WHERE usuario_id = :user_id
+              AND tipo_documento IN ('dni', 'licencia', 'buena_conducta', 'antecedentes', 'sanidad')
+        """)
+        result = await db.execute(query_docs, {"user_id": user_id})
+        docs_count = result.scalar() or 0
+
+        if docs_count < 5:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Debe completar los 5 documentos de chofer. Tiene {docs_count}/5."
+            )
+
+    # 5. Actualizar estados
+    # 5a. Vehiculos pendientes -> en_revision
+    query_upd_veh = text("""
+        UPDATE fleet.vehiculo
+        SET estado_aprobacion = 'en_revision', updated_at = NOW()
+        WHERE id IN (
+            SELECT v.id FROM fleet.vehiculo v
+            JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
+            WHERE pv.propietario_id = :user_id
+              AND pv.activo = true
+              AND v.activo = true
+              AND v.estado_aprobacion = 'pendiente'
+              AND v.documentacion_completa = true
+        )
+    """)
+    await db.execute(query_upd_veh, {"user_id": user_id})
+
+    # 5b. Chofer_vehiculo pendiente -> en_revision
+    if tiene_postulacion_chofer and chofer_estado == 'pendiente':
+        query_upd_chofer = text("""
+            UPDATE fleet.chofer_vehiculo
+            SET estado_aprobacion = 'en_revision', updated_at = NOW()
+            WHERE id = :chofer_id
+        """)
+        await db.execute(query_upd_chofer, {"chofer_id": chofer_vehiculo_id})
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "Enviado a revision. El tenant revisara su solicitud.",
+        "vehiculos_enviados": total,
+        "chofer_enviado": tiene_postulacion_chofer and chofer_estado == 'pendiente'
+    }
