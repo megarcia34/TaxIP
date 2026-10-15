@@ -329,3 +329,54 @@ async def enviar_a_revision(
         "vehiculos_enviados": total,
         "chofer_enviado": tiene_postulacion_chofer and chofer_estado == 'pendiente'
     }
+
+
+@router.post("/cancelar-postulacion-chofer")
+async def cancelar_postulacion_chofer(
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancela la postulacion como chofer (inactiva la fila activa).
+    Solo aplica si esta en estado 'pendiente' (antes de enviar a revision).
+    Si ya esta 'en_revision' o 'aprobado', no se puede cancelar.
+    """
+    user_id, control_base_id, email, tipo = current_user
+
+    if tipo.lower() != "propietario":
+        raise HTTPException(status_code=403, detail="No eres propietario")
+
+    # Verificar postulacion activa
+    query_check = text("""
+        SELECT id, estado_aprobacion FROM fleet.chofer_vehiculo
+        WHERE usuario_id = :user_id AND activo = true
+    """)
+    result = await db.execute(query_check, {"user_id": user_id})
+    row = result.first()
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail="No tiene una postulacion activa como chofer."
+        )
+
+    estado = row[1]
+    if estado != 'pendiente':
+        raise HTTPException(
+            status_code=400,
+            detail=f"No puede cancelar una postulacion en estado '{estado}'. Ya fue enviada a revision o aprobada."
+        )
+
+    # Inactivar
+    query_upd = text("""
+        UPDATE fleet.chofer_vehiculo
+        SET activo = false, updated_at = NOW()
+        WHERE id = :id
+    """)
+    await db.execute(query_upd, {"id": row[0]})
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "Postulacion cancelada. Puede volver a postularse cuando desee."
+    }
