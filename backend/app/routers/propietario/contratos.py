@@ -680,16 +680,17 @@ async def choferes_disponibles(
     
     # ✅ Usar objetos time en la consulta
     query = text("""
-        SELECT 
+        SELECT
             u.id, u.email, p.nombre, p.apellido, p.telefono,
             cv.calificacion_promedio, cv.total_calificaciones
         FROM auth.usuario u
-        JOIN auth.tipo_usuario tu ON tu.id = u.tipo_usuario_id
+        INNER JOIN fleet.chofer_vehiculo cv ON cv.usuario_id = u.id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
-        LEFT JOIN fleet.chofer_vehiculo cv ON cv.usuario_id = u.id
         WHERE u.control_base_id = :control_base_id
           AND u.activo = true
-          AND tu.nombre = 'chofer'
+          AND u.fecha_suspension IS NULL
+          AND cv.estado_aprobacion = 'aprobado'
+          AND cv.activo = true
           AND NOT EXISTS (
               SELECT 1 FROM fleet.contrato_vehiculo cc
               WHERE cc.chofer_id = u.id
@@ -697,6 +698,11 @@ async def choferes_disponibles(
                 AND (
                     (:hora_inicio < cc.hora_fin AND cc.hora_inicio < :hora_fin)
                 )
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM fleet.propietario_vehiculo pv
+              WHERE pv.propietario_id = u.id
+                AND pv.activo = true
           )
         ORDER BY p.nombre, p.apellido
     """)
