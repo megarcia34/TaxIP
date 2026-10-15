@@ -1,6 +1,6 @@
 """
 Driver document management endpoints
-Handles upload of license, insurance, and background check documents
+Handles upload of documents: dni, licencia, buena_conducta, antecedentes, sanidad
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query
@@ -29,10 +29,10 @@ class DocumentoResponse(BaseModel):
 
 
 class EstadoAprobacionResponse(BaseModel):
-    estado_aprobacion: str  # pendiente, completo, aprobado, rechazado
+    estado_aprobacion: str  # pendiente, en_revision, aprobado, rechazado
     mensaje: Optional[str] = None
     documentos_subidos: int
-    documentos_requeridos: int = 3
+    documentos_requeridos: int = 5
     puede_manejar: bool
 
 
@@ -42,49 +42,55 @@ class EstadoAprobacionResponse(BaseModel):
 
 @router.post("/subir-documento", response_model=DocumentoResponse)
 async def subir_documento(
-    tipo_documento: str = Query(..., description="licencia, seguro, antecedentes"),
+    tipo_documento: str = Query(..., description="dni, licencia, buena_conducta, antecedentes, sanidad"),
     file: UploadFile = File(...),
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Upload a driver document (license, insurance, background check)
-    
-    - tipo_documento: 'licencia', 'seguro', 'antecedentes'
+    Upload a driver document.
+
+    - tipo_documento: 'dni', 'licencia', 'buena_conducta', 'antecedentes', 'sanidad'
     - The JWT token from registration is required in Authorization header
     - Documents are stored locally in ./uploads/documentos/
     """
     user_id = current_user[0]
-    
+
     # Validar tipo de documento
-    tipos_validos = ["licencia", "seguro", "antecedentes"]
+    tipos_validos = [
+        "dni",
+        "licencia",
+        "buena_conducta",
+        "antecedentes",
+        "sanidad",
+    ]
     if tipo_documento not in tipos_validos:
         raise HTTPException(
             status_code=400,
-            detail=f"Tipo de documento inválido. Permitidos: {tipos_validos}"
+            detail=f"Tipo de documento invalido. Permitidos: {tipos_validos}"
         )
-    
-    # Verificar que el usuario es chofer y no está ya aprobado
+
+    # Verificar que el usuario es chofer y no esta ya aprobado
     check_query = text("""
         SELECT cv.id, cv.estado_aprobacion
         FROM fleet.chofer_vehiculo cv
         WHERE cv.usuario_id = :user_id
     """)
-    
+
     result = await db.execute(check_query, {"user_id": user_id})
     row = result.first()
-    
+
     if not row:
         raise HTTPException(status_code=404, detail="Chofer no encontrado")
-    
+
     estado_actual = row[1]
     if estado_actual == "aprobado":
         raise HTTPException(
             status_code=400,
-            detail="El chofer ya está aprobado. No se pueden subir más documentos."
+            detail="El chofer ya esta aprobado. No se pueden subir mas documentos."
         )
-    
-    # Validar tamaño del archivo (máximo 10MB)
+
+    # Validar tamano del archivo (maximo 10MB)
     file_size = 0
     content = await file.read()
     file_size = len(content)
@@ -93,7 +99,7 @@ async def subir_documento(
             status_code=400,
             detail="El archivo no puede superar los 10MB"
         )
-    
+
     # Guardar el archivo
     try:
         url = await storage_service.save_document(
@@ -106,40 +112,40 @@ async def subir_documento(
             status_code=500,
             detail=f"Error al guardar documento: {str(e)}"
         )
-    
+
     # Registrar en la base de datos
     insert_doc = text("""
         INSERT INTO fleet.documentos_chofer (id, usuario_id, tipo_documento, url, subido_en)
         VALUES (gen_random_uuid(), :user_id, :tipo_documento, :url, NOW())
-        ON CONFLICT (usuario_id, tipo_documento) 
+        ON CONFLICT (usuario_id, tipo_documento)
         DO UPDATE SET url = :url, subido_en = NOW()
     """)
-    
+
     await db.execute(insert_doc, {
         "user_id": user_id,
         "tipo_documento": tipo_documento,
         "url": url
     })
-    
-    # Verificar si ya tiene los 3 documentos para cambiar estado a "completo"
+
+    # Verificar si ya tiene los 5 documentos para cambiar estado a "en_revision"
     count_query = text("""
         SELECT COUNT(*) FROM fleet.documentos_chofer
         WHERE usuario_id = :user_id
     """)
-    
+
     count_result = await db.execute(count_query, {"user_id": user_id})
     count = count_result.scalar()
-    
-    if count >= 3:
+
+    if count >= 5:
         update_query = text("""
             UPDATE fleet.chofer_vehiculo
-            SET estado_aprobacion = 'completo', updated_at = NOW()
+            SET estado_aprobacion = 'en_revision', updated_at = NOW()
             WHERE usuario_id = :user_id
         """)
         await db.execute(update_query, {"user_id": user_id})
-    
+
     await db.commit()
-    
+
     return DocumentoResponse(
         success=True,
         tipo_documento=tipo_documento,
@@ -154,17 +160,17 @@ async def obtener_estado_aprobacion(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get driver approval status
-    
+    Get driver approval status.
+
     Returns:
-    - estado_aprobacion: 'pendiente', 'completo', 'aprobado', 'rechazado'
-    - documentos_subidos: count of uploaded documents (0-3)
+    - estado_aprobacion: 'pendiente', 'en_revision', 'aprobado', 'rechazado'
+    - documentos_subidos: count of uploaded documents (0-5)
     - puede_manejar: boolean indicating if driver can accept trips
     """
     user_id = current_user[0]
-    
+
     query = text("""
-        SELECT 
+        SELECT
             cv.estado_aprobacion,
             COUNT(dc.id) as documentos_subidos,
             cv.estado_laboral
@@ -173,35 +179,35 @@ async def obtener_estado_aprobacion(
         WHERE cv.usuario_id = :user_id
         GROUP BY cv.estado_aprobacion, cv.estado_laboral
     """)
-    
+
     result = await db.execute(query, {"user_id": user_id})
     row = result.first()
-    
+
     if not row:
         raise HTTPException(status_code=404, detail="Chofer no encontrado")
-    
+
     estado = row[0]
     documentos_subidos = row[1] or 0
     estado_laboral = row[2]
-    
-    # Mensajes según estado
+
+    # Mensajes segun estado
     mensajes = {
-        "pendiente": "📄 Tu documentación está en revisión por el municipio. Te notificaremos cuando estés habilitado.",
-        "completo": "📋 Documentación completa. Esperando revisión municipal.",
-        "aprobado": "✅ ¡Felicidades! Estás habilitado para manejar. Ya puedes aceptar viajes.",
-        "rechazado": "❌ Tu documentación fue rechazada. Por favor, contacta al municipio para más información."
+        "pendiente": "Falta subir documentos. Completa los 5 requeridos.",
+        "en_revision": "Documentacion completa. Esperando revision municipal.",
+        "aprobado": "Felicidades! Estas habilitado para manejar. Ya puedes aceptar viajes.",
+        "rechazado": "Tu documentacion fue rechazada. Por favor, contacta al municipio para mas informacion."
     }
-    
+
     mensaje = mensajes.get(estado, "Estado desconocido")
-    
-    # Determinar si puede manejar (solo si está aprobado)
+
+    # Determinar si puede manejar (solo si esta aprobado)
     puede_manejar = estado == "aprobado"
-    
+
     return EstadoAprobacionResponse(
         estado_aprobacion=estado,
         mensaje=mensaje,
         documentos_subidos=documentos_subidos,
-        documentos_requeridos=3,
+        documentos_requeridos=5,
         puede_manejar=puede_manejar
     )
 
@@ -212,20 +218,20 @@ async def listar_mis_documentos(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    List all documents uploaded by the current driver
+    List all documents uploaded by the current driver.
     """
     user_id = current_user[0]
-    
+
     query = text("""
         SELECT id, tipo_documento, url, subido_en
         FROM fleet.documentos_chofer
         WHERE usuario_id = :user_id
         ORDER BY subido_en DESC
     """)
-    
+
     result = await db.execute(query, {"user_id": user_id})
     rows = result.all()
-    
+
     return {
         "success": True,
         "documentos": [
