@@ -19,7 +19,7 @@ class NotificacionVencimientoService:
 
     async def verificar_y_enviar_notificaciones(self) -> Dict:
         """
-        Verifica documentos por vencer y envía notificaciones
+        Verifica documentos y vehiculos (antiguedad) por vencer y envia notificaciones.
         Retorna: { "enviados": N, "errores": N, "detalles": [...] }
         """
         resultados = {
@@ -29,16 +29,19 @@ class NotificacionVencimientoService:
         }
 
         documentos = await self._obtener_documentos_por_vencer()
+        taxis = await self._obtener_taxis_por_vencer()
 
-        if not documentos:
-            logger.info("📋 No hay documentos por vencer que requieran notificación")
+        todos = documentos + taxis
+
+        if not todos:
+            logger.info("No hay documentos ni taxis por vencer")
             return resultados
 
-        logger.info(f"📋 Se encontraron {len(documentos)} documentos por vencer")
+        logger.info(f"Se encontraron {len(todos)} items por vencer")
 
-        for doc in documentos:
+        for doc in todos:
             try:
-                logger.info(f"📩 Procesando: {doc['subtipo']} - {doc['numero']} ({doc['dias_restantes']} dias)")
+                logger.info(f"Procesando: {doc['subtipo']} - {doc['numero']} ({doc['dias_restantes']} dias)")
 
                 ya_notificado = await self._ya_notificado_recientemente(
                     doc["documento_id"],
@@ -46,17 +49,17 @@ class NotificacionVencimientoService:
                 )
 
                 if ya_notificado:
-                    logger.info(f"⏭ Documento {doc['subtipo']} ya notificado")
+                    logger.info(f"Documento {doc['subtipo']} ya notificado")
                     continue
 
                 email = await self._obtener_email_propietario(doc["propietario_id"])
 
                 if not email:
-                    logger.warning(f"❌ Propietario {doc['propietario_id']} sin email")
+                    logger.warning(f"Propietario {doc['propietario_id']} sin email")
                     resultados["errores"] += 1
                     continue
 
-                logger.info(f"📧 Enviando email a {email}")
+                logger.info(f"Enviando email a {email}")
                 email_enviado = await self._enviar_email(
                     email=email,
                     documento=doc
@@ -82,13 +85,13 @@ class NotificacionVencimientoService:
                         "dias": doc["dias_restantes"],
                         "estado": "enviado"
                     })
-                    logger.info(f"✅ Notificacion enviada para {doc['subtipo']} - {doc['numero']}")
+                    logger.info(f"Notificacion enviada para {doc['subtipo']} - {doc['numero']}")
                 else:
                     resultados["errores"] += 1
-                    logger.error(f"❌ Error enviando email para {doc['subtipo']}")
+                    logger.error(f"Error enviando email para {doc['subtipo']}")
 
             except Exception as e:
-                logger.error(f"❌ Error procesando documento {doc.get('subtipo', 'unknown')}: {e}")
+                logger.error(f"Error procesando documento {doc.get('subtipo', 'unknown')}: {e}")
                 resultados["errores"] += 1
                 # Rollback parcial para no abortar el resto del batch
                 try:
@@ -96,11 +99,11 @@ class NotificacionVencimientoService:
                 except Exception:
                     pass
 
-        logger.info(f"📊 Resumen: {resultados['enviados']} enviados, {resultados['errores']} errores")
+        logger.info(f"Resumen: {resultados['enviados']} enviados, {resultados['errores']} errores")
         return resultados
 
     async def _obtener_documentos_por_vencer(self) -> List[Dict]:
-        """Obtiene documentos con vencimiento en los próximos 30 días"""
+        """Obtiene documentos con vencimiento en los proximos 30 dias"""
         query = text("""
             WITH documentos_propietario AS (
                 SELECT
@@ -185,6 +188,60 @@ class NotificacionVencimientoService:
             for row in rows
         ]
 
+    async def _obtener_taxis_por_vencer(self) -> List[Dict]:
+        """
+        Obtiene vehiculos aprobados con fecha_vencimiento_taxi en los proximos 120 dias.
+
+        Reglas de nivel para taxi (dias antes del vencimiento):
+        - vencido: ya vencio (< 0)
+        - critico: <= 30
+        - urgente: <= 60
+        - preventivo: <= 90 o <= 120
+        """
+        query = text("""
+            SELECT
+                v.id as documento_id,
+                'vehiculo_taxi' as entidad_tipo,
+                pv.propietario_id,
+                'antiguedad_taxi' as subtipo,
+                v.patente as numero,
+                v.fecha_vencimiento_taxi as fecha_vencimiento,
+                (v.fecha_vencimiento_taxi - NOW()::DATE) as dias_restantes,
+                CASE
+                    WHEN (v.fecha_vencimiento_taxi - NOW()::DATE) < 0 THEN 'vencido'
+                    WHEN (v.fecha_vencimiento_taxi - NOW()::DATE) <= 30 THEN 'critico'
+                    WHEN (v.fecha_vencimiento_taxi - NOW()::DATE) <= 60 THEN 'urgente'
+                    WHEN (v.fecha_vencimiento_taxi - NOW()::DATE) <= 90 THEN 'preventivo'
+                    WHEN (v.fecha_vencimiento_taxi - NOW()::DATE) <= 120 THEN 'preventivo'
+                    ELSE 'vigente'
+                END as nivel
+            FROM fleet.vehiculo v
+            JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
+            WHERE v.fecha_vencimiento_taxi IS NOT NULL
+              AND v.activo = true
+              AND v.estado_aprobacion = 'aprobado'
+              AND pv.activo = true
+              AND (v.fecha_vencimiento_taxi - NOW()::DATE) <= 120
+            ORDER BY dias_restantes ASC
+        """)
+
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        return [
+            {
+                "documento_id": str(row[0]),
+                "entidad_tipo": row[1],
+                "propietario_id": str(row[2]),
+                "subtipo": row[3],
+                "numero": row[4],
+                "fecha_vencimiento": row[5],
+                "dias_restantes": int(row[6]) if row[6] is not None else 0,
+                "nivel": row[7]
+            }
+            for row in rows
+        ]
+
     async def _ya_notificado_recientemente(self, documento_id: str, nivel: str) -> bool:
         """
         Verifica si ya se envio notificacion para este documento y nivel.
@@ -213,7 +270,7 @@ class NotificacionVencimientoService:
         return row[0] if row else None
 
     async def _enviar_email(self, email: str, documento: Dict) -> bool:
-        """Envía el email de notificación de vencimiento"""
+        """Envia el email de notificacion de vencimiento"""
         try:
             return await send_notificacion_vencimiento_email(
                 to_email=email,
@@ -224,7 +281,7 @@ class NotificacionVencimientoService:
                 nivel=documento["nivel"]
             )
         except Exception as e:
-            logger.error(f"❌ Error enviando email: {e}")
+            logger.error(f"Error enviando email: {e}")
             return False
 
     async def _registrar_notificacion(
@@ -239,7 +296,7 @@ class NotificacionVencimientoService:
         fecha_vencimiento: str,
         email_enviado: bool = True
     ):
-        """Registra la notificación en la base de datos"""
+        """Registra la notificacion en la base de datos"""
         query = text("""
             INSERT INTO fleet.notificacion_vencimiento (
                 documento_id, propietario_id, entidad_tipo, tipo_documento, numero,
@@ -265,4 +322,4 @@ class NotificacionVencimientoService:
             "email_enviado_en": datetime.now() if email_enviado else None
         })
         await self.db.commit()
-        logger.info(f"💾 Notificación registrada: {tipo_documento} - {numero} ({nivel})")
+        logger.info(f"Notificacion registrada: {tipo_documento} - {numero} ({nivel})")
