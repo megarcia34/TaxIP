@@ -144,56 +144,19 @@ async def solicitar_ser_chofer(
     """
     Permite al propietario postularse como chofer (auto-gestion).
 
-    Valida que tenga los datos minimos del perfil: nombre, apellido, DNI y foto.
     Crea una fila en fleet.chofer_vehiculo con estado 'pendiente'.
+    No valida datos minimos ni vehiculos: el propietario completa despues.
+    Al apretar 'Enviar a revision', se valida todo junto.
+
     Si ya tiene una postulacion 'rechazada', la inactiva y crea una nueva.
     """
     user_id, control_base_id, email, tipo = current_user
 
     # 1. Verificar que es propietario
-    query_verify = text("""
-        SELECT id FROM fleet.propietario_vehiculo
-        WHERE propietario_id = :user_id AND activo = true
-        LIMIT 1
-    """)
-    result = await db.execute(query_verify, {"user_id": user_id})
-    if not result.first():
+    if tipo.lower() != "propietario":
         raise HTTPException(status_code=403, detail="No eres propietario")
 
-    # 2. Verificar datos minimos del perfil
-    query_perfil = text("""
-        SELECT nombre, apellido, documento, foto_perfil_url
-        FROM auth.perfil_general
-        WHERE usuario_id = :user_id
-    """)
-    result = await db.execute(query_perfil, {"user_id": user_id})
-    row = result.first()
-
-    if not row:
-        raise HTTPException(
-            status_code=400,
-            detail="Debe completar su perfil antes de solicitar ser chofer"
-        )
-
-    nombre, apellido, documento, foto_perfil_url = row
-
-    faltantes = []
-    if not nombre:
-        faltantes.append("nombre")
-    if not apellido:
-        faltantes.append("apellido")
-    if not documento:
-        faltantes.append("documento (DNI)")
-    if not foto_perfil_url:
-        faltantes.append("foto de perfil")
-
-    if faltantes:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Debe completar los siguientes datos antes de solicitar ser chofer: {', '.join(faltantes)}"
-        )
-
-    # 3. Verificar postulacion previa
+    # 2. Verificar postulacion previa
     query_existente = text("""
         SELECT id, estado_aprobacion FROM fleet.chofer_vehiculo
         WHERE usuario_id = :user_id AND activo = true
@@ -204,7 +167,6 @@ async def solicitar_ser_chofer(
     if row:
         estado = row[1]
         if estado == 'rechazado':
-            # Inactivar la anterior y permitir nueva
             query_inactivar = text("""
                 UPDATE fleet.chofer_vehiculo
                 SET activo = false, updated_at = NOW()
@@ -217,7 +179,7 @@ async def solicitar_ser_chofer(
                 detail=f"Ya tiene una solicitud en estado '{estado}'. No puede crear otra."
             )
 
-    # 4. Crear la nueva fila
+    # 3. Crear la nueva fila
     insert = text("""
         INSERT INTO fleet.chofer_vehiculo (
             id, usuario_id, control_base_id, vehiculo_id,
@@ -240,6 +202,6 @@ async def solicitar_ser_chofer(
 
     return {
         "success": True,
-        "message": "Solicitud enviada. Un administrador revisara sus documentos.",
+        "message": "Solicitud iniciada. Puede cargar sus documentos cuando desee.",
         "chofer_vehiculo_id": str(chofer_vehiculo_id)
     }

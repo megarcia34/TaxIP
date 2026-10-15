@@ -127,22 +127,8 @@ async def subir_documento(
         "url": url
     })
 
-    # Verificar si ya tiene los 5 documentos para cambiar estado a "en_revision"
-    count_query = text("""
-        SELECT COUNT(*) FROM fleet.documentos_chofer
-        WHERE usuario_id = :user_id
-    """)
-
-    count_result = await db.execute(count_query, {"user_id": user_id})
-    count = count_result.scalar()
-
-    if count >= 5:
-        update_query = text("""
-            UPDATE fleet.chofer_vehiculo
-            SET estado_aprobacion = 'en_revision', updated_at = NOW()
-            WHERE usuario_id = :user_id
-        """)
-        await db.execute(update_query, {"user_id": user_id})
+    # El cambio de estado a 'en_revision' se hace en POST /propietario/enviar-a-revision
+    # cuando el propietario aprieta el boton "Enviar a revision".
 
     await db.commit()
 
@@ -244,3 +230,4 @@ async def listar_mis_documentos(
             for row in rows
         ]
     }
+
