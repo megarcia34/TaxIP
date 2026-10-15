@@ -471,13 +471,29 @@ async def get_current_driver_user(
 ) -> Tuple[UUID, UUID, str, str]:
     """
     Verifica que el usuario sea chofer o tenga capacidad de chofer.
+    Acepta:
+    - Chofer directo (tipo_usuario = 'chofer').
+    - Propietario-chofer (tipo_usuario = 'propietario' + chofer_vehiculo aprobado).
+    - Capacidad chofer via usuario_rol.
     """
     user_id, control_base_id, email, tipo = current_user
-    
+
     # 1. Verificar si es chofer directamente
     es_chofer_directo = (tipo.lower() == "chofer")
-    
-    # 2. Verificar si tiene capacidad chofer via usuario_rol
+
+    # 2. Verificar si es propietario con chofer_vehiculo aprobado (auto-gestion)
+    es_propietario_chofer = False
+    if tipo.lower() == "propietario":
+        query_pc = text("""
+            SELECT 1 FROM fleet.chofer_vehiculo
+            WHERE usuario_id = :user_id
+              AND estado_aprobacion = 'aprobado'
+              AND activo = true
+        """)
+        result_pc = await db.execute(query_pc, {"user_id": user_id})
+        es_propietario_chofer = result_pc.first() is not None
+
+    # 3. Verificar si tiene capacidad chofer via usuario_rol
     query = text("""
         SELECT 1 FROM auth.usuario_rol
         WHERE usuario_id = :user_id
@@ -486,13 +502,13 @@ async def get_current_driver_user(
     """)
     result = await db.execute(query, {"user_id": user_id})
     tiene_capacidad_chofer = result.first() is not None
-    
-    if not (es_chofer_directo or tiene_capacidad_chofer):
+
+    if not (es_chofer_directo or es_propietario_chofer or tiene_capacidad_chofer):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso de chofer requerido"
         )
-    
+
     return current_user
 
 
