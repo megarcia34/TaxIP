@@ -306,7 +306,7 @@ export default function MantenimientosPage() {
                     <Car className="h-4 w-4 text-muted-foreground" />
                     <span className="font-semibold">{vehiculo.patente}</span>
                     <span className="text-xs text-muted-foreground">
-                      (km: {vehiculo.km_actual.toLocaleString()})
+                      (km: {vehiculo.km_actual != null ? vehiculo.km_actual.toLocaleString() : '—'})
                     </span>
                   </div>
                   <div className="space-y-1 pl-6">

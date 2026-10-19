@@ -441,14 +441,15 @@ async def obtener_alertas_mantenimiento(
         ]
         
         if alertas:
-            todas_alertas.append({
-                "vehiculo_id": str(vehiculo.id),
-                "patente": vehiculo.patente,
-                "alertas": alertas
-            })
+           todas_alertas.append({
+               "vehiculo_id": str(vehiculo.id),
+               "patente": vehiculo.patente,
+               "km_actual": km_actual,                  # <-- FALTA también
+               "mantenimientos_proximos": alertas       # <-- CAMBIO: usar el nombre correcto
+           })
 
     return MantenimientoAlertasResponse(
-        total_alertas=sum(len(v["alertas"]) for v in todas_alertas),
+        total_alertas=sum(len(v["mantenimientos_proximos"]) for v in todas_alertas), 
         vehiculos_con_alertas=todas_alertas
     )
 
