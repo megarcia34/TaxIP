@@ -1,3 +1,4 @@
+// D:\aTaxip\dashboard\app\dashboard-propietario\contratos\page.tsx
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
@@ -28,10 +29,12 @@ import {
   Gauge,
   CreditCard,
   Users,
+  Key,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import CrearContratoModal from '@/components/propietario/contratos/CrearContratoModal'
-import { useContratos, useFinalizarContrato } from '@/hooks/propietario/useContratos'
+import ModalCodigoGenerado from '@/components/propietario/contratos/ModalCodigoGenerado'
+import { useContratos, useFinalizarContrato, useGenerarCodigo } from '@/hooks/propietario/useContratos'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -44,6 +47,7 @@ interface Contrato {
   chofer_id: string
   chofer_nombre: string
   chofer_apellido: string
+  chofer_telefono: string | null
   tipo_contrato: string
   turno_asignado: string
   porcentaje_chofer: number | null
@@ -70,12 +74,17 @@ export default function PropietarioContratosPage() {
   const [showModal, setShowModal] = useState(false)
   const [selectedContrato, setSelectedContrato] = useState<Contrato | null>(null)
 
+  // Modal codigo generado
+  const [modalCodigoOpen, setModalCodigoOpen] = useState(false)
+  const [codigoData, setCodigoData] = useState<any>(null)
+
   const isAdmin = user?.rol === 'admin'
 
   const { data: contratos = [], isLoading, refetch } = useContratos(filterActivo)
   const finalizarMutation = useFinalizarContrato()
+  const generarCodigoMutation = useGenerarCodigo()
 
- useEffect(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const pid = params.get('propietario_id')
@@ -88,28 +97,44 @@ export default function PropietarioContratosPage() {
     finalizarMutation.mutate(contratoId)
   }
 
+  const handleGenerarCodigo = async (contrato: Contrato) => {
+    try {
+      const res = await generarCodigoMutation.mutateAsync({ contratoId: contrato.id })
+      setCodigoData({
+        codigo: res.codigo,
+        expiraEn: res.expira_en,
+        choferNombre: `${contrato.chofer_nombre} ${contrato.chofer_apellido || ''}`.trim(),
+        choferTelefono: contrato.chofer_telefono,
+        patente: contrato.patente,
+      })
+      setModalCodigoOpen(true)
+    } catch {
+      // El hook ya muestra el toast
+    }
+  }
+
   const handleSuccess = useCallback(() => {
     setShowModal(false)
     refetch()
   }, [refetch])
 
-  // ✅ Estadísticas
+  // Estadísticas
   const estadisticas = useMemo(() => {
-  const total = contratos.length
-  const activos = contratos.filter((c: Contrato) => c.activo).length
-  const finalizados = contratos.filter((c: Contrato) => !c.activo).length
-  const alquiler = contratos.filter((c: Contrato) => c.tipo_contrato === 'ALQUILER').length
-  const porcentaje = contratos.filter((c: Contrato) => c.tipo_contrato === 'PORCENTAJE').length
-  const autogestion = contratos.filter((c: Contrato) => c.tipo_contrato === 'AUTO_GESTION').length
-  
-  return { total, activos, finalizados, alquiler, porcentaje, autogestion }
-}, [contratos])
+    const total = contratos.length
+    const activos = contratos.filter((c: Contrato) => c.activo).length
+    const finalizados = contratos.filter((c: Contrato) => !c.activo).length
+    const alquiler = contratos.filter((c: Contrato) => c.tipo_contrato === 'ALQUILER').length
+    const porcentaje = contratos.filter((c: Contrato) => c.tipo_contrato === 'PORCENTAJE').length
+    const autogestion = contratos.filter((c: Contrato) => c.tipo_contrato === 'AUTO_GESTION').length
+
+    return { total, activos, finalizados, alquiler, porcentaje, autogestion }
+  }, [contratos])
 
   const getTipoContratoLabel = (tipo: string) => {
     const tipos: Record<string, string> = {
       AUTO_GESTION: 'Auto-gestión',
       PORCENTAJE: 'A porcentaje',
-      ALQUILER: 'Alquiler'
+      ALQUILER: 'Alquiler',
     }
     return tipos[tipo] || tipo
   }
@@ -118,18 +143,9 @@ export default function PropietarioContratosPage() {
     const colores: Record<string, string> = {
       AUTO_GESTION: 'bg-blue-100 text-blue-800 border-blue-200',
       PORCENTAJE: 'bg-purple-100 text-purple-800 border-purple-200',
-      ALQUILER: 'bg-green-100 text-green-800 border-green-200'
+      ALQUILER: 'bg-green-100 text-green-800 border-green-200',
     }
     return colores[tipo] || 'bg-gray-100 text-gray-800'
-  }
-
-  const getTurnoLabel = (turno: string) => {
-    const turnos: Record<string, string> = {
-      DIURNO: 'Diurno',
-      NOCTURNO: 'Nocturno',
-      COMPLETO: 'Completo'
-    }
-    return turnos[turno] || turno
   }
 
   const getDetalleContrato = (contrato: Contrato) => {
@@ -161,16 +177,16 @@ export default function PropietarioContratosPage() {
       jueves: 'Jue',
       viernes: 'Vie',
       sabado: 'Sáb',
-      domingo: 'Dom'
+      domingo: 'Dom',
     }
-    return dias.map(d => abreviaturas[d] || d).join(', ')
+    return dias.map((d) => abreviaturas[d] || d).join(', ')
   }
 
   const getEstadoBadge = (contrato: Contrato) => {
     if (!contrato.activo) {
       return <Badge variant="secondary" className="bg-gray-100 text-gray-700">Finalizado</Badge>
     }
-    
+
     switch (contrato.estado_contrato) {
       case 'ACTIVO':
         return <Badge className="bg-green-500 hover:bg-green-600">Activo</Badge>
@@ -183,7 +199,6 @@ export default function PropietarioContratosPage() {
     }
   }
 
-  // ✅ Formatear fecha
   const formatFecha = (fecha: string | null) => {
     if (!fecha) return '—'
     try {
@@ -347,7 +362,7 @@ export default function PropietarioContratosPage() {
                         </Badge>
                         {getEstadoBadge(c)}
                       </div>
-                      
+
                       <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <User className="h-3.5 w-3.5" />
@@ -357,14 +372,14 @@ export default function PropietarioContratosPage() {
                             `${c.chofer_nombre} ${c.chofer_apellido || ''}`
                           )}
                         </span>
-                        
+
                         {c.hora_inicio && c.hora_fin && (
                           <span className="flex items-center gap-1">
                             <Clock className="h-3.5 w-3.5" />
                             {c.hora_inicio} - {c.hora_fin}
                           </span>
                         )}
-                        
+
                         <span className="flex items-center gap-1">
                           <CalendarDays className="h-3.5 w-3.5" />
                           {getDiasAbreviados(c.dias_contractuales)}
@@ -373,22 +388,39 @@ export default function PropietarioContratosPage() {
                     </div>
 
                     {/* Derecha: Acciones */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                       {c.activo && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleFinalizar(c.id)}
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                          disabled={finalizarMutation.isPending}
-                        >
-                          {finalizarMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          ) : (
-                            <XCircle className="h-4 w-4 mr-1" />
-                          )}
-                          Finalizar
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleGenerarCodigo(c)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            disabled={generarCodigoMutation.isPending}
+                            title="Generar codigo de inicio de turno"
+                          >
+                            {generarCodigoMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Key className="h-4 w-4 mr-1" />
+                            )}
+                            Código
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleFinalizar(c.id)}
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            disabled={finalizarMutation.isPending}
+                          >
+                            {finalizarMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <XCircle className="h-4 w-4 mr-1" />
+                            )}
+                            Finalizar
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -400,7 +432,7 @@ export default function PropietarioContratosPage() {
                       <span className="text-muted-foreground">Detalle:</span>
                       <span className="font-medium">{getDetalleContrato(c)}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="h-4 w-4 text-blue-600" />
                       <span className="text-muted-foreground">Inicio:</span>
@@ -412,7 +444,7 @@ export default function PropietarioContratosPage() {
                         </>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-sm">
                       <Gauge className="h-4 w-4 text-purple-600" />
                       <span className="text-muted-foreground">KM:</span>
@@ -425,13 +457,13 @@ export default function PropietarioContratosPage() {
                         )}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-sm">
                       <ClockIcon className="h-4 w-4 text-orange-600" />
                       <span className="text-muted-foreground">Tratamiento:</span>
                       <span className="font-medium">
-                        {c.tratamiento_dia_no_trabajado === 'POR_DISPONIBILIDAD' 
-                          ? 'Por disponibilidad' 
+                        {c.tratamiento_dia_no_trabajado === 'POR_DISPONIBILIDAD'
+                          ? 'Por disponibilidad'
                           : 'Por uso efectivo'}
                       </span>
                     </div>
@@ -451,12 +483,21 @@ export default function PropietarioContratosPage() {
         </CardContent>
       </Card>
 
-      {/* MODAL */}
+      {/* MODAL CREAR CONTRATO */}
       <CrearContratoModal
         open={showModal}
         onOpenChange={setShowModal}
         onSuccess={handleSuccess}
       />
+
+      {/* MODAL CODIGO GENERADO */}
+      {codigoData && (
+        <ModalCodigoGenerado
+          open={modalCodigoOpen}
+          onOpenChange={setModalCodigoOpen}
+          {...codigoData}
+        />
+      )}
     </div>
   )
 }

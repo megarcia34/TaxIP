@@ -282,6 +282,7 @@ async def listar_contratos(
         SELECT 
             c.id, c.vehiculo_id, v.patente, v.marca, v.modelo,
             c.chofer_id, p.nombre as chofer_nombre, p.apellido as chofer_apellido,
+            p.telefono as chofer_telefono,
             c.tipo_contrato,
             c.hora_inicio, c.hora_fin, c.duracion_minima_horas, c.permite_extension, c.hora_fin_extension,
             c.porcentaje_chofer, c.monto_diario,
@@ -1058,10 +1059,9 @@ async def verificar_disponibilidad(
 
 def _map_row_to_contrato_response(row) -> ContratoResponse:
     """
-    Mapea una fila de base de datos a ContratoResponse
-    Índices CORREGIDOS para la nueva estructura de columnas
+    Mapea una fila de base de datos a ContratoResponse.
+    Indices ajustados para incluir chofer_telefono.
     """
-    # El orden de las columnas en la consulta SELECT es:
     # 0: id
     # 1: vehiculo_id
     # 2: patente
@@ -1070,28 +1070,28 @@ def _map_row_to_contrato_response(row) -> ContratoResponse:
     # 5: chofer_id
     # 6: chofer_nombre
     # 7: chofer_apellido
-    # 8: tipo_contrato
-    # 9: hora_inicio
-    # 10: hora_fin
-    # 11: duracion_minima_horas
-    # 12: permite_extension
-    # 13: hora_fin_extension
-    # 14: porcentaje_chofer
-    # 15: monto_diario
-    # 16: fecha_inicio
-    # 17: fecha_fin
-    # 18: activo
-    # 19: estado_contrato
-    # 20: canon_diario
-    # 21: km_incluidos_dia
-    # 22: valor_km_excedente
-    # 23: modalidad_computo
-    # 24: dias_contractuales
-    # 25: tratamiento_dia_no_trabajado
-    # 26: dia_inicio_semana
-    
-    # Procesar dias_contractuales (índice 24)
-    dias = row[24]
+    # 8: chofer_telefono     <-- NUEVO
+    # 9: tipo_contrato
+    # 10: hora_inicio
+    # 11: hora_fin
+    # 12: duracion_minima_horas
+    # 13: permite_extension
+    # 14: hora_fin_extension
+    # 15: porcentaje_chofer
+    # 16: monto_diario
+    # 17: fecha_inicio
+    # 18: fecha_fin
+    # 19: activo
+    # 20: estado_contrato
+    # 21: canon_diario
+    # 22: km_incluidos_dia
+    # 23: valor_km_excedente
+    # 24: modalidad_computo
+    # 25: dias_contractuales
+    # 26: tratamiento_dia_no_trabajado
+    # 27: dia_inicio_semana
+
+    dias = row[25]
     if isinstance(dias, str):
         try:
             dias = json.loads(dias)
@@ -1099,17 +1099,15 @@ def _map_row_to_contrato_response(row) -> ContratoResponse:
             dias = []
     elif dias is None:
         dias = []
-    
-    # Procesar tratamiento_dia_no_trabajado (índice 25)
-    tratamiento = row[25]
+
+    tratamiento = row[26]
     if isinstance(tratamiento, list):
         tratamiento = None
-    
-    # Convertir time a string HH:MM
-    hora_inicio_str = row[9].strftime("%H:%M") if row[9] else None
-    hora_fin_str = row[10].strftime("%H:%M") if row[10] else None
-    hora_fin_extension_str = row[13].strftime("%H:%M") if row[13] else None
-    
+
+    hora_inicio_str = row[10].strftime("%H:%M") if row[10] else None
+    hora_fin_str = row[11].strftime("%H:%M") if row[11] else None
+    hora_fin_extension_str = row[14].strftime("%H:%M") if row[14] else None
+
     return ContratoResponse(
         id=row[0],
         vehiculo_id=row[1],
@@ -1119,23 +1117,24 @@ def _map_row_to_contrato_response(row) -> ContratoResponse:
         chofer_id=row[5],
         chofer_nombre=row[6],
         chofer_apellido=row[7],
-        tipo_contrato=row[8],
+        chofer_telefono=row[8],            # <-- NUEVO
+        tipo_contrato=row[9],
         hora_inicio=hora_inicio_str,
         hora_fin=hora_fin_str,
-        duracion_minima_horas=row[11],
-        permite_extension=row[12],
+        duracion_minima_horas=row[12],
+        permite_extension=row[13],
         hora_fin_extension=hora_fin_extension_str,
-        porcentaje_chofer=float(row[14]) if row[14] is not None else None,
-        monto_diario=float(row[15]) if row[15] is not None else None,
-        fecha_inicio=row[16],
-        fecha_fin=row[17],
-        activo=row[18],
-        estado_contrato=row[19],
-        canon_diario=float(row[20]) if row[20] is not None else None,
-        km_incluidos_dia=float(row[21]) if row[21] is not None else None,
-        valor_km_excedente=float(row[22]) if row[22] is not None else None,
-        modalidad_computo=row[23],
+        porcentaje_chofer=float(row[15]) if row[15] is not None else None,
+        monto_diario=float(row[16]) if row[16] is not None else None,
+        fecha_inicio=row[17],
+        fecha_fin=row[18],
+        activo=row[19],
+        estado_contrato=row[20],
+        canon_diario=float(row[21]) if row[21] is not None else None,
+        km_incluidos_dia=float(row[22]) if row[22] is not None else None,
+        valor_km_excedente=float(row[23]) if row[23] is not None else None,
+        modalidad_computo=row[24],
         dias_contractuales=dias if isinstance(dias, list) else [],
         tratamiento_dia_no_trabajado=tratamiento,
-        dia_inicio_semana=row[26] if len(row) > 26 else None
+        dia_inicio_semana=row[27] if len(row) > 27 else None
     )

@@ -323,6 +323,7 @@ class ContratoResponse(BaseModel):
     chofer_id: UUID
     chofer_nombre: Optional[str] = None
     chofer_apellido: Optional[str] = None
+    chofer_telefono: Optional[str] = None
     tipo_contrato: str
     
     # Horarios flexibles
