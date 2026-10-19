@@ -9,7 +9,7 @@ from fastapi import UploadFile
 import uuid
 from datetime import datetime
 import re
-
+from io import BytesIO
 from app.core.config import settings
 
 
@@ -57,7 +57,6 @@ class CloudinaryStorageService:
         )
         
         return upload_result.get("secure_url")
-
     async def upload_documento_chofer(
         self,
         file: UploadFile,
@@ -69,18 +68,22 @@ class CloudinaryStorageService:
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_id = str(uuid.uuid4())[:8]
-        
-        # Obtener extensión
+
+        # Obtener extension
         file_extension = file.filename.split('.')[-1] if file.filename else 'jpg'
         if file_extension.lower() not in ['jpg', 'jpeg', 'png', 'pdf']:
             file_extension = 'jpg'
-        
-        # Leer el archivo
+
+        # Leer el archivo y envolver en BytesIO
         content = await file.read()
-        
+        if not content:
+            raise ValueError("El archivo esta vacio")
+        file_stream = BytesIO(content)
+        file_stream.name = f"{timestamp}_{unique_id}.{file_extension}"
+
         # Subir a Cloudinary
         upload_result = cloudinary.uploader.upload(
-            content,
+            file_stream,
             folder=f"choferes/{usuario_id}/{tipo_documento}",
             public_id=f"{timestamp}_{unique_id}",
             resource_type="auto",
@@ -88,7 +91,7 @@ class CloudinaryStorageService:
             unique_filename=True,
             format=file_extension
         )
-        
+
         return upload_result.get("secure_url")
 
     async def delete_comprobante(self, public_id: str) -> bool:

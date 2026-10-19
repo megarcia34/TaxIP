@@ -44,13 +44,16 @@ async def listar_vehiculos(
     db: AsyncSession = Depends(get_db)
 ):
     propietario_id = ctx["propietario_id"]
-    
+
     query = text("""
         SELECT DISTINCT
             v.id, v.patente, v.marca, v.modelo, v.anio, v.numero_licencia,
             v.qr_uuid, v.qr_activo,
             COALESCE(p.nombre || ' ' || p.apellido, u.email) as chofer_asignado,
-            cv.estado_laboral
+            cv.estado_laboral,
+            v.estado_aprobacion,
+            v.documentacion_completa,
+            v.fecha_vencimiento_taxi
         FROM fleet.vehiculo v
         INNER JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id AND pv.activo = true AND pv.propietario_id = :propietario_id
         LEFT JOIN fleet.chofer_vehiculo cv ON cv.vehiculo_id = v.id AND cv.activo = true
@@ -61,17 +64,19 @@ async def listar_vehiculos(
     """)
     result = await db.execute(query, {"propietario_id": propietario_id})
     rows = result.all()
-    
+
     return [
         {
             "id": str(row[0]), "patente": row[1], "marca": row[2],
             "modelo": row[3], "anio": row[4], "numero_licencia": row[5],
             "qr_uuid": str(row[6]), "qr_activo": row[7],
-            "chofer_asignado": row[8], "estado_laboral": row[9]
+            "chofer_asignado": row[8], "estado_laboral": row[9],
+            "estado_aprobacion": row[10],
+            "documentacion_completa": row[11],
+            "fecha_vencimiento_taxi": row[12].isoformat() if row[12] else None
         }
         for row in rows
     ]
-
 
 @router.post("/vehiculos", status_code=201)
 async def crear_vehiculo(
@@ -198,11 +203,14 @@ async def obtener_vehiculo(
     db: AsyncSession = Depends(get_db)
 ):
     propietario_id = ctx["propietario_id"]
-    
+
     query = text("""
-        SELECT v.id, v.patente, v.marca, v.modelo, v.anio, v.numero_licencia, 
+        SELECT v.id, v.patente, v.marca, v.modelo, v.anio, v.numero_licencia,
                v.qr_uuid, v.qr_activo, v.activo,
-               COALESCE(p.nombre || ' ' || p.apellido, u.email) as chofer_actual
+               COALESCE(p.nombre || ' ' || p.apellido, u.email) as chofer_actual,
+               v.estado_aprobacion,
+               v.documentacion_completa,
+               v.fecha_vencimiento_taxi
         FROM fleet.vehiculo v
         INNER JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
         LEFT JOIN fleet.chofer_vehiculo cv ON cv.vehiculo_id = v.id AND cv.activo = true
@@ -214,12 +222,15 @@ async def obtener_vehiculo(
     row = result.first()
     if not row:
         raise HTTPException(status_code=404, detail="Vehículo no encontrado")
-    
+
     return {
         "id": str(row[0]), "patente": row[1], "marca": row[2], "modelo": row[3],
         "anio": row[4], "numero_licencia": row[5],
         "qr_uuid": str(row[6]), "qr_activo": row[7], "activo": row[8],
-        "chofer_actual": row[9]
+        "chofer_actual": row[9],
+        "estado_aprobacion": row[10],
+        "documentacion_completa": row[11],
+        "fecha_vencimiento_taxi": row[12].isoformat() if row[12] else None
     }
 
 
@@ -431,7 +442,8 @@ async def obtener_estado_vehiculo(
     activos_neumaticos = neumaticos[1] if neumaticos else 0
     tiene_neumaticos = activos_neumaticos >= 4
     
-    # 3. Verificar documentos mínimos requeridos (seguro, VTV, cédula)
+    # 3. Verificar documentos minimos requeridos
+    #    Debe tener los 4 docs Y todos vigentes (fecha futura)
     query_documentos = text("""
         SELECT 
             tipo_documento,
@@ -445,27 +457,39 @@ async def obtener_estado_vehiculo(
     """)
     result = await db.execute(query_documentos, {"vehiculo_id": vehiculo_id})
     documentos = result.all()
-    
-    docs_requeridos = ['SEGURO', 'VTV', 'CEDULA']
+
+    # 3 bis.documentos obligatorios (los mismos que en documentos.py)
+    docs_requeridos = ['SEGURO', 'VTV', 'CEDULA_VERDE', 'HABILITACION']
     docs_presentes = {}
     docs_faltantes = []
-    
+
     for doc in docs_requeridos:
-        encontrado = next((d for d in documentos if d[0] == doc), None)
-        if encontrado:
-            docs_presentes[doc] = {
-                "presente": True,
-                "vencimiento": encontrado[1].isoformat() if encontrado[1] else None,
-                "vigente": encontrado[2]
-            }
-        else:
+        # Buscar el documento mas reciente de ese tipo
+        encontrados = [d for d in documentos if d[0] == doc]
+        
+        if not encontrados:
+            # No existe -> falta
             docs_presentes[doc] = {
                 "presente": False,
                 "vencimiento": None,
                 "vigente": False
             }
             docs_faltantes.append(doc)
-    
+        else:
+            # Existe. Tomar el de vencimiento mas lejano
+            mejor = max(encontrados, key=lambda d: d[1] or date.min)
+            vigente = mejor[2]
+            
+            docs_presentes[doc] = {
+                "presente": True,
+                "vencimiento": mejor[1].isoformat() if mejor[1] else None,
+                "vigente": vigente
+            }
+            
+            # Si no esta vigente (vencido), tambien falta
+            if not vigente:
+                docs_faltantes.append(doc)
+
     tiene_documentos = len(docs_faltantes) == 0
     
     # 4. Verificar mantenimientos (al menos uno registrado)

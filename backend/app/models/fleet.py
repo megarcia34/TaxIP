@@ -1068,6 +1068,11 @@ class DocumentosChofer(Base):
         nullable=False,
         comment="URL del documento almacenado (local, S3, etc)"
     )
+    numero: Mapped[Optional[str]] = mapped_column(
+        String(50),
+        nullable=True,
+        comment="Numero del documento (DNI, licencia, etc). Opcional."
+    )
     subido_en: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     fecha_vencimiento: Mapped[datetime] = mapped_column(Date, nullable=True)
     notificar_dias: Mapped[int] = mapped_column(Integer, default=30, nullable=False)

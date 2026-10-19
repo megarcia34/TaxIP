@@ -72,3 +72,18 @@ export function useConfigurarContrato() {
     },
   });
 }
+// ============================================================
+// GENERAR CODIGO DE INICIO DE TURNO
+// ============================================================
+
+import { contratosAccionesAPI } from '@/lib/api/contratosAcciones';
+
+export function useGenerarCodigo() {
+  return useMutation({
+    mutationFn: ({ contratoId, diasValidez }: { contratoId: string; diasValidez?: number }) =>
+      contratosAccionesAPI.generarCodigo(contratoId, diasValidez),
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || 'Error al generar el codigo');
+    },
+  });
+}

@@ -22,6 +22,8 @@ import {
   AlertTriangle,
   CircleDot,
   ClipboardList,
+  User,
+  TrendingDown,
 } from 'lucide-react'
 import { useAlertas } from '@/hooks/useAlertas'
 
@@ -97,6 +99,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   // MENÚ DEL PROPIETARIO (CORREGIDO)
   // ============================================
   const menuItems = [
+    { title: 'Mi perfil', href: '/dashboard-propietario/perfil', icon: User },
     { title: 'Dashboard', href: '/dashboard-propietario', icon: LayoutDashboard },
     { title: 'Vehículos', href: '/dashboard-propietario/vehiculos', icon: Car },
     { title: 'Vehículos en Tiempo Real', href: '/dashboard-propietario/vehiculos-tiempo-real', icon: MapPin },
@@ -109,6 +112,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     { title: 'Mantenimientos', href: '/dashboard-propietario/mantenimientos', icon: Wrench },
     { title: 'Rentabilidad', href: '/dashboard-propietario/rentabilidad', icon: BarChart3 },
     { title: 'Reportes', href: '/dashboard-propietario/reportes', icon: ClipboardList },
+    { title: 'Metricas de fallbacks', href: '/dashboard-propietario/metricas-fallbacks', icon: TrendingDown },    
   ]
 
   const handleLogout = async () => {

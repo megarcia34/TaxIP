@@ -7,12 +7,16 @@ export { apiClient, default } from './client';
 export * from './propietario';
 export * from './neumaticos';
 export * from './tarifaService';
+export * from './perfil';
+export * from './cuentasCobro';
+export * from './postulacionChofer';
+export * from './contratosAcciones';
+export * from './metricasPropietario';
 
 // ============================================================
 // EXPORTACIONES PARA MANTENER COMPATIBILIDAD CON lib/api.ts
 // ============================================================
 
-// Re-exportar desde propietario.ts
 export {
   propietarioReportesAPI,
   propietarioVehiculosAPI,
@@ -20,10 +24,7 @@ export {
   propietarioFinanzasAPI,
 } from './propietario';
 
-// Re-exportar desde neumaticos.ts
 export { neumaticosAPI } from './neumaticos';
-
-// Re-exportar desde tarifaService.ts
 export { tarifaService } from './tarifaService';
 
 // ============================================================
@@ -32,3 +33,8 @@ export { tarifaService } from './tarifaService';
 
 export * from './propietario';
 export * from './neumaticos';
+export * from './perfil';
+export * from './cuentasCobro';
+export * from './postulacionChofer';
+export * from './contratosAcciones';
+export * from './metricasPropietario';

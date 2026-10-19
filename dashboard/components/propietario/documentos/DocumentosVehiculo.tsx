@@ -19,9 +19,10 @@ interface DocumentosVehiculoProps {
 const TIPOS_DOCUMENTO = [
   { value: 'SEGURO', label: 'Seguro' },
   { value: 'VTV', label: 'VTV / ITV' },
-  { value: 'CEDULA', label: 'Cédula Verde' },
   { value: 'PATENTE', label: 'Patente' },
-  { value: 'LICENCIA', label: 'Licencia de Conducir' },
+  { value: 'CEDULA_VERDE', label: 'Cédula Verde' },
+  { value: 'LICENCIA_CHOFER', label: 'Licencia de Conducir' },
+  { value: 'HABILITACION', label: 'Habilitación' },
   { value: 'OTRO', label: 'Otro' },
 ]
 

@@ -1,5 +1,5 @@
-// ✅ CORREGIDO - Usa la ruta correcta
-import { apiClient } from '../api'  // Apunta a lib/api.ts
+// Fix R20: usar el apiClient modular (baseURL con /api)
+import { apiClient } from './client'
 
 export interface ResumenEjecutivo {
   vehiculo: {

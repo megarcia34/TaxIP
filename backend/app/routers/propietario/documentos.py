@@ -123,21 +123,23 @@ async def recalcular_documentacion_y_estado(
 ) -> None:
     """
     Recalcula documentacion_completa y dispara en_revision si corresponde.
-
-    - documentacion_completa = true si estan los 4 documentos obligatorios.
-    - Si el vehiculo estaba 'aprobado' y hay cambios de docs, pasa a 'en_revision'
-      con plazo configurable por tenant.
+    
+    REGLA: documentacion_completa = true SI Y SOLO SI:
+    - Estan los 4 tipos de documentos obligatorios.
+    - NINGUNO esta vencido (fecha_vencimiento >= hoy).
     """
-    # 1. Contar tipos de documentos presentes
+    # 1. Buscar documentos obligatorios que esten VIGENTES (no vencidos)
     query_tipos = text("""
         SELECT DISTINCT tipo_documento
         FROM fleet.documento_vehiculo
         WHERE vehiculo_id = :vehiculo_id
+          AND fecha_vencimiento >= CURRENT_DATE
     """)
     result_tipos = await db.execute(query_tipos, {"vehiculo_id": vehiculo_id})
-    tipos_presentes = {row[0] for row in result_tipos.all()}
+    tipos_vigentes = {row[0] for row in result_tipos.all()}
 
-    doc_completa = TIPOS_OBLIGATORIOS_VEHICULO.issubset(tipos_presentes)
+    # Solo es completa si los 4 estan vigentes
+    doc_completa = TIPOS_OBLIGATORIOS_VEHICULO.issubset(tipos_vigentes)
 
     # 2. Leer estado actual del vehiculo
     query_vehiculo = text("""
@@ -154,8 +156,9 @@ async def recalcular_documentacion_y_estado(
     estado_actual = vehiculo_row[0]
     control_base_id = vehiculo_row[1]
 
-    # 3. Si estaba aprobado, pasar a en_revision con plazo configurable
-    if estado_actual == 'aprobado':
+    # 3. Si estaba aprobado, pasar a en_revision (solo si tenia todos vigentes antes y ahora le falta algo)
+    # En este caso simplificamos: si el estado cambia a incompleto, se le exige revisión.
+    if estado_actual == 'aprobado' and not doc_completa:
         query_dias = text("""
             SELECT dias_revision_documentos
             FROM tenant.configuracion_tenant
@@ -179,7 +182,6 @@ async def recalcular_documentacion_y_estado(
             "vehiculo_id": vehiculo_id
         })
     else:
-        # Solo actualizar documentacion_completa, sin tocar estado
         update = text("""
             UPDATE fleet.vehiculo
             SET documentacion_completa = :doc_completa
@@ -189,7 +191,7 @@ async def recalcular_documentacion_y_estado(
             "doc_completa": doc_completa,
             "vehiculo_id": vehiculo_id
         })
-
+        
 # ============================================================
 # DOCUMENTOS DE VEHÍCULO
 # ============================================================

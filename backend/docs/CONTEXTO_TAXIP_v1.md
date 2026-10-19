@@ -41,6 +41,73 @@ _(vacio - ultima deuda de alta prioridad fue G67, cerrada en R17)_
 
 ## MEDIA PRIORIDAD
 
+### storage.unificar_cloudinary_local
+
+**Titulo:** Unificar storage: `storage_service` (local) vs `cloudinary_storage`
+
+**Estado:** Deuda abierta. Mitigada parcialmente en R20.
+
+**Contexto:**
+
+El backend tiene **dos servicios de storage conviviendo**, con comportamientos distintos:
+
+| Servicio | Archivo | Destino | Uso actual |
+|---|---|---|---|
+| `storage_service` | `app/services/storage.py` | **Filesystem local** (`./uploads/...`) | Endpoints legacy |
+| `cloudinary_storage` | `app/services/cloudinary_storage.py` | **Cloudinary** | Endpoints nuevos |
+
+**Firma de ambos (identica):**
+- `save_document(file, usuario_id, tipo_documento) -> str`
+- `upload_documento_chofer(file, usuario_id, tipo_documento) -> str`
+
+**Detalle del `storage_service`:**
+
+- Lee `settings.STORAGE_TYPE`. Si es `"local"` guarda en disco. Si es `"s3"` o `"cloudinary"` **tira `NotImplementedError`** (el TODO esta en el propio codigo).
+- Guarda en `./uploads/documentos/YYYY/MM/DD/{tipo}_{user}_{ts}_{uuid}.ext`.
+- Devuelve URL relativa: `/uploads/documentos/...`.
+- La DB guarda esa URL relativa. Para leer el archivo, se sirve desde el mount estatico de FastAPI.
+
+**Detalle del `cloudinary_storage`:**
+
+- Configurado con `settings.CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+- Guarda en `choferes/{usuario_id}/{tipo_documento}/`.
+- Devuelve `secure_url` completa (HTTPS).
+- La DB guarda esa URL de Cloudinary.
+
+**Inconsistencia detectada (R20):**
+
+Los 2 endpoints de subida de documentos del chofer usaban storages distintos:
+
+- `POST /api/chofer/subir-documento` (`chofer_documentos.py`) → usaba **`storage_service`** (local).
+- `POST /api/chofer/registro/documento` (`chofer_registro_progresivo.py`) → usaba **`cloudinary_storage`**.
+
+**Accion tomada en R20:**
+
+El endpoint `POST /api/chofer/subir-documento` fue **migrado a Cloudinary**. Ahora ambos endpoints del chofer usan `cloudinary_storage.upload_documento_chofer()`.
+
+**Cambio en el codigo:**
+
+- `app/routers/chofer_documentos.py`:
+  - Import cambiado de `from app.services.storage import storage_service` → `from app.services.cloudinary_storage import cloudinary_storage`.
+  - Llamada cambiada de `storage_service.save_document(...)` → `cloudinary_storage.upload_documento_chofer(...)`.
+
+**Deuda pendiente:**
+
+Auditar **todos los demas usos** de `storage_service.save_document()` y `storage_service.save_photo()` para determinar si conviene migrarlos a Cloudinary o dejarlos locales.
+
+Endpoints que probablemente usan `storage_service`:
+- Fotos de viajes (interior/exterior).
+- Comprobantes de gastos (si aun no migraron a `cloudinary_storage.upload_comprobante()`).
+- Fotos de vehiculos.
+- Cualquier otro endpoint del modulo propietario.
+
+**Como auditar:**
+
+```powershell
+cd D:\aTaxip\backend
+Select-String -Path "app\routers\*.py","app\services\*.py" -Pattern "storage_service\." -Recurse | Select-Object Path, LineNumber, Line
+
+
 ### G68 — Job `procesar_viajes_huerfanos` corre cada 1h
 
 Bajar a 15 min si en produccion se ve friccion.
