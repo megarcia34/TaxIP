@@ -316,7 +316,13 @@ export default function MantenimientosPage() {
                         <div key={idx} className={`flex items-center justify-between text-sm ${color}`}>
                           <span>{getTipoNombre(m.tipo_servicio)}</span>
                           <div className="flex gap-2">
-                            {m.km_restante !== null && <span>a {m.km_restante.toLocaleString()} km</span>}
+                            {m.km_restante != null && (
+                               <span className={m.km_restante < 0 ? 'text-red-600 font-semibold' : ''}>
+                               {m.km_restante < 0
+                               ? `vencido hace ${Math.abs(m.km_restante).toLocaleString()} km`
+                               : `a ${m.km_restante.toLocaleString()} km`}
+                               </span>
+                             )}
                             {m.dias_restantes !== null && <span>en {m.dias_restantes} días</span>}
                           </div>
                         </div>
