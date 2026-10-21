@@ -1,7 +1,7 @@
 # CONTEXTO TAXIP 2.0 — Estado y Deuda Pendiente
 
-**Ultima actualizacion:** 2026-10-19 (post R20)
-**Alembic head:** m3_024
+**Ultima actualizacion:** 2026-10-21 (post R21)
+**Alembic head:** m3_025
 **Diff BD <-> ORM:** 1 item (indice preexistente en payment.py — deuda aceptada)
 **Tag activo:** ronda20-completa
 **Repo:** github.com/megarcia34/TaxIP (main)
@@ -92,15 +92,10 @@ Hay dos instancias de axios:
 
 **Accion futura:** migrar `lib/api.ts` a `lib/api/client.ts`, unificar interceptor de refresh.
 
+
 ### documentos.duplicados_en_db
-
-**Titulo:** Documentos de vehiculo duplicados en DB
-
-**Estado:** Deuda abierta. Detectada en R20.
-
-**Contexto:** si el propietario sube 2 veces el mismo tipo de documento (con fechas distintas), quedan duplicados. El sistema toma el mas reciente, pero no borra el viejo.
-
-**Accion futura:** validar `ON CONFLICT (vehiculo_id, tipo_documento)` o limpiar en el PUT.
+**Estado:** ✅ Cerrada en R21.
+**Contexto:** Se implementó UPSERT en `crear_documento_vehiculo` (actualiza si existe, inserta si no). Ya no se duplican documentos por tipo.
 
 ### vehiculos.habilitacion_obligatoria
 

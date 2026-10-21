@@ -1,10 +1,11 @@
 # RESUMEN EJECUTIVO — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-13 (post R18)
+**Ultima actualizacion:** 2026-10-21 (post R21)
+**Alembic head:** m3_025
 **Version:** 2.2.0
 **Estado general:** Backend en produccion. Frontend web en produccion. App chofer en desarrollo.
-**Alembic head:** m3_020
-**Diff BD <-> ORM:** 0 items (alineado desde R14)
+
+**Diff BD <-> ORM:** 1 items (alineado desde R14) deuda permitida
 
 ---
 
