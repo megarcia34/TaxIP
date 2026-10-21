@@ -154,6 +154,7 @@ class Usuario(Base):
     
     chofer_vehiculos: Mapped[list["ChoferVehiculo"]] = relationship(
         "ChoferVehiculo",
+        foreign_keys="ChoferVehiculo.usuario_id",
         back_populates="usuario",
         lazy="selectin"
     )

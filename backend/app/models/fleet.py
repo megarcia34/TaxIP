@@ -289,6 +289,25 @@ class ChoferVehiculo(Base):
     total_viajes: Mapped[int] = mapped_column(
         Integer, nullable=True, server_default='0'
     )
+
+    # ============================================
+    # RECHAZO
+    # ============================================
+    motivo_rechazo: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Motivo del rechazo de la postulacion del chofer"
+    )
+    rechazado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True
+    )
+    rechazado_por: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="SET NULL"),
+        nullable=True
+    )
+
     activo: Mapped[Optional[bool]] = mapped_column(Boolean, default=True, nullable=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
     updated_at: Mapped[Optional[datetime]] = mapped_column(
