@@ -1,10 +1,11 @@
+// D:\aTaxip\dashboard\components\propietario\documentos\DocumentosVehiculo.tsx
 'use client'
 
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, RefreshCw, FileText, Upload, Eye, Trash2, Plus, AlertCircle, CheckCircle } from 'lucide-react'
+import { Loader2, RefreshCw, FileText, Upload, Eye, Trash2, Plus, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -54,13 +55,13 @@ export function DocumentosVehiculo({ vehiculoId }: DocumentosVehiculoProps) {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [subiendo, setSubiendo] = useState(false)
+  const [archivo, setArchivo] = useState<File | null>(null)
   const [formData, setFormData] = useState({
     tipo_documento: '',
     numero: '',
     fecha_emision: '',
     fecha_vencimiento: '',
     observaciones: '',
-    url_imagen: '',
   })
 
   const faltantes = getFaltantes()
@@ -68,9 +69,14 @@ export function DocumentosVehiculo({ vehiculoId }: DocumentosVehiculoProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.tipo_documento || !formData.numero || !formData.fecha_vencimiento) {
       toast.error('Completa todos los campos obligatorios')
+      return
+    }
+
+    if (!archivo) {
+      toast.error('Debes seleccionar un archivo')
       return
     }
 
@@ -82,16 +88,16 @@ export function DocumentosVehiculo({ vehiculoId }: DocumentosVehiculoProps) {
         fecha_emision: formData.fecha_emision || null,
         fecha_vencimiento: formData.fecha_vencimiento,
         observaciones: formData.observaciones || null,
-        url_imagen: formData.url_imagen || null,
+        archivo,
       })
       setModalOpen(false)
+      setArchivo(null)
       setFormData({
         tipo_documento: '',
         numero: '',
         fecha_emision: '',
         fecha_vencimiento: '',
         observaciones: '',
-        url_imagen: '',
       })
     } finally {
       setSubiendo(false)
@@ -154,7 +160,7 @@ export function DocumentosVehiculo({ vehiculoId }: DocumentosVehiculoProps) {
             <FileText className="h-12 w-12 mx-auto text-yellow-500 mb-3" />
             <p className="text-yellow-700 font-medium">No hay documentos subidos</p>
             <p className="text-yellow-600 text-sm mt-1">
-              Sube los documentos requeridos: SEGURO, VTV y CÉDULA
+              Sube los documentos requeridos: SEGURO, VTV, CÉDULA_VERDE y HABILITACIÓN
             </p>
           </CardContent>
         </Card>
@@ -288,14 +294,23 @@ export function DocumentosVehiculo({ vehiculoId }: DocumentosVehiculoProps) {
               />
             </div>
 
+            {/* ⬇️ NUEVO: input de archivo en lugar de URL */}
             <div className="space-y-2">
-              <Label>URL de Imagen</Label>
+              <Label>Archivo *</Label>
               <Input
-                placeholder="https://..."
-                value={formData.url_imagen}
-                onChange={(e) => setFormData({ ...formData, url_imagen: e.target.value })}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setArchivo(e.target.files?.[0] || null)}
+                required
               />
-              <p className="text-xs text-muted-foreground">Opcional - Link a la imagen del documento</p>
+              {archivo && (
+                <p className="text-xs text-green-600">
+                  ✅ {archivo.name} ({(archivo.size / 1024).toFixed(0)} KB)
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                PDF, JPG o PNG. Máximo 10 MB.
+              </p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t">
