@@ -59,10 +59,6 @@ async def crear_contrato(
 ):
     """
     Crea un nuevo contrato con validación completa.
-    
-    - ALQUILER: con parámetros económicos y horarios flexibles
-    - AUTO_GESTION: sin parámetros económicos, requiere capacidad CONDUCTOR
-    - PORCENTAJE: con porcentaje para el chofer
     """
     propietario_id = UUID(ctx["propietario_id"])
     control_base_id = UUID(ctx["control_base_id"])
@@ -121,17 +117,15 @@ async def crear_contrato(
                 detail="El propietario no está habilitado como conductor. Debe registrar capacidad CONDUCTOR."
             )
     
-    # 5. ✅ CORREGIDO: Validar fechas de vigencia
+    # 5. Validar fechas de vigencia
     fecha_inicio = data.fecha_inicio if data.fecha_inicio else date.today()
     fecha_fin = data.fecha_fin
     
-    # ✅ PERMITE fecha_fin = None o fecha_fin >= fecha_inicio
     if fecha_fin and fecha_fin < fecha_inicio:
         raise HTTPException(
             status_code=400,
             detail="La fecha de finalización no puede ser anterior a la fecha de inicio"
         )
-    # Si fecha_fin == fecha_inicio, es un contrato de 1 día (válido)
     
     # 6. Validar días contractuales según tipo
     try:
@@ -334,6 +328,7 @@ async def obtener_contrato(
         SELECT 
             c.id, c.vehiculo_id, v.patente, v.marca, v.modelo,
             c.chofer_id, p.nombre as chofer_nombre, p.apellido as chofer_apellido,
+            p.telefono as chofer_telefono,
             c.tipo_contrato,
             c.hora_inicio, c.hora_fin, c.duracion_minima_horas, c.permite_extension, c.hora_fin_extension,
             c.porcentaje_chofer, c.monto_diario,
@@ -374,7 +369,6 @@ async def configurar_contrato(
 ):
     """
     Configura un contrato pendiente y lo activa.
-    Revalida TODAS las condiciones antes de activar.
     """
     propietario_id = UUID(ctx["propietario_id"])
     control_base_id = UUID(ctx["control_base_id"])
@@ -396,33 +390,23 @@ async def configurar_contrato(
     vehiculo_id = row[0]
     chofer_id = row[1]
     
-    # 3a. Validar propiedad del vehículo
+    # Validaciones...
     es_valido, mensaje, status_code = await verificar_propiedad_vehiculo(
-        vehiculo_id,
-        propietario_id,
-        control_base_id,
-        db
+        vehiculo_id, propietario_id, control_base_id, db
     )
     if not es_valido:
         raise HTTPException(status_code=status_code or 400, detail=mensaje)
     
-    # 3b. Validar chofer
-    es_valido, mensaje = await verificar_chofer_valido(
-        chofer_id,
-        control_base_id,
-        db
-    )
+    es_valido, mensaje = await verificar_chofer_valido(chofer_id, control_base_id, db)
     if not es_valido:
         raise HTTPException(status_code=404, detail=f"Chofer ya no es válido: {mensaje}")
     
-    # 3c. Para ALQUILER, verificar que propietario y chofer sean personas diferentes
     if data.tipo_contrato == "ALQUILER" and chofer_id == propietario_id:
         raise HTTPException(
             status_code=400,
             detail="En ALQUILER, el propietario y el conductor deben ser personas diferentes"
         )
     
-    # 3d. Para AUTO_GESTION, revalidar identidad y capacidad
     if data.tipo_contrato == "AUTO_GESTION":
         if chofer_id != propietario_id:
             raise HTTPException(
@@ -433,10 +417,9 @@ async def configurar_contrato(
         if not tiene_capacidad:
             raise HTTPException(
                 status_code=400,
-                detail="El propietario no está habilitado como conductor. Debe registrar capacidad CONDUCTOR."
+                detail="El propietario no está habilitado como conductor."
             )
     
-    # 3e. ✅ CORREGIDO: Validar fechas de vigencia
     fecha_inicio = data.fecha_inicio if data.fecha_inicio else date.today()
     fecha_fin = data.fecha_fin
     
@@ -446,20 +429,14 @@ async def configurar_contrato(
             detail="La fecha de finalización no puede ser anterior a la fecha de inicio"
         )
     
-    # 3f. Validar días contractuales según tipo
     try:
         validar_dias_contractuales(data.dias_contractuales, data.tipo_contrato)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    # 3g. Validar conflictos (CON HORARIOS FLEXIBLES)
     hay_conflictos, mensajes = await verificar_conflictos_contrato(
-        vehiculo_id,
-        chofer_id,
-        data.hora_inicio,
-        data.hora_fin,
-        control_base_id,
-        db,
+        vehiculo_id, chofer_id, data.hora_inicio, data.hora_fin,
+        control_base_id, db,
         contrato_excluido_id=contrato_id,
         dias_contractuales=data.dias_contractuales,
         fecha_inicio=fecha_inicio,
@@ -468,7 +445,6 @@ async def configurar_contrato(
     if hay_conflictos:
         raise HTTPException(status_code=409, detail=" | ".join(mensajes))
     
-    # 4. Preparar parámetros según tipo
     try:
         params = preparar_parametros_contrato(
             tipo_contrato=data.tipo_contrato,
@@ -486,7 +462,6 @@ async def configurar_contrato(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    # 5. Determinar estado según fecha_inicio
     fecha_hoy = date.today()
     if fecha_inicio > fecha_hoy:
         nuevo_estado = "PROGRAMADO"
@@ -495,15 +470,12 @@ async def configurar_contrato(
         nuevo_estado = "ACTIVO"
         nuevo_activo = True
     
-    # 6. Serializar dias_contractuales a JSON
     dias_json = json.dumps(params.get("dias_contractuales")) if params.get("dias_contractuales") else None
     
-    # 7. Convertir horarios a time
     hora_inicio_time = datetime.strptime(data.hora_inicio, "%H:%M").time()
     hora_fin_time = datetime.strptime(data.hora_fin, "%H:%M").time()
     hora_fin_extension_time = datetime.strptime(data.hora_fin_extension, "%H:%M").time() if data.hora_fin_extension else None
     
-    # 8. Iniciar transacción para actualizar contrato
     try:
         async with db.begin():
             update_query = text("""
@@ -597,10 +569,7 @@ async def finalizar_contrato(
     ctx: dict = Depends(get_propietario_context),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Finaliza un contrato activo.
-    Verifica que el contrato existe, está activo, y pertenece al propietario.
-    """
+    """Finaliza un contrato activo."""
     propietario_id = UUID(ctx["propietario_id"])
     control_base_id = UUID(ctx["control_base_id"])
     
@@ -675,11 +644,9 @@ async def choferes_disponibles(
     """
     control_base_id = UUID(ctx["control_base_id"])
     
-    # ✅ Convertir strings a objetos time
     hora_inicio_time = datetime.strptime(hora_inicio, "%H:%M").time()
     hora_fin_time = datetime.strptime(hora_fin, "%H:%M").time()
     
-    # ✅ Usar objetos time en la consulta
     query = text("""
         SELECT
             u.id, u.email, p.nombre, p.apellido, p.telefono,
@@ -805,7 +772,6 @@ async def generar_qr_operativo(
 ):
     """
     Genera un QR operativo para un contrato ACTIVO.
-    El QR permite al conductor autorizado iniciar una jornada.
     """
     propietario_id = UUID(ctx["propietario_id"])
     
@@ -841,41 +807,7 @@ async def generar_qr_operativo(
 
 
 # ============================================
-# 10. FUNCIONES AUXILIARES PRIVADAS
-# ============================================
-
-async def _get_contrato_by_id(contrato_id: UUID, db: AsyncSession) -> ContratoResponse:
-    """
-    Obtiene un contrato por ID sin validación de propietario (uso interno).
-    PRECAUCIÓN: Esta función NO valida propietario ni tenant.
-    Solo debe usarse internamente después de crear un contrato.
-    """
-    query = text("""
-        SELECT 
-            c.id, c.vehiculo_id, v.patente, v.marca, v.modelo,
-            c.chofer_id, p.nombre as chofer_nombre, p.apellido as chofer_apellido,
-            c.tipo_contrato,
-            c.hora_inicio, c.hora_fin, c.duracion_minima_horas, c.permite_extension, c.hora_fin_extension,
-            c.porcentaje_chofer, c.monto_diario,
-            c.fecha_inicio, c.fecha_fin, c.activo, c.estado_contrato,
-            c.canon_diario, c.km_incluidos_dia, c.valor_km_excedente,
-            c.modalidad_computo, c.dias_contractuales, c.tratamiento_dia_no_trabajado,
-            c.dia_inicio_semana
-        FROM fleet.contrato_vehiculo c
-        JOIN fleet.vehiculo v ON v.id = c.vehiculo_id
-        LEFT JOIN auth.perfil_general p ON p.usuario_id = c.chofer_id
-        WHERE c.id = :contrato_id
-    """)
-    result = await db.execute(query, {"contrato_id": contrato_id})
-    row = result.first()
-    
-    if not row:
-        raise HTTPException(status_code=404, detail="Contrato no encontrado")
-    
-    return _map_row_to_contrato_response(row)
-
-# ============================================
-# 11. VERIFICAR DISPONIBILIDAD EN TIEMPO REAL
+# 10. VERIFICAR DISPONIBILIDAD EN TIEMPO REAL
 # ============================================
 
 @router.get("/contratos/verificar-disponibilidad")
@@ -892,14 +824,6 @@ async def verificar_disponibilidad(
 ):
     """
     Verifica disponibilidad de vehículo y chofer en tiempo real.
-    Útil para feedback inmediato en el formulario.
-    
-    Retorna:
-    - vehiculo_disponible: bool
-    - chofer_disponible: bool
-    - conflictos: List[str] - mensajes descriptivos
-    - vehiculo_detalle: dict - información del contrato actual del vehículo
-    - chofer_detalle: dict - información del contrato actual del chofer
     """
     propietario_id = UUID(ctx["propietario_id"])
     control_base_id = UUID(ctx["control_base_id"])
@@ -912,7 +836,6 @@ async def verificar_disponibilidad(
         "chofer_detalle": None
     }
     
-    # Parsear días
     dias = None
     if dias_contractuales:
         try:
@@ -922,15 +845,10 @@ async def verificar_disponibilidad(
         except:
             dias = None
     
-    # Si no hay horario, usar valores por defecto
     hora_inicio_efectiva = hora_inicio or "00:00"
     hora_fin_efectiva = hora_fin or "23:59"
     
-    # ============================================
-    # 1. Verificar vehículo
-    # ============================================
     if vehiculo_id:
-        # 1a. Verificar propiedad
         es_valido, mensaje = await verificar_propiedad_vehiculo(
             vehiculo_id, propietario_id, control_base_id, db
         )
@@ -938,8 +856,6 @@ async def verificar_disponibilidad(
             response["vehiculo_disponible"] = False
             response["conflictos"].append(f"🚫 Vehículo no válido: {mensaje}")
         else:
-            # 1b. Buscar conflictos del vehículo
-            # Usar un chofer_id dummy para la validación de vehículo
             dummy_chofer_id = UUID("00000000-0000-0000-0000-000000000000")
             hay_conflictos, conflictos = await verificar_conflictos_contrato(
                 vehiculo_id,
@@ -956,12 +872,10 @@ async def verificar_disponibilidad(
             
             if hay_conflictos:
                 response["vehiculo_disponible"] = False
-                # Filtrar y formatear conflictos de vehículo
                 for c in conflictos:
                     if "vehículo" in c.lower():
                         response["conflictos"].append(f"🚗 {c}")
                 
-                # Obtener detalle del contrato actual del vehículo
                 query_detalle = text("""
                     SELECT 
                         c.id, v.patente, c.hora_inicio, c.hora_fin, 
@@ -992,11 +906,7 @@ async def verificar_disponibilidad(
                         "chofer": f"{row[6] or ''} {row[7] or ''}".strip() if row[6] else None
                     }
     
-    # ============================================
-    # 2. Verificar chofer
-    # ============================================
     if chofer_id:
-        # 2a. Verificar que el chofer existe y es válido
         es_valido, mensaje = await verificar_chofer_valido(
             chofer_id, control_base_id, db
         )
@@ -1004,7 +914,6 @@ async def verificar_disponibilidad(
             response["chofer_disponible"] = False
             response["conflictos"].append(f"🚫 Chofer no válido: {mensaje}")
         else:
-            # 2b. Buscar conflictos del chofer
             dummy_vehiculo_id = UUID("00000000-0000-0000-0000-000000000000")
             hay_conflictos, conflictos = await verificar_conflictos_contrato(
                 dummy_vehiculo_id,
@@ -1025,7 +934,6 @@ async def verificar_disponibilidad(
                     if "chofer" in c.lower():
                         response["conflictos"].append(f"👤 {c}")
                 
-                # Obtener detalle del contrato actual del chofer
                 query_detalle = text("""
                     SELECT 
                         c.id, v.patente, c.hora_inicio, c.hora_fin,
@@ -1057,56 +965,58 @@ async def verificar_disponibilidad(
     
     return response
 
+
+# ============================================
+# 11. FUNCIONES AUXILIARES PRIVADAS
+# ============================================
+
+async def _get_contrato_by_id(contrato_id: UUID, db: AsyncSession) -> ContratoResponse:
+    """
+    Obtiene un contrato por ID sin validación de propietario (uso interno).
+    """
+    query = text("""
+        SELECT 
+            c.id, c.vehiculo_id, v.patente, v.marca, v.modelo,
+            c.chofer_id, p.nombre as chofer_nombre, p.apellido as chofer_apellido,
+            p.telefono as chofer_telefono,
+            c.tipo_contrato,
+            c.hora_inicio, c.hora_fin, c.duracion_minima_horas, c.permite_extension, c.hora_fin_extension,
+            c.porcentaje_chofer, c.monto_diario,
+            c.fecha_inicio, c.fecha_fin, c.activo, c.estado_contrato,
+            c.canon_diario, c.km_incluidos_dia, c.valor_km_excedente,
+            c.modalidad_computo, c.dias_contractuales, c.tratamiento_dia_no_trabajado,
+            c.dia_inicio_semana
+        FROM fleet.contrato_vehiculo c
+        JOIN fleet.vehiculo v ON v.id = c.vehiculo_id
+        LEFT JOIN auth.perfil_general p ON p.usuario_id = c.chofer_id
+        WHERE c.id = :contrato_id
+    """)
+    result = await db.execute(query, {"contrato_id": contrato_id})
+    row = result.first()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail="Contrato no encontrado")
+    
+    return _map_row_to_contrato_response(row)
+
+
 def _map_row_to_contrato_response(row) -> ContratoResponse:
     """
     Mapea una fila de base de datos a ContratoResponse.
-    Indices ajustados para incluir chofer_telefono.
+    Indices unificados para ambas consultas (listar y crear).
     """
-    # 0: id
-    # 1: vehiculo_id
-    # 2: patente
-    # 3: marca
-    # 4: modelo
-    # 5: chofer_id
-    # 6: chofer_nombre
-    # 7: chofer_apellido
-    # 8: chofer_telefono     <-- NUEVO
-    # 9: tipo_contrato
-    # 10: hora_inicio
-    # 11: hora_fin
-    # 12: duracion_minima_horas
-    # 13: permite_extension
-    # 14: hora_fin_extension
-    # 15: porcentaje_chofer
-    # 16: monto_diario
-    # 17: fecha_inicio
-    # 18: fecha_fin
-    # 19: activo
-    # 20: estado_contrato
-    # 21: canon_diario
-    # 22: km_incluidos_dia
-    # 23: valor_km_excedente
-    # 24: modalidad_computo
-    # 25: dias_contractuales
-    # 26: tratamiento_dia_no_trabajado
-    # 27: dia_inicio_semana
+    def _format_hora(val):
+        if val is None:
+            return None
+        if hasattr(val, 'strftime'):
+            return val.strftime("%H:%M")
+        if isinstance(val, (int, float)):
+            return f"{val // 60:02d}:{val % 60:02d}"
+        return str(val)
 
-    dias = row[25]
-    if isinstance(dias, str):
-        try:
-            dias = json.loads(dias)
-        except:
-            dias = []
-    elif dias is None:
-        dias = []
-
-    tratamiento = row[26]
-    if isinstance(tratamiento, list):
-        tratamiento = None
-
-    hora_inicio_str = row[10].strftime("%H:%M") if row[10] else None
-    hora_fin_str = row[11].strftime("%H:%M") if row[11] else None
-    hora_fin_extension_str = row[14].strftime("%H:%M") if row[14] else None
+    hora_inicio_str = _format_hora(row[10])
+    hora_fin_str = _format_hora(row[11])
+    hora_fin_extension_str = _format_hora(row[14])
 
     return ContratoResponse(
         id=row[0],
@@ -1117,7 +1027,7 @@ def _map_row_to_contrato_response(row) -> ContratoResponse:
         chofer_id=row[5],
         chofer_nombre=row[6],
         chofer_apellido=row[7],
-        chofer_telefono=row[8],            # <-- NUEVO
+        chofer_telefono=row[8],
         tipo_contrato=row[9],
         hora_inicio=hora_inicio_str,
         hora_fin=hora_fin_str,
@@ -1132,9 +1042,5 @@ def _map_row_to_contrato_response(row) -> ContratoResponse:
         estado_contrato=row[20],
         canon_diario=float(row[21]) if row[21] is not None else None,
         km_incluidos_dia=float(row[22]) if row[22] is not None else None,
-        valor_km_excedente=float(row[23]) if row[23] is not None else None,
-        modalidad_computo=row[24],
-        dias_contractuales=dias if isinstance(dias, list) else [],
-        tratamiento_dia_no_trabajado=tratamiento,
-        dia_inicio_semana=row[27] if len(row) > 27 else None
+        valor_km_excedente=float(row[23]) if row[23] is not None else None
     )

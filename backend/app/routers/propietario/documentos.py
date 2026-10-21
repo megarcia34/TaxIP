@@ -2,7 +2,7 @@
 Documentación del propietario - Fase 7
 CRUD completo con alertas de vencimiento y destinatario dinámico
 """
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc, func, text
 from sqlalchemy.orm import selectinload
@@ -195,24 +195,26 @@ async def recalcular_documentacion_y_estado(
 # ============================================================
 # DOCUMENTOS DE VEHÍCULO
 # ============================================================
-
 @router.post("/vehiculos/{vehiculo_id}/documentos", response_model=DocumentoVehiculoResponse)
 async def crear_documento_vehiculo(
     vehiculo_id: UUID,
-    data: DocumentoVehiculoCreate,
+    tipo_documento: str = Form(...),
+    numero: str = Form(...),
+    fecha_emision: Optional[str] = Form(None),
+    fecha_vencimiento: str = Form(...),
+    observaciones: Optional[str] = Form(None),
+    file: UploadFile = File(...),
     propietario_id: UUID = Depends(get_propietario_id),
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Subir un documento para un vehículo.
+    Subir un documento para un vehiculo (multipart + Cloudinary).
     """
-    if data.tipo_documento not in TIPOS_DOCUMENTO_VEHICULO:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Tipo de documento inválido. Permitidos: {list(TIPOS_DOCUMENTO_VEHICULO.keys())}"
-        )
+    if tipo_documento not in TIPOS_DOCUMENTO_VEHICULO:
+        raise HTTPException(status_code=400, detail=f"Tipo invalido. Permitidos: {list(TIPOS_DOCUMENTO_VEHICULO.keys())}")
 
+    # Verificar propiedad
     prop_vehiculo = await db.execute(
         select(PropietarioVehiculo).where(
             PropietarioVehiculo.vehiculo_id == vehiculo_id,
@@ -221,26 +223,76 @@ async def crear_documento_vehiculo(
         )
     )
     if not prop_vehiculo.scalar_one_or_none():
-        raise HTTPException(
-            status_code=403,
-            detail="Vehículo no pertenece al propietario"
+        raise HTTPException(status_code=403, detail="Vehiculo no pertenece al propietario")
+
+    # Validar tamano (max 10MB) y preparar archivo
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El archivo no puede superar los 10MB")
+    await file.seek(0)  # CRITICO: rebobinar para que Cloudinary lo lea
+
+    # Subir a Cloudinary (carpeta de vehiculos)
+    try:
+        from app.services.cloudinary_storage import cloudinary_storage
+        url = await cloudinary_storage.upload_documento_vehiculo(
+            file=file,
+            propietario_id=str(propietario_id),
+            vehiculo_id=str(vehiculo_id),
+            tipo_documento=tipo_documento.lower()
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error subiendo archivo: {str(e)}")
 
-    documento = DocumentoVehiculo(
-        vehiculo_id=vehiculo_id,
-        tipo_documento=data.tipo_documento,
-        numero=data.numero,
-        fecha_emision=data.fecha_emision,
-        fecha_vencimiento=data.fecha_vencimiento,
-        observaciones=data.observaciones,
-        url_archivo=data.url_archivo
+    # Parsear fechas (Form envia strings, ORM espera date)
+    def _parse_date(s: Optional[str]) -> Optional[date]:
+        if not s:
+            return None
+        try:
+            return datetime.strptime(s, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+
+    fecha_emision_parsed = _parse_date(fecha_emision)
+    fecha_vencimiento_parsed = _parse_date(fecha_vencimiento)
+
+    if fecha_vencimiento_parsed is None:
+        raise HTTPException(status_code=400, detail="fecha_vencimiento invalida")
+
+    # UPSERT: buscar si ya existe este documento para este vehiculo
+    existe_doc = await db.execute(
+        select(DocumentoVehiculo).where(
+            DocumentoVehiculo.vehiculo_id == vehiculo_id,
+            DocumentoVehiculo.tipo_documento == tipo_documento
+        )
     )
+    documento_existente = existe_doc.scalar_one_or_none()
 
-    db.add(documento)
+    if documento_existente:
+        # Actualizar el existente (Renovacion)
+        documento_existente.numero = numero
+        documento_existente.fecha_emision = fecha_emision_parsed
+        documento_existente.fecha_vencimiento = fecha_vencimiento_parsed
+        documento_existente.observaciones = observaciones
+        documento_existente.url_archivo = url
+        documento_existente.updated_at = datetime.now()
+        documento = documento_existente
+    else:
+        # Crear uno nuevo (Primera carga)
+        documento = DocumentoVehiculo(
+            vehiculo_id=vehiculo_id,
+            tipo_documento=tipo_documento,
+            numero=numero,
+            fecha_emision=fecha_emision_parsed,
+            fecha_vencimiento=fecha_vencimiento_parsed,
+            observaciones=observaciones,
+            url_archivo=url
+        )
+        db.add(documento)
+
     await db.commit()
     await db.refresh(documento)
 
-    # Recalcular documentacion_completa y disparar en_revision si corresponde
+    # Recalcular estado del vehiculo
     await recalcular_documentacion_y_estado(db, vehiculo_id, propietario_id)
     await db.commit()
 
@@ -259,7 +311,6 @@ async def crear_documento_vehiculo(
         created_at=documento.created_at,
         updated_at=documento.updated_at
     )
-
 
 @router.get("/vehiculos/{vehiculo_id}/documentos", response_model=List[DocumentoVehiculoResponse])
 async def listar_documentos_vehiculo(

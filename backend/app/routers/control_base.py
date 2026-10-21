@@ -416,10 +416,10 @@ async def listar_choferes_pendientes(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    List pending driver approvals
+    List pending driver approvals (con documentos).
     """
     control_base_id = current_user[1]
-    
+
     query = text("""
         SELECT
             cv.id as chofer_vehiculo_id,
@@ -452,15 +452,42 @@ async def listar_choferes_pendientes(
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
         LEFT JOIN fleet.vehiculo v ON v.id = cv.vehiculo_id
         WHERE cv.control_base_id = :control_base_id
-          AND cv.estado_aprobacion = 'pendiente'
-        ORDER BY cv.created_at ASC
+          AND cv.estado_aprobacion IN ('pendiente', 'en_revision')
+        ORDER BY 
+            EXISTS (
+                SELECT 1 FROM fleet.propietario_vehiculo pv
+                INNER JOIN fleet.vehiculo veh ON veh.id = pv.vehiculo_id
+                WHERE pv.propietario_id = u.id
+                  AND pv.activo = true
+                  AND veh.activo = true
+            ) DESC, 
+            cv.created_at ASC
     """)
-    
+
     result = await db.execute(query, {"control_base_id": control_base_id})
     rows = result.all()
-    
-    return [
-        {
+
+    choferes = []
+    for row in rows:
+        usuario_id = row[1]
+        
+        # Query de documentos del chofer
+        docs_query = text("""
+            SELECT tipo_documento, url, numero, fecha_vencimiento
+            FROM fleet.documentos_chofer
+            WHERE usuario_id = :usuario_id AND activo = true
+        """)
+        docs_result = await db.execute(docs_query, {"usuario_id": usuario_id})
+        documentos = {
+            d[0]: {
+                "url": d[1],
+                "numero": d[2],
+                "fecha_vencimiento": str(d[3]) if d[3] else None
+            }
+            for d in docs_result.all()
+        }
+
+        choferes.append({
             "chofer_vehiculo_id": str(row[0]),
             "usuario_id": str(row[1]),
             "email": row[2],
@@ -475,11 +502,11 @@ async def listar_choferes_pendientes(
             } if row[6] is not None else None,
             "fecha_registro": row[10],
             "es_propietario": row[11],
-            "cantidad_vehiculos": row[12]
-        }
-        for row in rows
-    ]
+            "cantidad_vehiculos": row[12],
+            "documentos": documentos
+        })
 
+    return choferes
 
 @router.put("/aprobar-chofer/{chofer_vehiculo_id}")
 async def aprobar_chofer(
@@ -515,39 +542,58 @@ async def aprobar_chofer(
     
     return {"success": True, "message": "Chofer aprobado correctamente"}
 
+
+# ============================================
+# SCHEMAS PARA CHOferes
+# ============================================
+class RechazarChoferRequest(BaseModel):
+    motivo: str = Field(..., min_length=15, max_length=500)
+
+
 @router.put("/rechazar-chofer/{chofer_vehiculo_id}")
 async def rechazar_chofer(
     chofer_vehiculo_id: UUID,
+    data: RechazarChoferRequest,
     current_user: tuple = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Reject a pending driver
+    Rechaza un chofer pendiente con motivo.
     """
     control_base_id = current_user[1]
-    
+    admin_id = current_user[0]
+
     check_query = text("""
-        SELECT id FROM fleet.chofer_vehiculo 
+        SELECT id FROM fleet.chofer_vehiculo
         WHERE id = :id AND control_base_id = :control_base_id AND estado_aprobacion = 'pendiente'
     """)
     result = await db.execute(check_query, {
         "id": chofer_vehiculo_id,
         "control_base_id": control_base_id
     })
-    
+
     if not result.first():
         raise HTTPException(status_code=404, detail="Chofer pendiente no encontrado")
-    
+
     update_query = text("""
         UPDATE fleet.chofer_vehiculo
-        SET estado_aprobacion = 'rechazado', activo = false, updated_at = NOW()
+        SET estado_aprobacion = 'rechazado',
+            activo = false,
+            motivo_rechazo = :motivo,
+            rechazado_en = NOW(),
+            rechazado_por = :admin_id,
+            updated_at = NOW()
         WHERE id = :id
     """)
-    
-    await db.execute(update_query, {"id": chofer_vehiculo_id})
+
+    await db.execute(update_query, {
+        "id": chofer_vehiculo_id,
+        "motivo": data.motivo,
+        "admin_id": admin_id
+    })
     await db.commit()
-    
-    return {"success": True, "message": "Chofer rechazado"}
+
+    return {"success": True, "message": "Chofer rechazado correctamente"}
 
 
 
@@ -930,7 +976,6 @@ from pydantic import BaseModel, Field
 class RechazarVehiculoRequest(BaseModel):
     motivo: str = Field(..., min_length=15, max_length=500)
 
-
 @router.get("/vehiculos-pendientes")
 async def listar_vehiculos_pendientes(
     current_user: tuple = Depends(get_current_admin_user),
@@ -962,7 +1007,7 @@ async def listar_vehiculos_pendientes(
         INNER JOIN auth.usuario u ON u.id = pv.propietario_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
         WHERE v.control_base_id = :control_base_id
-          AND v.estado_aprobacion = 'pendiente'
+          AND v.estado_aprobacion IN ('pendiente', 'en_revision')
           AND v.documentacion_completa = true
           AND v.activo = true
         ORDER BY v.created_at ASC
@@ -975,15 +1020,17 @@ async def listar_vehiculos_pendientes(
     for row in rows:
         vehiculo_id = row[0]
         docs_query = text("""
-            SELECT tipo_documento, numero, fecha_vencimiento
+            SELECT tipo_documento, numero, fecha_vencimiento, url_archivo
             FROM fleet.documento_vehiculo
             WHERE vehiculo_id = :vehiculo_id
         """)
         docs_result = await db.execute(docs_query, {"vehiculo_id": vehiculo_id})
+        
         documentos = {
             d[0]: {
                 "numero": d[1],
-                "fecha_vencimiento": str(d[2]) if d[2] else None
+                "fecha_vencimiento": str(d[2]) if d[2] else None,
+                "url_archivo": d[3]  # <--- ESTA ES LA LÍNEA QUE FALTABA
             }
             for d in docs_result.all()
         }
@@ -1009,7 +1056,6 @@ async def listar_vehiculos_pendientes(
         })
 
     return vehiculos
-
 
 @router.get("/vehiculos-incompletos")
 async def listar_vehiculos_incompletos(

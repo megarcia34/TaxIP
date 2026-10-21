@@ -94,6 +94,46 @@ class CloudinaryStorageService:
 
         return upload_result.get("secure_url")
 
+    async def upload_documento_vehiculo(
+        self,
+        file: UploadFile,
+        propietario_id: str,
+        vehiculo_id: str,
+        tipo_documento: str
+    ) -> str:
+        """
+        Sube un documento de vehiculo a Cloudinary y retorna la URL segura.
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+
+        # Obtener extension
+        file_extension = file.filename.split('.')[-1] if file.filename else 'jpg'
+        if file_extension.lower() not in ['jpg', 'jpeg', 'png', 'pdf']:
+            file_extension = 'jpg'
+
+        # Leer el archivo y envolver en BytesIO
+        content = await file.read()
+        if not content:
+            raise ValueError("El archivo esta vacio")
+        file_stream = BytesIO(content)
+        file_stream.name = f"{timestamp}_{unique_id}.{file_extension}"
+
+        # Subir a Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            file_stream,
+            folder=f"vehiculos/{propietario_id}/{vehiculo_id}/{tipo_documento}",
+            public_id=f"{timestamp}_{unique_id}",
+            resource_type="auto",
+            use_filename=True,
+            unique_filename=True,
+            format=file_extension
+        )
+
+        return upload_result.get("secure_url")
+
+
+
     async def delete_comprobante(self, public_id: str) -> bool:
         """Elimina un comprobante de Cloudinary por su public_id."""
         try:
