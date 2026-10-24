@@ -20,21 +20,29 @@ import type {
   ViajeSolicitado,
 } from '@/types/viaje.types';
 
+// Tipos para el forward geocoding
+export interface GeocodeForwardResponse {
+  lat: number;
+  lng: number;
+  direccion_formateada: string;
+}
+
+// Tipos para autocompletado y place details
+export interface AutocompletePrediction {
+  description: string;
+  place_id: string;
+}
+
+export interface PlaceDetailsResponse {
+  lat: number;
+  lng: number;
+  direccion_formateada: string;
+}
+
 export const viajeService = {
   // ============================================================
   // VIAJE DE CALLE (Etapa 10)
   // ============================================================
-  /**
-   * Registra un viaje de calle tomado por el chofer.
-   * POST /api/viajes/calle
-   *
-   * El backend crea el viaje directo en estado 'en_curso' porque el
-   * pasajero ya está a bordo. Requiere que el chofer tenga turno activo.
-   *
-   * El body va tal cual en snake_case (coincide con el backend).
-   * La response también viene en snake_case y se devuelve tal cual;
-   * el store se encarga de mapear si hace falta.
-   */
   async solicitarViajeCalle(
     datos: SolicitarViajeCalleRequest
   ): Promise<ViajeSolicitado> {
@@ -48,10 +56,6 @@ export const viajeService = {
   // ============================================================
   // CICLO DE VIDA DEL VIAJE (Fase B + Etapa 4)
   // ============================================================
-  /**
-   * Aceptar un viaje (chofer). Atómico en el backend.
-   * POST /api/viajes/{viaje_id}/aceptar
-   */
   async aceptarViaje(viajeId: string): Promise<AccionViajeResponse> {
     const response = await api.post<AccionViajeResponse>(
       `/api/viajes/${viajeId}/aceptar`
@@ -59,10 +63,6 @@ export const viajeService = {
     return response.data;
   },
 
-  /**
-   * Rechazar un viaje (chofer). No penaliza; el viaje sigue publicado.
-   * POST /api/viajes/{viaje_id}/rechazar
-   */
   async rechazarViaje(viajeId: string): Promise<AccionViajeResponse> {
     const response = await api.post<AccionViajeResponse>(
       `/api/viajes/${viajeId}/rechazar`
@@ -70,10 +70,6 @@ export const viajeService = {
     return response.data;
   },
 
-  /**
-   * Iniciar un viaje (chofer).
-   * POST /api/viajes/{viaje_id}/iniciar
-   */
   async iniciarViaje(viajeId: string): Promise<AccionViajeResponse> {
     const response = await api.post<AccionViajeResponse>(
       `/api/viajes/${viajeId}/iniciar`
@@ -81,14 +77,6 @@ export const viajeService = {
     return response.data;
   },
 
-    /**
-   * Finalizar un viaje (chofer).
-   * POST /api/viajes/{viaje_id}/finalizar
-   * Sin body.
-   *
-   * Devuelve el precio final calculado por el motor unificado,
-   * la moneda y el desglose. Ver G44.
-   */
   async finalizarViaje(viajeId: string): Promise<FinalizarViajeResponse> {
     const response = await api.post<FinalizarViajeResponse>(
       `/api/viajes/${viajeId}/finalizar`
@@ -96,10 +84,6 @@ export const viajeService = {
     return response.data;
   },
   
-  /**
-   * Cancelar un viaje.
-   * POST /api/viajes/{viaje_id}/cancelar
-   */
   async cancelarViaje(
     viajeId: string,
     motivo?: string
@@ -115,10 +99,6 @@ export const viajeService = {
   // ============================================================
   // CONSULTAS
   // ============================================================
-  /**
-   * Obtiene el estado actual de un viaje.
-   * GET /api/viajes/{viaje_id}/estado
-   */
   async obtenerEstado(viajeId: string): Promise<ViajeSolicitado> {
     const response = await api.get<ViajeSolicitado>(
       `/api/viajes/${viajeId}/estado`
@@ -126,10 +106,6 @@ export const viajeService = {
     return response.data;
   },
 
-  /**
-   * Obtiene el historial de viajes del chofer autenticado.
-   * GET /api/viajes/historial?limit=&offset=&estado=
-   */
   async obtenerHistorial(filtros?: {
     limit?: number;
     offset?: number;
@@ -149,13 +125,6 @@ export const viajeService = {
     return response.data;
   },
 
-  /**
-   * Reverse geocoding: convierte (lat, lng) en una dirección legible.
-   * GET /api/viajes/geocode/reverse?lat=&lng=
-   *
-   * El backend cachea con TTL 1 hora. Timeout 3s. Fallback a
-   * coordenadas formateadas si Google falla.
-   */
   async reverseGeocode(
     lat: number,
     lng: number
@@ -170,13 +139,59 @@ export const viajeService = {
     return response.data;
   },
 
+  // ============================================================
+  // GEOCODING Y AUTOCOMPLETE
+  // ============================================================
+  
   /**
-   * Obtiene la URL del mapa estático entre origen y destino.
-   * GET /api/viajes/mapa-estatico?origen_lat=&origen_lng=&destino_lat=&destino_lng=
-   *
-   * El backend solo genera la URL (no hace request a Google). El frontend
-   * la usa directo en <Image />.
+   * Forward geocoding: convierte una dirección de texto en coordenadas.
+   * POST /api/viajes/geocode/forward
+   * Usado por la app del chofer para cargar el destino de un viaje de calle.
    */
+  async geocodeAddress(
+    address: string,
+    lat?: number,
+    lng?: number
+  ): Promise<GeocodeForwardResponse> {
+    const response = await api.post<GeocodeForwardResponse>(
+      '/api/viajes/geocode/forward',
+      { address, lat, lng }
+    );
+    return response.data;
+  },
+
+  /**
+   * Autocompletado de direcciones.
+   * POST /api/viajes/autocomplete
+   * Devuelve una lista de sugerencias priorizadas por cercanía al GPS.
+   */
+  async autocomplete(
+    input: string,
+    lat?: number,
+    lng?: number
+  ): Promise<AutocompletePrediction[]> {
+    const response = await api.post<{ predictions: AutocompletePrediction[] }>(
+      '/api/viajes/autocomplete',
+      { input, lat, lng }
+    );
+    return response.data.predictions;
+  },
+
+  /**
+   * Obtiene coordenadas y dirección formateada a partir de un place_id.
+   * POST /api/viajes/geocode/place-details
+   */
+  async geocodePlace(placeId: string): Promise<PlaceDetailsResponse> {
+    const response = await api.post<PlaceDetailsResponse>(
+      '/api/viajes/geocode/place-details',
+      { place_id: placeId }
+    );
+    return response.data;
+  },
+
+  // ============================================================
+  // MAPA ESTÁTICO
+  // ============================================================
   async obtenerUrlMapa(params: {
     origen_lat: number;
     origen_lng: number;
@@ -203,10 +218,6 @@ export const viajeService = {
   // ============================================================
   // CÁLCULO DE COSTO
   // ============================================================
-  /**
-   * Calcula el costo estimado de un viaje.
-   * POST /api/viajes/calcular-costo
-   */
   async calcularCosto(
     datos: CalcularCostoRequest
   ): Promise<CalcularCostoResponse> {

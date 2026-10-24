@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants/colors';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
 
-export default function PerfilScreen() {
-  const router = useRouter();
+export default function ConfiguracionScreen() {
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
   return (
@@ -18,15 +18,15 @@ export default function PerfilScreen() {
     >
       <View style={[styles.content, { paddingHorizontal: 20 }]}>
         <ScreenHeader
-          titulo="MI CUENTA"
+          titulo="CONFIGURACIÓN"
           textoIzquierda="← HOME"
-          onIzquierda={() => router.replace('/(app)/home' as any)}
+          onIzquierda={() => navigation.navigate('Home')}
           conSafeArea={false}
           style={{ paddingTop: insets.top + 12 }}
         />
 
         <View style={styles.body}>
-          <Text style={styles.text}>PERFIL DEL CHOFER</Text>
+          <Text style={styles.text}>CONFIGURACIÓN</Text>
           <Text style={styles.subtitulo}>
             Pantalla en construcción
           </Text>

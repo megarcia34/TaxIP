@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants/colors';
 import { useAuthStore } from '@/stores/auth.store';
@@ -17,7 +17,7 @@ import { ModuloCard } from '@/components/home/ModuloCard';
 import type { ResultadosResumen } from '@/components/home/BannerResultados';
 
 export default function HomeScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>(); // Usamos any para evitar problemas de tipado con navigate
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
 
@@ -25,7 +25,9 @@ export default function HomeScreen() {
   const turnoActivo = useTurnoStore((s) => s.turnoActivo);
   const cargarTurnoActivo = useTurnoStore((s) => s.cargarTurnoActivo);
 
-  // Datos del día anterior (mock por ahora, Fase 3 los traerá del backend)
+  const hayTurnoActivo = turnoActivo != null;
+
+  // Datos del dia anterior (mock por ahora, Fase 3 los traera del backend)
   const [resultadosAyer, setResultadosAyer] = useState<ResultadosResumen | null>(
     null
   );
@@ -50,12 +52,11 @@ export default function HomeScreen() {
   }, []);
 
   // J12: al montar, si el store persistido esta vacio, verificar el turno
-  // activo contra el backend. Sin bloquear la UI.
   useEffect(() => {
-    if (turnoActivo == null) {
+    if (!hayTurnoActivo) {
       cargarTurnoActivo();
     }
-  }, [turnoActivo, cargarTurnoActivo]);
+  }, [hayTurnoActivo, cargarTurnoActivo]);
 
   const nombreCorto = user?.nombreCompleto?.split(' ')[0] || 'Chofer';
 
@@ -65,47 +66,47 @@ export default function HomeScreen() {
       icono: '🔑',
       titulo: 'TURNOS',
       descripcion: 'Iniciar/cerrar turno',
-      ruta: '/(app)/turnos' as const,
+      screenName: 'Turnos',
     },
     {
       id: 'viaje-calle',
       icono: '🚖',
       titulo: 'VIAJE DE CALLE',
-      descripcion: turnoActivo
+      descripcion: hayTurnoActivo
         ? 'Registrar pasajero en la via publica'
         : 'Inicia turno primero',
-      ruta: '/(app)/viajes/calle' as const,
-      disabled: turnoActivo == null,
+      screenName: 'ViajeCalle',
+      disabled: !hayTurnoActivo,
     },
     {
       id: 'viajes',
       icono: '🚕',
-      titulo: 'GESTIÓN DE VIAJES',
+      titulo: 'GESTION DE VIAJES',
       descripcion: 'Recibir y gestionar viajes',
-      ruta: '/(app)/viajes' as const,
+      screenName: 'Turnos', // TODO: Crear pantalla de gestion de viajes
       disabled: true,
     },
     {
       id: 'finanzas',
       icono: '💰',
       titulo: 'FINANZAS',
-      descripcion: 'Ingresos, gastos y liquidación',
-      ruta: '/(app)/finanzas' as const,
+      descripcion: 'Ingresos, gastos y liquidacion',
+      screenName: 'Turnos', // TODO: Crear pantalla de finanzas
       disabled: true,
     },
     {
       id: 'historicos',
       icono: '📜',
-      titulo: 'HISTÓRICOS',
+      titulo: 'HISTORICOS',
       descripcion: 'Viajes y turnos cerrados',
-      ruta: '/(app)/historicos' as const,
+      screenName: 'Turnos', // TODO: Crear pantalla de historicos
     },
     {
       id: 'perfil',
       icono: '👤',
       titulo: 'MI CUENTA',
-      descripcion: 'Perfil, vehículo y documentos',
-      ruta: '/(app)/perfil' as const,
+      descripcion: 'Perfil, vehiculo y documentos',
+      screenName: 'Perfil',
     },
   ];
 
@@ -125,7 +126,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => router.push('/(app)/perfil' as any)}
+            onPress={() => navigation.navigate('Perfil')}
           >
             <Text style={styles.headerIcon}>👤</Text>
           </TouchableOpacity>
@@ -140,23 +141,23 @@ export default function HomeScreen() {
         {/* Saludo */}
         <Text style={styles.saludo}>¡Hola, {nombreCorto}!</Text>
 
-        {/* Banner de resultados del día anterior */}
+        {/* Banner de resultados del dia anterior */}
         <BannerResultados
           datos={resultadosAyer}
           isLoading={isLoadingResultados}
         />
 
-        {/* Título de módulos */}
-        <Text style={styles.seccionTitulo}>MÓDULOS</Text>
+        {/* Titulo de modulos */}
+        <Text style={styles.seccionTitulo}>MODULOS</Text>
 
-        {/* Lista de módulos */}
+        {/* Lista de modulos */}
         {modulos.map((modulo) => (
           <ModuloCard
             key={modulo.id}
             icono={modulo.icono}
             titulo={modulo.titulo}
             descripcion={modulo.descripcion}
-            onPress={() => router.push(modulo.ruta as any)}
+            onPress={() => navigation.navigate(modulo.screenName)}
             disabled={modulo.disabled}
           />
         ))}

@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '@/constants/colors';
 import { ProgressBar } from '@/components/registro/ProgressBar';
 import { RegistroHeader } from '@/components/registro/RegistroHeader';
@@ -24,7 +24,7 @@ interface DocumentoSubido {
 }
 
 export default function Paso4DocumentosScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
 
   const [documentos, setDocumentos] = useState<Record<string, DocumentoSubido>>(
     {}

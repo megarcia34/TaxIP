@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '@/constants/colors';
 import { APP_VERSION } from '@/constants/config';
 import { useAuthStore } from '@/stores/auth.store';
@@ -20,7 +20,7 @@ import type { EtapaActual } from '@/types/splash.types';
 const MIN_SPLASH_TIME = 2500;
 
 export default function SplashScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
 
@@ -144,10 +144,10 @@ export default function SplashScreen() {
       case 'esperando_vehiculo':
       case 'contrato_pendiente':
       case 'listo':
-        router.replace('/(app)/home' as any);
+        navigation.navigate('Home');
         break;
       case 'home':
-        router.replace('/(app)/home' as any);
+        navigation.navigate('Home');
         break;
       default:
         router.replace('/(auth)/login');

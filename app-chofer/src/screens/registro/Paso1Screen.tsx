@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '@/constants/colors';
 import { ProgressBar } from '@/components/registro/ProgressBar';
 import { RegistroHeader } from '@/components/registro/RegistroHeader';
@@ -20,7 +20,7 @@ import { registroService } from '@/services/registro.service';
 import { useRegistroStore } from '@/stores/registro.store';
 
 export default function Paso1CuentaScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { setEmail: setEmailStore, setUserId } = useRegistroStore();
 
   const [email, setEmail] = useState('');

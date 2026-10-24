@@ -10,7 +10,7 @@ import {
   NativeScrollEvent,
   Dimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native'; // <-- CAMBIO
 import { COLORS } from '@/constants/colors';
 
 export interface ResultadosResumen {
@@ -40,7 +40,7 @@ export function BannerResultados({
   datos,
   isLoading = false,
 }: BannerResultadosProps) {
-  const router = useRouter();
+  const navigation = useNavigation<any>(); // <-- CAMBIO
   const scrollRef = useRef<ScrollView>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false);
@@ -202,7 +202,7 @@ export function BannerResultados({
       <View style={styles.headerRow}>
         <Text style={styles.titulo}>RESULTADOS DE AYER</Text>
         <TouchableOpacity
-          onPress={() => router.push('/(app)/historicos' as any)}
+          onPress={() => navigation.navigate('Historicos')} // <-- CAMBIO
         >
           <Text style={styles.linkText}>Ver detalle →</Text>
         </TouchableOpacity>

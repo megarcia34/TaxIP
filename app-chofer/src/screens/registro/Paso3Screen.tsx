@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '@/constants/colors';
 import { ProgressBar } from '@/components/registro/ProgressBar';
 import { RegistroHeader } from '@/components/registro/RegistroHeader';
@@ -23,7 +23,7 @@ import { useRegistroStore } from '@/stores/registro.store';
 import type { Prestadora, Ciudad } from '@/types/catalogo.types';
 
 export default function Paso3DatosScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { setEmailVerificado } = useRegistroStore();
 
   // Datos del formulario

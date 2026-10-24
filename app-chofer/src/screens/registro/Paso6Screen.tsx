@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '@/constants/colors';
 import { STORAGE_KEYS } from '@/constants/config';
@@ -19,7 +19,7 @@ import type { SplashEstado } from '@/types/splash.types';
 const POLLING_INTERVAL = 30000; // 30 segundos
 
 export default function Paso6BloqueoScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
 
   const [estado, setEstado] = useState<SplashEstado | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +35,7 @@ export default function Paso6BloqueoScreen() {
       if (resultado.estado_aprobacion === 'aprobado') {
         // Verificar si tiene vehículo
         if (resultado.tiene_vehiculo && resultado.tiene_contrato_activo) {
-          router.replace('/(app)/home' as any);
+          navigation.navigate('Home');
         } else {
           // Aprobado pero sin vehículo → mostrar mensaje
           Alert.alert(

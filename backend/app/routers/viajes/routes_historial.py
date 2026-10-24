@@ -148,7 +148,7 @@ async def obtener_historial_viajes(
             vs.tiempo_estimado_segundos,
             
             -- Pasajero
-            COALESCE(p.nombre || ' ' || p.apellido, up.email) as pasajero_nombre,
+            COALESCE(p.nombre || ' ' || p.apellido, up.email, 'Pasajero anónimo') as pasajero_nombre,
             
             -- Chofer
             COALESCE(p2.nombre || ' ' || p2.apellido, uc.email, 'Sin asignar') as chofer_nombre,
@@ -192,7 +192,7 @@ async def obtener_historial_viajes(
         FROM trip.viaje_solicitado vs
 
         -- Pasajero
-        JOIN auth.usuario up ON up.id = vs.pasajero_id
+        LEFT JOIN auth.usuario up ON up.id = vs.pasajero_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = up.id
 
         -- Chofer

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native'; // <-- CAMBIO
 import { COLORS } from '@/constants/colors';
 
 interface RegistroHeaderProps {
@@ -13,13 +13,13 @@ export function RegistroHeader({
   showBackButton = true,
   onBackPress,
 }: RegistroHeaderProps) {
-  const router = useRouter();
+  const navigation = useNavigation<any>(); // <-- CAMBIO
 
   const handleBack = () => {
     if (onBackPress) {
       onBackPress();
     } else {
-      router.back();
+      navigation.goBack(); // <-- CAMBIO
     }
   };
 

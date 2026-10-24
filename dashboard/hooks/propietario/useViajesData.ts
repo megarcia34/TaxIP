@@ -1,8 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { ViajePropietario } from '@/types/propietario'
-import { mockViajes } from '@/lib/mocks/propietario-data'
+import apiClient from '@/lib/api/client' // Ajustá la ruta si es distinta
 
 interface UseViajesDataParams {
   vehiculoId?: string
@@ -17,58 +16,66 @@ interface UseViajesDataParams {
   pageSize?: number
 }
 
+interface ViajeHistorial {
+  id: string
+  estado: string
+  direccion_origen: string
+  direccion_destino: string
+  precio_estimado: number | null
+  precio_final: number | null
+  created_at: string
+  aceptado_en: string | null
+  iniciado_en: string | null
+  finalizado_en: string | null
+  distancia_metros: number | null
+  tiempo_estimado_segundos: number | null
+  pasajero_nombre: string | null
+  chofer_nombre: string
+  fecha: string
+  hora: string
+  precio_mostrado: number | null
+  empresa: string
+  propietario_nombre: string
+  patente: string
+  marca: string
+  modelo: string
+  calificacion: number | null
+  origen_lat: number | null
+  origen_lng: number | null
+  destino_lat: number | null
+  destino_lng: number | null
+}
+
 export function useViajesData(params: UseViajesDataParams) {
   const queryKey = ['propietario', 'viajes', JSON.stringify(params)]
 
-  return useQuery<{ data: ViajePropietario[]; total: number }>({
+  return useQuery<{ viajes: ViajeHistorial[]; total: number }>({
     queryKey,
     queryFn: async () => {
-      // TODO: Reemplazar con fetch real cuando el backend esté listo
-      // const queryString = new URLSearchParams(
-      //   Object.entries(params).filter(([_, v]) => v !== undefined && v !== '')
-      // ).toString()
-      // const res = await fetch(`/api/propietario/viajes?${queryString}`)
-      // if (!res.ok) throw new Error('Error al cargar viajes')
-      // return res.json()
+      const queryParams = new URLSearchParams()
 
-      // Simular filtrado con mocks
-      let filtered = [...mockViajes]
+      if (params.fechaDesde) queryParams.append('fecha_desde', params.fechaDesde)
+      if (params.fechaHasta) queryParams.append('fecha_hasta', params.fechaHasta)
+      if (params.estado) queryParams.append('estado', params.estado)
+      if (params.page) queryParams.append('offset', String((params.page - 1) * (params.pageSize || 10)))
+      if (params.pageSize) queryParams.append('limit', String(params.pageSize))
 
-      if (params.vehiculoId) {
-        filtered = filtered.filter((t) => t.vehiculo_id === params.vehiculoId)
-      }
-      if (params.estado) {
-        filtered = filtered.filter((t) => t.estado === params.estado)
-      }
-      if (params.metodoPago) {
-        filtered = filtered.filter((t) => t.metodo_pago === params.metodoPago)
-      }
-      if (params.fuente) {
-        filtered = filtered.filter((t) => t.fuente === params.fuente)
-      }
-      if (params.search) {
-        const search = params.search.toLowerCase()
-        filtered = filtered.filter(
-          (t) =>
-            (t.pasajero_nombre?.toLowerCase() || '').includes(search) ||
-            t.direccion_origen.toLowerCase().includes(search) ||
-            t.direccion_destino.toLowerCase().includes(search) ||
-            t.id.toLowerCase().includes(search)
-        )
-      }
+      const queryString = queryParams.toString()
+      const url = `/viajes/historial${queryString ? `?${queryString}` : ''}`
 
-      const start = ((params.page || 1) - 1) * (params.pageSize || 10)
-      const end = start + (params.pageSize || 10)
+      const response = await apiClient.get(url)
+      const data = response.data
 
+      // El backend devuelve { total, limit, offset, viajes: [...] }
       return {
-        data: filtered.slice(start, end),
-        total: filtered.length,
+        viajes: data.viajes || [],
+        total: data.total || 0,
       }
     },
-    staleTime: 1000 * 60, // 1 minuto
+    staleTime: 1000 * 60,
     placeholderData: (previousData) => previousData ?? {
-  data: [],
-  total: 0
-},
+      viajes: [],
+      total: 0,
+    },
   })
 }

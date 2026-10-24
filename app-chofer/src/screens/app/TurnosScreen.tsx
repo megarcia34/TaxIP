@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -32,7 +33,7 @@ import type {
 
 export default function TurnosScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const {
     turnoActivo,
@@ -320,7 +321,7 @@ export default function TurnosScreen() {
         <ScreenHeader
           titulo="TURNOS"
           textoIzquierda="← HOME"
-          onIzquierda={() => router.replace('/(app)/home' as any)}
+          onIzquierda={() => navigation.navigate('Home')}
           conSafeArea={false}
         />
 

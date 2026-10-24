@@ -108,3 +108,159 @@ async def mapa_estatico_endpoint(
         )
 
     return MapaEstaticoResponse(url=url)
+
+
+
+# ============================================
+# FORWARD GEOCODING (Para la app del chofer)
+# ============================================
+
+from pydantic import BaseModel
+
+class GeocodeForwardRequest(BaseModel):
+    address: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+
+class GeocodeForwardResponse(BaseModel):
+    lat: float
+    lng: float
+    direccion_formateada: str
+
+@router.post("/geocode/forward", response_model=GeocodeForwardResponse)
+async def forward_geocode_endpoint(
+    request: GeocodeForwardRequest,
+    current_user: tuple = Depends(get_current_driver_user),
+):
+    """
+    Forward geocoding: convierte una direccion de texto en coordenadas (lat, lng).
+    Usa lat/lng opcionales para sesgar la busqueda a la zona del chofer.
+    """
+    lat, lng = await directions_service.obtener_coordenadas(
+        request.address,
+        lat_sesgo=request.lat,
+        lng_sesgo=request.lng
+    )
+    
+    if lat is None or lng is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se encontro la direccion. Verifica que sea correcta."
+        )
+    
+    return GeocodeForwardResponse(
+        lat=lat,
+        lng=lng,
+        direccion_formateada=request.address
+    )
+
+# ============================================
+# AUTOCOMPLETE Y PLACE DETAILS (Para la app del chofer)
+# ============================================
+
+class AutocompleteRequest(BaseModel):
+    input: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+
+class AutocompletePrediction(BaseModel):
+    description: str
+    place_id: str
+
+class AutocompleteResponse(BaseModel):
+    predictions: list[AutocompletePrediction]
+
+class PlaceDetailsResponse(BaseModel):
+    lat: float
+    lng: float
+    direccion_formateada: str
+
+@router.post("/autocomplete", response_model=AutocompleteResponse)
+async def autocomplete_endpoint(
+    request: AutocompleteRequest,
+    current_user: tuple = Depends(get_current_driver_user),
+):
+    """
+    Devuelve sugerencias de direcciones usando Google Places Autocomplete.
+    Usa locationBias para priorizar resultados cercanos sin excluir otros.
+    """
+    from app.core.config import settings
+    import httpx
+
+    url = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+    params = {
+        "input": request.input,
+        "key": settings.GOOGLE_MAPS_API_KEY,
+        "language": "es",
+        "components": "country:ar",
+    }
+
+    if request.lat is not None and request.lng is not None:
+        params["location"] = f"{request.lat},{request.lng}"
+        params["radius"] = 50000  # 50 km (locationBias, no restrictivo)
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, params=params)
+            data = response.json()
+
+        if data.get("status") not in ("OK", "ZERO_RESULTS"):
+            logger.error(f"❌ Error en Autocomplete API: {data.get('status')}")
+            return AutocompleteResponse(predictions=[])
+
+        predictions = [
+            AutocompletePrediction(
+                description=p["description"],
+                place_id=p["place_id"],
+            )
+            for p in data.get("predictions", [])
+        ]
+        return AutocompleteResponse(predictions=predictions)
+    except Exception as e:
+        logger.error(f"❌ Error en Autocomplete API: {str(e)}")
+        return AutocompleteResponse(predictions=[])
+
+
+class PlaceDetailsRequest(BaseModel):
+    place_id: str
+
+@router.post("/geocode/place-details", response_model=PlaceDetailsResponse)
+async def place_details_endpoint(
+    request: PlaceDetailsRequest,
+    current_user: tuple = Depends(get_current_driver_user),
+):
+    """
+    Obtiene coordenadas y direccion formateada a partir de un place_id.
+    """
+    from app.core.config import settings
+    import httpx
+
+    url = "https://maps.googleapis.com/maps/api/place/details/json"
+    params = {
+        "place_id": request.place_id,
+        "key": settings.GOOGLE_MAPS_API_KEY,
+        "fields": "geometry,formatted_address",
+        "language": "es",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, params=params)
+            data = response.json()
+
+        if data.get("status") != "OK":
+            raise HTTPException(status_code=404, detail="Place no encontrado")
+
+        result = data["result"]
+        location = result["geometry"]["location"]
+
+        return PlaceDetailsResponse(
+            lat=location["lat"],
+            lng=location["lng"],
+            direccion_formateada=result.get("formatted_address", ""),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error en Place Details API: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error al obtener detalles del lugar")

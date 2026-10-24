@@ -8,12 +8,13 @@ import {
   ActivityIndicator,
   Keyboard,
   Image,
+  TextInput,
+  Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { COLORS } from '@/constants/colors';
 import { viajeService } from '@/services/viaje.service';
 import { useViajeStore } from '@/stores/viaje.store';
@@ -31,11 +32,7 @@ import type {
   ViajeSolicitado,
   CalcularCostoResponse,
 } from '@/types/viaje.types';
-
-// ============================================================
-// CONFIGURACIÓN GOOGLE PLACES
-// ============================================================
-const PLACES_RADIUS_METROS = 30000; // 30 km
+import type { AutocompletePrediction } from '@/services/viaje.service';
 
 // ============================================================
 // MÉTODOS DE PAGO
@@ -50,9 +47,10 @@ const METODOS_PAGO: { id: MetodoPagoCalle; label: string }[] = [
 // DEBOUNCE
 // ============================================================
 const DEBOUNCE_MS = 500;
+const DEBOUNCE_AUTOCOMPLETE_MS = 300;
 
 export default function ViajeCalleScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const setViajeActivo = useViajeStore((s) => s.setViajeActivo);
 
@@ -61,7 +59,14 @@ export default function ViajeCalleScreen() {
   const [origenLoading, setOrigenLoading] = useState(true);
   const [origenError, setOrigenError] = useState<string | null>(null);
   const [direccionOrigen, setDireccionOrigen] = useState<string | null>(null);
+  
+  // Destino
+  const [textoDestino, setTextoDestino] = useState('');
   const [destino, setDestino] = useState<DestinoSeleccionado | null>(null);
+  const [sugerencias, setSugerencias] = useState<AutocompletePrediction[]>([]);
+  const [buscandoSugerencias, setBuscandoSugerencias] = useState(false);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  
   const [metodoPago, setMetodoPago] = useState<MetodoPagoCalle>('efectivo');
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +81,7 @@ export default function ViajeCalleScreen() {
   const [mapaLoading, setMapaLoading] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const placesRef = useRef<any>(null);
+  const debounceAutocompleteRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ============================================
   // OBTENER UBICACIÓN ACTUAL
@@ -103,7 +108,6 @@ export default function ViajeCalleScreen() {
       };
       setOrigen(coords);
 
-      // Reverse geocoding del origen (G25) — no bloqueante.
       try {
         const geo = await viajeService.reverseGeocode(coords.lat, coords.lng);
         setDireccionOrigen(geo.direccion);
@@ -166,9 +170,7 @@ export default function ViajeCalleScreen() {
   }, [origen, destino]);
 
   // ============================================
-  // CARGAR MAPA ESTÁTICO (Static Maps)
-  // Se dispara cuando hay origen + destino.
-  // Se limpia cuando se limpia el destino.
+  // CARGAR MAPA ESTÁTICO
   // ============================================
   useEffect(() => {
     if (!origen || !destino) {
@@ -205,46 +207,80 @@ export default function ViajeCalleScreen() {
   }, [origen, destino]);
 
   // ============================================
-  // HANDLER DE SELECCIÓN DE PLACES
+  // AUTOCOMPLETADO DE DIRECCIONES
   // ============================================
-  const handlePlaceSelected = (data: any, details: any | null = null) => {
-    if (!details) {
-      console.warn('[Viaje de calle] Places sin detalles:', data);
+  const buscarSugerencias = (texto: string) => {
+    setTextoDestino(texto);
+    setMostrarSugerencias(true);
+
+    if (debounceAutocompleteRef.current) {
+      clearTimeout(debounceAutocompleteRef.current);
+    }
+
+    if (texto.trim().length < 2) {
+      setSugerencias([]);
       return;
     }
 
-    const lat = details.geometry?.location?.lat;
-    const lng = details.geometry?.location?.lng;
-    if (lat == null || lng == null) {
-      console.warn('[Viaje de calle] Places sin coordenadas:', details);
-      return;
-    }
+    debounceAutocompleteRef.current = setTimeout(async () => {
+      setBuscandoSugerencias(true);
+      try {
+        const predicciones = await viajeService.autocomplete(
+          texto,
+          origen?.lat,
+          origen?.lng
+        );
+        setSugerencias(predicciones);
+      } catch (e) {
+        console.warn('[Autocomplete] Error:', e);
+        setSugerencias([]);
+      } finally {
+        setBuscandoSugerencias(false);
+      }
+    }, DEBOUNCE_AUTOCOMPLETE_MS);
+  };
 
-    setDestino({
-      direccion: data.description || details.formatted_address || '',
-      lat,
-      lng,
-      place_id: data.place_id || details.place_id || '',
-    });
+  const seleccionarSugerencia = async (prediction: AutocompletePrediction) => {
+    Keyboard.dismiss(); 
+    setMostrarSugerencias(false);
+    setBuscandoSugerencias(true);
+    setError(null);
+    try {
+      const result = await viajeService.geocodePlace(prediction.place_id);
+      setDestino({
+        direccion: result.direccion_formateada || prediction.description,
+        lat: result.lat,
+        lng: result.lng,
+        place_id: prediction.place_id,
+      });
+      setTextoDestino(prediction.description);
+    } catch (e: any) {
+      Alert.alert('Error', 'No se pudo obtener la ubicación del lugar.');
+      setDestino(null);
+    } finally {
+      setBuscandoSugerencias(false);
+    }
   };
 
   const handleClearDestino = () => {
     setDestino(null);
     setCostoTentativo(null);
     setMapaUrl(null);
-    placesRef.current?.setAddressText('');
+    setTextoDestino('');
+    setSugerencias([]);
+    setMostrarSugerencias(false);
   };
 
   // ============================================
   // VALIDACIÓN
   // ============================================
-  const formValido =
-    origen !== null && destino !== null && !creando;
+  const formValido = origen !== null && destino !== null && !creando;
 
   // ============================================
   // CREAR VIAJE
   // ============================================
   const handleIniciarViaje = async () => {
+    Keyboard.dismiss();
     if (!formValido || !origen || !destino) return;
     Keyboard.dismiss();
     setError(null);
@@ -254,7 +290,6 @@ export default function ViajeCalleScreen() {
       const request: SolicitarViajeCalleRequest = {
         origen_lat: origen.lat,
         origen_lng: origen.lng,
-        // El backend pisa este campo con reverse geocoding (G25).
         direccion_origen: direccionOrigen ?? 'Ubicación GPS del chofer',
         destino_lat: destino.lat,
         destino_lng: destino.lng,
@@ -262,9 +297,7 @@ export default function ViajeCalleScreen() {
         metodo_pago: metodoPago,
       };
 
-      const viaje: ViajeSolicitado = await viajeService.solicitarViajeCalle(
-        request
-      );
+      const viaje: ViajeSolicitado = await viajeService.solicitarViajeCalle(request);
 
       setViajeActivo({
         id: viaje.id,
@@ -293,7 +326,7 @@ export default function ViajeCalleScreen() {
         metodo_pago: viaje.metodo_pago ?? null,
       });
 
-      router.replace(`/(app)/viajes/${viaje.id}` as any);
+      navigation.replace('ViajeDetalle', { id: viaje.id });
     } catch (e: any) {
       const mensaje =
         e?.response?.data?.detail ||
@@ -308,7 +341,6 @@ export default function ViajeCalleScreen() {
   // ============================================
   // RENDER
   // ============================================
-  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
   const origenDisponible = origen !== null;
   const inputDestinoDeshabilitado = !origenDisponible || creando;
 
@@ -330,7 +362,7 @@ export default function ViajeCalleScreen() {
         <ScreenHeader
           titulo="VIAJE DE CALLE"
           textoIzquierda="HOME"
-          onIzquierda={() => router.replace('/(app)/home' as any)}
+          onIzquierda={() => navigation.navigate('Home')}
           conSafeArea={false}
         />
 
@@ -387,76 +419,44 @@ export default function ViajeCalleScreen() {
           </View>
         ) : (
           <View style={styles.placesWrapper}>
-            <GooglePlacesAutocomplete
-              ref={placesRef}
-              placeholder="Ej: Catamarca 375 o Ruta 9, Termas"
-              minLength={3}
-              fetchDetails
-              onPress={handlePlaceSelected}
-              query={{
-                key: apiKey,
-                language: 'es',
-                components: 'country:ar',
-                location: `${origen!.lat},${origen!.lng}`,
-                radius: PLACES_RADIUS_METROS,
+            <TextInput
+              style={{
+                color: COLORS.textPrimary,
+                fontSize: 18,
+                paddingVertical: 8,
+                fontWeight: '500',
+                borderBottomWidth: 2,
+                borderBottomColor: COLORS.primary,
               }}
-              enablePoweredByContainer={false}
-              nearbyPlacesAPI="GooglePlacesSearch"
-              debounce={300}
-              styles={{
-                container: {
-                  flex: 0,
-                },
-                textInputContainer: {
-                  backgroundColor: 'transparent',
-                  borderTopWidth: 0,
-                  borderBottomWidth: 0,
-                },
-                textInput: {
-                  color: COLORS.textPrimary,
-                  fontSize: 18,
-                  fontWeight: '500',
-                  paddingVertical: 8,
-                  paddingHorizontal: 2,
-                  backgroundColor: 'transparent',
-                  borderBottomWidth: 2,
-                  borderBottomColor: COLORS.primary,
-                  marginBottom: 0,
-                  height: 44,
-                },
-                listView: {
-                  backgroundColor: COLORS.backgroundMedium,
-                  borderRadius: 10,
-                  marginTop: 4,
-                  borderWidth: 1,
-                  borderColor: 'rgba(255, 255, 255, 0.1)',
-                  zIndex: 1000,
-                  elevation: 5,
-                },
-                row: {
-                  backgroundColor: 'transparent',
-                  paddingVertical: 12,
-                  paddingHorizontal: 14,
-                },
-                description: {
-                  color: COLORS.textPrimary,
-                  fontSize: 14,
-                },
-                separator: {
-                  height: 1,
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                },
-                poweredContainer: {
-                  display: 'none',
-                },
-              }}
-              textInputProps={{
-                editable: !inputDestinoDeshabilitado,
-                placeholderTextColor: 'rgba(255, 255, 255, 0.4)',
-                autoCapitalize: 'words',
-                autoCorrect: false,
-              }}
+              placeholder="Ej: Muñecas 1090"
+              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              value={textoDestino}
+              onChangeText={buscarSugerencias}
+              onFocus={() => setMostrarSugerencias(true)}
+              editable={!inputDestinoDeshabilitado}
             />
+            {buscandoSugerencias && (
+              <ActivityIndicator
+                color={COLORS.primary}
+                size="small"
+                style={{ position: 'absolute', right: 10, top: 14 }}
+              />
+            )}
+            {mostrarSugerencias && sugerencias.length > 0 && (
+              <View style={styles.sugerenciasContainer}>
+                {sugerencias.map((p) => (
+                  <TouchableOpacity
+                    key={p.place_id}
+                    style={styles.sugerenciaItem}
+                    onPress={() => seleccionarSugerencia(p)}
+                  >
+                    <Text style={styles.sugerenciaTexto} numberOfLines={2}>
+                      {p.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
@@ -582,8 +582,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-
-  // Origen inline
   origenRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -617,8 +615,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-
-  // Labels
   label: {
     color: COLORS.textPrimary,
     fontSize: 10,
@@ -627,14 +623,31 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     opacity: 0.6,
   },
-
-  // Places wrapper
   placesWrapper: {
     zIndex: 1000,
     marginBottom: 8,
   },
-
-  // Destino deshabilitado (sin origen)
+  sugerenciasContainer: {
+    backgroundColor: COLORS.backgroundMedium,
+    borderRadius: 10,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    zIndex: 1000,
+    elevation: 5,
+    maxHeight: 250,
+    overflow: 'hidden',
+  },
+  sugerenciaItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  sugerenciaTexto: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+  },
   destinoDeshabilitado: {
     paddingVertical: 12,
     paddingHorizontal: 2,
@@ -647,8 +660,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-
-  // Destino seleccionado (chip)
   destinoSeleccionado: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -680,8 +691,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-
-  // Mapa
   mapaWrapper: {
     marginBottom: 14,
     borderRadius: 12,
@@ -706,8 +715,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     opacity: 0.7,
   },
-
-  // Costo tentativo
   costoWrapper: {
     backgroundColor: 'rgba(249, 200, 14, 0.1)',
     borderRadius: 12,
@@ -750,8 +757,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     opacity: 0.8,
   },
-
-  // Métodos de pago
   metodosRow: {
     flexDirection: 'row',
     gap: 8,
@@ -779,8 +784,6 @@ const styles = StyleSheet.create({
   metodoChipTextoActive: {
     color: COLORS.textDark,
   },
-
-  // Error
   errorContainer: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 8,
@@ -792,8 +795,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-
-  // Botón
   botonIniciar: {
     backgroundColor: COLORS.primary,
     paddingVertical: 16,

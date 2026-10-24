@@ -12,7 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '@/constants/colors';
 import { ProgressBar } from '@/components/registro/ProgressBar';
 import { RegistroHeader } from '@/components/registro/RegistroHeader';
@@ -24,7 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const RESEND_COOLDOWN = 60; // segundos
 
 export default function Paso2ValidarEmailScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { email, setEmailVerificado } = useRegistroStore();
 
   const [code, setCode] = useState('');

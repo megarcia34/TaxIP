@@ -9,7 +9,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRoute, useNavigation } from '@react-navigation/native'; // <-- CAMBIO 1
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants/colors';
@@ -58,8 +58,10 @@ function traducirMetodoPago(metodo: string | null | undefined): string {
 }
 
 export default function ViajeEnCursoScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const route = useRoute<any>(); // <-- CAMBIO 2
+  const id = route.params?.id;   // <-- CAMBIO 2
+  console.log('ID del viaje en ViajeDetalle:', id);  
+  const navigation = useNavigation<any>(); // <-- CAMBIO 3
   const insets = useSafeAreaInsets();
 
   const viajeActivoStore = useViajeStore((s) => s.viajeActivo);
@@ -168,61 +170,63 @@ export default function ViajeEnCursoScreen() {
     };
   }, [viaje, mapaUrl]);
 
-  // ============================================
-  // FINALIZAR VIAJE
-  // ============================================
-  const handleFinalizar = () => {
+// ============================================
+// FINALIZAR VIAJE (Enfocado en celular)
+// ============================================
+const handleFinalizar = () => {
+  Alert.alert(
+    '¿Llegaste al destino?',
+    'Se finalizará el viaje y quedarás libre para otro.',
+    [
+      { text: 'Todavía no', style: 'cancel' },
+      {
+        text: 'Sí, llegué',
+        onPress: () => confirmarFinalizar(),
+      },
+    ]
+  );
+};
+
+const confirmarFinalizar = async () => {
+  if (!id) return;
+  setLoading(true);
+  setError(null);
+  try {
+    const resultado: FinalizarViajeResponse = await viajeService.finalizarViaje(id);
+
+    // Limpiar el store
+    setViajeActivo(null);
+
+    // Armar el mensaje del alert
+    const montoFormateado = formatearMoneda(resultado.precio_final);
+    const esFallback = resultado.precio_calculado_con === 'fallback_estimado';
+
+    const mensaje = esFallback
+      ? `Monto: ${montoFormateado} ${resultado.moneda}\n\n⚠️ El precio se calculó por fallback.`
+      : `Monto: ${montoFormateado} ${resultado.moneda}`;
+
+    // Mostrar el alert nativo (funciona perfecto en celular)
     Alert.alert(
-      '¿Llegaste al destino?',
-      'Se finalizará el viaje y quedarás libre para otro.',
+      'Viaje finalizado',
+      mensaje,
       [
-        { text: 'Todavía no', style: 'cancel' },
         {
-          text: 'Sí, llegué',
-          onPress: () => confirmarFinalizar(),
+          text: 'OK',
+          onPress: () => navigation.replace('ViajeCalle'),
         },
-      ]
+      ],
+      { cancelable: false }
     );
-  };
-
-    const confirmarFinalizar = async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const resultado: FinalizarViajeResponse = await viajeService.finalizarViaje(id);
-
-      // Limpiar el store antes de navegar
-      setViajeActivo(null);
-
-      // Armar el mensaje del alert
-      const montoFormateado = formatearMoneda(resultado.precio_final);
-      const esFallback = resultado.precio_calculado_con === 'fallback_estimado';
-
-      const mensaje = esFallback
-        ? `Monto: ${montoFormateado} ${resultado.moneda}\n\n⚠️ El precio se calculó por fallback (usando el estimado). Avisá al administrador.`
-        : `Monto: ${montoFormateado} ${resultado.moneda}\n\nCalculado con el motor de tarifas.`;
-
-      Alert.alert(
-        'Viaje finalizado',
-        mensaje,
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(app)/viajes/calle' as any),
-          },
-        ],
-        { cancelable: false }
-      );
-    } catch (e: any) {
-      setError(
-        e?.response?.data?.detail ||
-          e?.message ||
-          'Error al finalizar el viaje'
-      );
-      setLoading(false);
-    }
-  };
+  } catch (e: any) {
+    setError(
+      e?.response?.data?.detail ||
+        e?.message ||
+        'Error al finalizar el viaje'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ============================================
   // CANCELAR VIAJE
@@ -240,7 +244,7 @@ export default function ViajeEnCursoScreen() {
       await viajeService.cancelarViaje(id, motivo);
       setModalCancelarVisible(false);
       setViajeActivo(null);
-      router.replace('/(app)/viajes/calle' as any);
+      navigation.replace('ViajeCalle'); // <-- CAMBIO 5
     } catch (e: any) {
       setCancelarError(
         e?.response?.data?.detail ||
@@ -405,23 +409,17 @@ export default function ViajeEnCursoScreen() {
 
             {/* Botones */}
             <TouchableOpacity
-              style={[styles.botonPrincipal, loading && styles.botonDisabled]}
+              style={styles.botonPrincipal}
               onPress={handleFinalizar}
-              disabled={loading}
             >
-              {loading ? (
-                <ActivityIndicator color={COLORS.textPrimary} size="small" />
-              ) : (
-                <Text style={styles.botonPrincipalTexto}>
-                  ✓ LLEGUÉ AL DESTINO
-                </Text>
-              )}
+              <Text style={styles.botonPrincipalTexto}>
+                ✓ LLEGUÉ AL DESTINO
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.botonSecundario, loading && styles.botonDisabled]}
+              style={styles.botonSecundario}
               onPress={handleAbrirCancelar}
-              disabled={loading}
             >
               <Text style={styles.botonSecundarioTexto}>✕ CANCELAR VIAJE</Text>
             </TouchableOpacity>
@@ -449,8 +447,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 24,
   },
-
-  // Loading / empty
   loadingContainer: {
     alignItems: 'center',
     paddingVertical: 60,
@@ -482,8 +478,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-
-  // Mapa
   mapaWrapper: {
     marginBottom: 14,
     borderRadius: 12,
@@ -508,8 +502,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     opacity: 0.7,
   },
-
-  // Direcciones
   bloque: {
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 12,
@@ -555,8 +547,6 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     marginLeft: 28,
   },
-
-  // Info destacada
   infoDestacada: {
     flexDirection: 'row',
     backgroundColor: 'rgba(249, 200, 14, 0.1)',
@@ -590,8 +580,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     marginHorizontal: 4,
   },
-
-  // Info secundaria
   infoSecundaria: {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 12,
@@ -620,8 +608,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-
-  // Error
   errorContainer: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 8,
@@ -633,8 +619,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-
-  // Botones
   botonPrincipal: {
     backgroundColor: COLORS.success,
     paddingVertical: 16,

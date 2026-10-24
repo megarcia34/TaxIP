@@ -35,15 +35,6 @@ class DirectionsService:
     ) -> Dict[str, Any]:
         """
         Calcula la ruta entre origen y destino, incluyendo paradas intermedias
-        
-        Args:
-            origen: Dirección de origen
-            destino: Dirección de destino
-            paradas: Lista de direcciones intermedias (waypoints)
-            modo: Tipo de transporte (driving, walking, transit)
-            
-        Returns:
-            Dict con distancia_km, tiempo_minutos y coordenadas
         """
         if not self.api_key:
             logger.warning("⚠️ API Key no disponible, usando valores simulados")
@@ -109,19 +100,6 @@ class DirectionsService:
     ) -> Dict[str, Any]:
         """
         Calcula la ruta entre dos coordenadas (no direcciones).
-
-        Es un wrapper sobre calcular_ruta() que:
-        1. Formatea las coordenadas como "lat,lng" (formato que acepta
-           Directions API).
-        2. Delega en calcular_ruta().
-        3. Extrae `overview_polyline` a un campo de primer nivel del
-           dict de respuesta, para que los consumidores (Static Maps)
-           no tengan que escarbar en ruta_completa.
-
-        Devuelve el mismo dict que calcular_ruta, más:
-            - overview_polyline: str | None
-              (encoded polyline de la ruta completa, lista para
-              pasar a Static Maps como `path=enc:...`)
         """
         origen = f"{origen_lat},{origen_lng}"
         destino = f"{destino_lat},{destino_lng}"
@@ -134,7 +112,6 @@ class DirectionsService:
         )
 
         # Extraer overview_polyline si está disponible.
-        # La estructura es: data["routes"][0]["overview_polyline"]["points"]
         overview_polyline = None
         ruta_completa = resultado.get("ruta_completa")
         if ruta_completa:
@@ -150,16 +127,13 @@ class DirectionsService:
     
     async def obtener_coordenadas(
         self,
-        direccion: str
+        direccion: str,
+        lat_sesgo: Optional[float] = None,
+        lng_sesgo: Optional[float] = None
     ) -> Tuple[Optional[float], Optional[float]]:
         """
-        Obtiene coordenadas (lat, lng) a partir de una dirección
-        
-        Args:
-            direccion: Dirección a geocodificar
-            
-        Returns:
-            Tuple (latitud, longitud) o (None, None) si falla
+        Obtiene coordenadas (lat, lng) a partir de una dirección.
+        Si se pasan lat_sesgo y lng_sesgo, sesga la búsqueda a esa zona.
         """
         if not self.api_key:
             logger.warning("⚠️ API Key no disponible, retornando None")
@@ -167,6 +141,11 @@ class DirectionsService:
         
         try:
             url = f"{self.geocode_url}?address={direccion}&key={self.api_key}"
+            
+            # Sesgo geográfico (bounds) si se proveen coordenadas
+            if lat_sesgo is not None and lng_sesgo is not None:
+                delta = 0.5  # ~50 km de radio
+                url += f"&bounds={lat_sesgo-delta},{lng_sesgo-delta}|{lat_sesgo+delta},{lng_sesgo+delta}"
             
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(url)
@@ -195,16 +174,6 @@ class DirectionsService:
     ) -> Dict[str, Any]:
         """
         Fallback cuando Directions API no esta disponible.
-
-        NO devuelve valores simulados: devuelve None en todos los campos
-        para forzar a los consumidores a usar su propio fallback (Haversine
-        o datos persistidos). Antes devolvia 5 km / 15 min hardcodeados,
-        lo que causaba que se cobraran distancias ficticias.
-
-        Los 6 consumidores chequean `if ruta and ruta.get("distancia_km")`,
-        por lo que con este cambio caen correctamente a Haversine.
-
-        Ref: G59 en DEUDA_TECNICA.md.
         """
         logger.error(
            f"Directions API no disponible. "
