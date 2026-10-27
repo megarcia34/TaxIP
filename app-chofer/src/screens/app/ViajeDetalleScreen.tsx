@@ -9,7 +9,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native'; // <-- CAMBIO 1
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants/colors';
@@ -23,7 +23,7 @@ import {
   formatearDuracion,
   formatearHora,
 } from '@/utils/formato';
-import type { ViajeActivo, ViajeSolicitado, FinalizarViajeResponse} from '@/types/viaje.types';
+import type { ViajeActivo, ViajeSolicitado, FinalizarViajeResponse } from '@/types/viaje.types';
 
 // ============================================================
 // TRADUCCIONES DE VALORES DEL BACKEND
@@ -58,10 +58,10 @@ function traducirMetodoPago(metodo: string | null | undefined): string {
 }
 
 export default function ViajeEnCursoScreen() {
-  const route = useRoute<any>(); // <-- CAMBIO 2
-  const id = route.params?.id;   // <-- CAMBIO 2
-  console.log('ID del viaje en ViajeDetalle:', id);  
-  const navigation = useNavigation<any>(); // <-- CAMBIO 3
+  const route = useRoute<any>();
+  const id = route.params?.id;
+  console.log('ID del viaje en ViajeDetalle:', id);
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
   const viajeActivoStore = useViajeStore((s) => s.viajeActivo);
@@ -143,7 +143,7 @@ export default function ViajeEnCursoScreen() {
   useEffect(() => {
     if (!viaje) return;
     if (!viaje.origen || !viaje.destino) return;
-    if (mapaUrl) return; // ya cargado, no re-fetch
+    if (mapaUrl) return;
 
     let montado = true;
     (async () => {
@@ -158,7 +158,6 @@ export default function ViajeEnCursoScreen() {
         if (!montado) return;
         setMapaUrl(url);
       } catch (e: any) {
-        // Fallback: se usa la imagen mock
         console.warn('[Viaje en curso] Error cargando mapa:', e?.message);
       } finally {
         if (montado) setMapaLoading(false);
@@ -170,63 +169,102 @@ export default function ViajeEnCursoScreen() {
     };
   }, [viaje, mapaUrl]);
 
-// ============================================
-// FINALIZAR VIAJE (Enfocado en celular)
-// ============================================
-const handleFinalizar = () => {
-  Alert.alert(
-    '¿Llegaste al destino?',
-    'Se finalizará el viaje y quedarás libre para otro.',
-    [
-      { text: 'Todavía no', style: 'cancel' },
-      {
-        text: 'Sí, llegué',
-        onPress: () => confirmarFinalizar(),
-      },
-    ]
-  );
-};
-
-const confirmarFinalizar = async () => {
-  if (!id) return;
-  setLoading(true);
-  setError(null);
-  try {
-    const resultado: FinalizarViajeResponse = await viajeService.finalizarViaje(id);
-
-    // Limpiar el store
-    setViajeActivo(null);
-
-    // Armar el mensaje del alert
-    const montoFormateado = formatearMoneda(resultado.precio_final);
-    const esFallback = resultado.precio_calculado_con === 'fallback_estimado';
-
-    const mensaje = esFallback
-      ? `Monto: ${montoFormateado} ${resultado.moneda}\n\n⚠️ El precio se calculó por fallback.`
-      : `Monto: ${montoFormateado} ${resultado.moneda}`;
-
-    // Mostrar el alert nativo (funciona perfecto en celular)
+  // ============================================
+  // INICIAR VIAJE (PASAJERO A BORDO)
+  // ============================================
+  const handleIniciarViaje = () => {
     Alert.alert(
-      'Viaje finalizado',
-      mensaje,
+      '¿Pasajero a bordo?',
+      'Se marcará el inicio del viaje.',
       [
+        { text: 'Todavía no', style: 'cancel' },
+        { text: 'Sí, iniciar', onPress: () => confirmarIniciar() },
+      ]
+    );
+  };
+
+  const confirmarIniciar = async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await viajeService.iniciarViaje(id);
+
+      const ahora = new Date().toISOString();
+
+      // Actualizar el estado local para que el botón cambie a "LLEGUÉ AL DESTINO"
+      if (viaje) {
+        const actualizado = { ...viaje, estado: 'en_curso', iniciado_en: ahora };
+        setViaje(actualizado);
+        setViajeActivo(actualizado);
+      }
+
+      Alert.alert('Viaje Iniciado', '¡Buen viaje!');
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.detail ||
+          e?.message ||
+          'Error al iniciar el viaje'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================
+  // FINALIZAR VIAJE
+  // ============================================
+  const handleFinalizar = () => {
+    Alert.alert(
+      '¿Llegaste al destino?',
+      'Se finalizará el viaje y quedarás libre para otro.',
+      [
+        { text: 'Todavía no', style: 'cancel' },
         {
-          text: 'OK',
-          onPress: () => navigation.replace('ViajeCalle'),
+          text: 'Sí, llegué',
+          onPress: () => confirmarFinalizar(),
         },
-      ],
-      { cancelable: false }
+      ]
     );
-  } catch (e: any) {
-    setError(
-      e?.response?.data?.detail ||
-        e?.message ||
-        'Error al finalizar el viaje'
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const confirmarFinalizar = async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const resultado: FinalizarViajeResponse = await viajeService.finalizarViaje(id);
+
+      setViajeActivo(null);
+
+      const montoFormateado = formatearMoneda(resultado.precio_final);
+      const esFallback = resultado.precio_calculado_con === 'fallback_estimado';
+
+      const mensaje = esFallback
+        ? `Monto: ${montoFormateado} ${resultado.moneda}\n\n⚠️ El precio se calculó por fallback.`
+        : `Monto: ${montoFormateado} ${resultado.moneda}`;
+
+      Alert.alert(
+        'Viaje finalizado',
+        mensaje,
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.replace('ViajeCalle'),
+          },
+        ],
+        { cancelable: false }
+      );
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.detail ||
+          e?.message ||
+          'Error al finalizar el viaje'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ============================================
   // CANCELAR VIAJE
@@ -244,7 +282,7 @@ const confirmarFinalizar = async () => {
       await viajeService.cancelarViaje(id, motivo);
       setModalCancelarVisible(false);
       setViajeActivo(null);
-      navigation.replace('ViajeCalle'); // <-- CAMBIO 5
+      navigation.replace('ViajeCalle');
     } catch (e: any) {
       setCancelarError(
         e?.response?.data?.detail ||
@@ -278,7 +316,6 @@ const confirmarFinalizar = async () => {
           conSafeArea={false}
         />
 
-        {/* Estado de carga */}
         {loading && !viaje && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color={COLORS.primary} size="large" />
@@ -286,7 +323,6 @@ const confirmarFinalizar = async () => {
           </View>
         )}
 
-        {/* Sin viaje */}
         {!loading && !viaje && (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcono}>🚖</Text>
@@ -297,7 +333,6 @@ const confirmarFinalizar = async () => {
           </View>
         )}
 
-        {/* Con viaje */}
         {viaje && (
           <>
             {/* Mapa estático */}
@@ -407,15 +442,38 @@ const confirmarFinalizar = async () => {
               </View>
             )}
 
-            {/* Botones */}
-            <TouchableOpacity
-              style={styles.botonPrincipal}
-              onPress={handleFinalizar}
-            >
-              <Text style={styles.botonPrincipalTexto}>
-                ✓ LLEGUÉ AL DESTINO
-              </Text>
-            </TouchableOpacity>
+            {/* BOTÓN SEGÚN ESTADO */}
+            {viaje.estado === 'aceptado' && (
+              <TouchableOpacity
+                style={styles.botonPrincipal}
+                onPress={handleIniciarViaje}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.textPrimary} />
+                ) : (
+                  <Text style={styles.botonPrincipalTexto}>
+                    ✓ INICIAR VIAJE (PASAJERO A BORDO)
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {viaje.estado === 'en_curso' && (
+              <TouchableOpacity
+                style={styles.botonPrincipal}
+                onPress={handleFinalizar}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.textPrimary} />
+                ) : (
+                  <Text style={styles.botonPrincipalTexto}>
+                    ✓ LLEGUÉ AL DESTINO
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.botonSecundario}

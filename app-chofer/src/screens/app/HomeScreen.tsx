@@ -9,29 +9,40 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 import { COLORS } from '@/constants/colors';
 import { useAuthStore } from '@/stores/auth.store';
 import { useTurnoStore } from '@/stores/turno.store';
+import { useViajeStore } from '@/stores/viaje.store';
+import { viajeService } from '@/services/viaje.service';
+import { websocketService } from '@/services/websocket.service';
 import { BannerResultados } from '@/components/home/BannerResultados';
 import { ModuloCard } from '@/components/home/ModuloCard';
 import type { ResultadosResumen } from '@/components/home/BannerResultados';
 
 export default function HomeScreen() {
-  const navigation = useNavigation<any>(); // Usamos any para evitar problemas de tipado con navigate
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
 
-  // J12: fuente de verdad para habilitar/deshabilitar modulos operativos.
   const turnoActivo = useTurnoStore((s) => s.turnoActivo);
   const cargarTurnoActivo = useTurnoStore((s) => s.cargarTurnoActivo);
+  const setViajeActivo = useViajeStore((s) => s.setViajeActivo);
 
   const hayTurnoActivo = turnoActivo != null;
 
-  // Datos del dia anterior (mock por ahora, Fase 3 los traera del backend)
-  const [resultadosAyer, setResultadosAyer] = useState<ResultadosResumen | null>(
-    null
-  );
+  const [resultadosAyer, setResultadosAyer] = useState<ResultadosResumen | null>(null);
   const [isLoadingResultados, setIsLoadingResultados] = useState(false);
+
+  // ============================================
+  // CONECTAR WEBSOCKET AL MONTAR
+  // ============================================
+  useEffect(() => {
+    if (user?.id && token) {
+      console.log('[WS] Conectando WebSocket desde Home...');
+      websocketService.conectar(user.id, token);
+    }
+  }, [user?.id, token]);
 
   // Mock: simular carga de datos del backend
   useEffect(() => {
@@ -58,6 +69,105 @@ export default function HomeScreen() {
     }
   }, [hayTurnoActivo, cargarTurnoActivo]);
 
+  // J15: verificar viaje activo
+  useEffect(() => {
+    const verificarViajeActivo = async () => {
+      try {
+        const viaje = await viajeService.obtenerViajeActivo();
+        if (viaje) {
+          setViajeActivo({
+            id: viaje.id,
+            estado: viaje.estado,
+            origen: viaje.origen_lat && viaje.origen_lng
+              ? { lat: viaje.origen_lat, lng: viaje.origen_lng }
+              : null,
+            destino: viaje.destino_lat && viaje.destino_lng
+              ? { lat: viaje.destino_lat, lng: viaje.destino_lng }
+              : null,
+            direccion_origen: viaje.direccion_origen,
+            direccion_destino: viaje.direccion_destino,
+            pasajero_id: viaje.pasajero_id ?? '',
+            pasajero_nombre: 'Pasajero anónimo',
+            precio_estimado: viaje.precio_estimado,
+            precio_final: viaje.precio_final,
+            moneda: viaje.moneda,
+            tiempo_estimado_segundos: viaje.tiempo_estimado_segundos,
+            distancia_metros: viaje.distancia_metros,
+            solicitado_en: viaje.solicitado_en,
+            aceptado_en: viaje.aceptado_en,
+            iniciado_en: viaje.iniciado_en,
+            origen_tipo: 'via_publica',
+            metodo_pago: viaje.metodo_pago,
+          });
+          navigation.navigate('ViajeDetalle', { id: viaje.id });
+        }
+      } catch (error) {
+        // Si no hay viaje activo, no hacer nada
+      }
+    };
+
+    verificarViajeActivo();
+  }, [navigation, setViajeActivo]);
+
+  // ============================================
+  // GPS: ENVIAR UBICACIÓN CADA 15 SEGUNDOS
+  // ============================================
+  useEffect(() => {
+    if (!hayTurnoActivo) {
+      console.log('[GPS] ❌ No hay turno activo');
+      return;
+    }
+
+    console.log('[GPS] ✅ Turno activo detectado, iniciando GPS...');
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const iniciarGPS = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log('[GPS] Permiso:', status);
+
+      if (status !== 'granted') {
+        console.log('[GPS] ❌ Permiso denegado');
+        return;
+      }
+
+      const enviarUbicacion = async () => {
+        try {
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          console.log('[GPS] 📍', location.coords.latitude, location.coords.longitude);
+
+          if (!websocketService.estaConectado()) {
+            console.log('[GPS] ⏳ WS desconectado, esperando reconexión...');
+            return;
+          }
+
+          websocketService.enviar({
+            type: 'location_update',
+            data: {
+              lat: location.coords.latitude,
+              lng: location.coords.longitude,
+            },
+          });
+          console.log('[GPS] ✅ Ubicación enviada');
+        } catch (error) {
+          console.log('[GPS] ❌ Error:', error);
+        }
+      };
+
+      await enviarUbicacion();
+      // CAMBIO: 15 segundos en lugar de 30
+      interval = setInterval(enviarUbicacion, 15000);
+    };
+
+    iniciarGPS();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [hayTurnoActivo]);
+
   const nombreCorto = user?.nombreCompleto?.split(' ')[0] || 'Chofer';
 
   const modulos = [
@@ -83,30 +193,23 @@ export default function HomeScreen() {
       icono: '🚕',
       titulo: 'GESTION DE VIAJES',
       descripcion: 'Recibir y gestionar viajes',
-      screenName: 'Turnos', // TODO: Crear pantalla de gestion de viajes
-      disabled: true,
+      screenName: 'GestionViajes',
+      disabled: !hayTurnoActivo,
     },
     {
       id: 'finanzas',
       icono: '💰',
       titulo: 'FINANZAS',
       descripcion: 'Ingresos, gastos y liquidacion',
-      screenName: 'Turnos', // TODO: Crear pantalla de finanzas
-      disabled: true,
+      screenName: 'Finanzas',
+      disabled: false,
     },
     {
       id: 'historicos',
       icono: '📜',
       titulo: 'HISTORICOS',
       descripcion: 'Viajes y turnos cerrados',
-      screenName: 'Turnos', // TODO: Crear pantalla de historicos
-    },
-    {
-      id: 'perfil',
-      icono: '👤',
-      titulo: 'MI CUENTA',
-      descripcion: 'Perfil, vehiculo y documentos',
-      screenName: 'Perfil',
+      screenName: 'Turnos',
     },
   ];
 
@@ -117,7 +220,6 @@ export default function HomeScreen() {
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
     >
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.logo}>TAXIP</Text>
         <View style={styles.headerRight}>
@@ -133,24 +235,19 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Contenido */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Saludo */}
         <Text style={styles.saludo}>¡Hola, {nombreCorto}!</Text>
 
-        {/* Banner de resultados del dia anterior */}
         <BannerResultados
           datos={resultadosAyer}
           isLoading={isLoadingResultados}
         />
 
-        {/* Titulo de modulos */}
         <Text style={styles.seccionTitulo}>MODULOS</Text>
 
-        {/* Lista de modulos */}
         {modulos.map((modulo) => (
           <ModuloCard
             key={modulo.id}

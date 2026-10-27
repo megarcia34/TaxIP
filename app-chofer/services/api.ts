@@ -2,7 +2,7 @@
  * Cliente Axios configurado con interceptores JWT + refresh token.
  */
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { navigationRef } from '../App'; // <-- CAMBIO
+import { navigationRef } from '../src/navigation/navigationRef';// <-- CAMBIO
 import { API_URL, API_TIMEOUT } from '@/constants/config';
 import { useAuthStore } from '@/stores/auth.store';
 

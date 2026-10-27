@@ -8,6 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from uuid import UUID
 import uuid as uuid_lib
+from fastapi import File, UploadFile, Form
+from typing import Optional
+from app.services.cloudinary_storage import cloudinary_storage
+
 
 from app.database import get_db
 from app.dependencies import get_current_user, get_current_admin_user, get_current_driver_user
@@ -639,26 +643,112 @@ async def check_in(
 
 @router.post("/turnos/gasto")
 async def registrar_gasto_turno(
-    request: GastoRequest,
+    tipo_gasto: str = Form(...),
+    monto: float = Form(...),
+    turno_id: Optional[str] = Form(None),
+    km_registro: Optional[float] = Form(None),
+    file: Optional[UploadFile] = File(None),
     current_user: tuple = Depends(get_current_driver_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Registrar gasto durante el turno
-    """
     chofer_id = current_user[0]
     
-    result = await TurnoService.registrar_gasto(
-        db=db,
-        turno_id=request.turno_id,
-        chofer_id=chofer_id,
-        tipo_gasto=request.tipo_gasto,
-        monto=request.monto,
-        km_registro=request.km_registro,
-        url_comprobante=request.url_comprobante,
-        categoria_id=request.categoria_id,
-        subcategoria=request.subcategoria
-    )
+    # 1. Validar turno_id
+    if not turno_id:
+        turno_query = text("SELECT id FROM fleet.turno_chofer WHERE chofer_id = :chofer_id AND estado = 'ACTIVO' LIMIT 1")
+        turno_row = (await db.execute(turno_query, {"chofer_id": chofer_id})).first()
+        if not turno_row:
+            raise HTTPException(400, "No tenes un turno activo")
+        turno_uuid = turno_row[0]
+    else:
+        try:
+            turno_uuid = UUID(turno_id)
+        except ValueError:
+            raise HTTPException(400, "El turno_id enviado no es un UUID valido")
+
+    # 2. Buscar datos del turno (vehiculo_id, propietario_id, km_inicial)
+    query_turno = text("""
+        SELECT 
+            t.vehiculo_id,
+            t.km_inicial,
+            pv.propietario_id
+        FROM fleet.turno_chofer t
+        JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = t.vehiculo_id AND pv.activo = true
+        WHERE t.id = :turno_id
+        LIMIT 1
+    """)
+    turno_data = (await db.execute(query_turno, {"turno_id": turno_uuid})).first()
+    
+    if not turno_data:
+        raise HTTPException(400, "No se encontro el propietario del vehiculo asociado al turno")
+    
+    vehiculo_id, km_inicial, propietario_id = turno_data
+
+    # 3. Subir a Cloudinary si hay archivo
+    url_comprobante = None
+    if file:
+        try:
+            url_comprobante = await cloudinary_storage.upload_comprobante(
+                file=file,
+                propietario_id=str(chofer_id),
+                gasto_id=str(turno_uuid),
+                tipo="gasto_turno"
+            )
+        except Exception as e:
+            raise HTTPException(500, f"Error al subir comprobante: {str(e)}")
+
+    tipo_gasto_limpio = str(tipo_gasto).strip().upper()
+
+    # 4. Registrar en la tabla del chofer (turno)
+    try:
+        result = await TurnoService.registrar_gasto(
+            db=db,
+            turno_id=turno_uuid, 
+            chofer_id=chofer_id,
+            tipo_gasto=tipo_gasto_limpio,
+            monto=monto,
+            km_registro=km_registro,
+            url_comprobante=url_comprobante,
+            categoria_id=None,
+            subcategoria=None
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Error al registrar el gasto del turno: {str(e)}")
+
+    # 5. Registrar en la tabla del propietario (gasto_vehiculo) PARA QUE LO VEA ONLINE
+    try:
+        # Calculamos km actual sumando el registro si existe
+        km_actual = None
+        if km_registro:
+            km_actual = float(km_inicial) + float(km_registro) if km_inicial else km_registro
+        
+        insert_vehiculo_query = text("""
+            INSERT INTO fleet.gasto_vehiculo (
+                id, vehiculo_id, propietario_id, tipo_gasto, monto, km_registro, 
+                descripcion, comprobante_url, fecha_gasto, created_at
+            ) VALUES (
+                gen_random_uuid(), :vehiculo_id, :propietario_id, :tipo_gasto, :monto, :km_registro,
+                :descripcion, :comprobante_url, CURRENT_DATE, NOW()
+            )
+        """)
+        
+        await db.execute(insert_vehiculo_query, {
+            "vehiculo_id": vehiculo_id,
+            "propietario_id": propietario_id,
+            "tipo_gasto": tipo_gasto_limpio,
+            "monto": monto,
+            "km_registro": km_actual,
+            "descripcion": f"Gasto cargado por chofer en turno",
+            "comprobante_url": url_comprobante
+        })
+        await db.commit()
+    except Exception as e:
+        # Si falla el del propietario, el del chofer ya se guardo. 
+        # Hacemos rollback solo de esta parte, pero avisamos.
+        await db.rollback()
+        import logging
+        logging.error(f"Error al insertar en gasto_vehiculo: {str(e)}")
+        # No lanzamos error para no romper la UX del chofer, pero queda logueado
     
     return result
 

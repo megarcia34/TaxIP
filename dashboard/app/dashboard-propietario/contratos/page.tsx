@@ -37,6 +37,7 @@ import ModalCodigoGenerado from '@/components/propietario/contratos/ModalCodigoG
 import { useContratos, useFinalizarContrato, useGenerarCodigo } from '@/hooks/propietario/useContratos'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import {  Pencil } from 'lucide-react'
 
 interface Contrato {
   id: string
@@ -73,6 +74,7 @@ export default function PropietarioContratosPage() {
   const [filterActivo, setFilterActivo] = useState<boolean | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [selectedContrato, setSelectedContrato] = useState<Contrato | null>(null)
+  const [contratoAEditar, setContratoAEditar] = useState<Contrato | null>(null);
 
   // Modal codigo generado
   const [modalCodigoOpen, setModalCodigoOpen] = useState(false)
@@ -392,6 +394,16 @@ export default function PropietarioContratosPage() {
                       {c.activo && (
                         <>
                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => setContratoAEditar(c)} // <-- Abre el modal en modo edición
+                             className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                             title="Editar contrato"
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                              Editar
+                          </Button>
+                          <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleGenerarCodigo(c)}
@@ -483,12 +495,19 @@ export default function PropietarioContratosPage() {
         </CardContent>
       </Card>
 
-      {/* MODAL CREAR CONTRATO */}
-      <CrearContratoModal
-        open={showModal}
-        onOpenChange={setShowModal}
-        onSuccess={handleSuccess}
-      />
+      {/* MODAL CREAR/EDITAR CONTRATO */}
+       <CrearContratoModal
+          key={contratoAEditar ? contratoAEditar.id : 'nuevo'}
+          open={showModal || !!contratoAEditar} // <-- Se abre si es nuevo o si hay uno a editar
+          onOpenChange={(open) => {
+          if (!open) {
+            setShowModal(false);
+            setContratoAEditar(null); // <-- Limpia el contrato al cerrar
+         }
+      }}
+  onSuccess={handleSuccess}
+  contratoAEditar={contratoAEditar} // <-- Le pasamos los datos a editar
+/>
 
       {/* MODAL CODIGO GENERADO */}
       {codigoData && (

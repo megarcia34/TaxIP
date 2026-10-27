@@ -1,11 +1,10 @@
 # RESUMEN EJECUTIVO — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-21 (post R21)
+**Ultima actualizacion:** 2026-10-24 (post R21)
 **Alembic head:** m3_025
-**Version:** 2.2.0
-**Estado general:** Backend en produccion. Frontend web en produccion. App chofer en desarrollo.
-
-**Diff BD <-> ORM:** 1 items (alineado desde R14) deuda permitida
+**Version:** 2.3.0
+**Estado general:** Backend en producción. Frontend web en producción. App chofer (iOS/Android) funcionando y validada.
+**Diff BD <-> ORM:** 1 item (deuda aceptada preexistente)
 
 ---
 
@@ -27,7 +26,7 @@ flota y administracion.
 - **Modulo corporativo** (despacho manual para hoteles, sanatorios, centrales de llamadas).
 - **Modulo propietario** con gestion de vehiculos, contratos, gastos, mantenimiento, documentos y neumaticos.
 - **Sistema de tarifas multi-tenant** con 4 modos de calculo.
-- **App chofer** (backend listo, frontend en desarrollo).
+- **App chofer** (backend listo, frontend validado en iOS y Android).
 - **Multi-tenant completo** con aislamiento de datos por `control_base_id`.
 
 ---
@@ -74,14 +73,16 @@ flota y administracion.
 | Backend API | Python + FastAPI | Python 3.12.10 + FastAPI |
 | Base de datos | PostgreSQL + PostGIS | PostgreSQL 17 + PostGIS 3.6 |
 | ORM | SQLAlchemy async | 2.0+ |
-| Migraciones | Alembic | head `m3_020` |
+| Migraciones | Alembic | head `m3_025` |
 | Autenticacion | JWT (python-jose) + bcrypt | - |
 | Tiempo real | WebSockets (nativos FastAPI) | - |
 | Servidor HTTP | Uvicorn via `python run.py` | - |
 | Geolocalizacion | GeoAlchemy2 + Google Maps API | - |
 | Dashboard | Next.js 14 (App Router) + Tailwind + shadcn/ui | 14.x |
 | Landing publica | Next.js 15 + CSS plano | 15.x |
-| App chofer | Expo SDK 57 + React Native 0.86 + React 19 + expo-router 57.0.24 | - |
+| App chofer | Expo SDK 58 + React Navigation | 7.x |
+| React Native | React Native | 0.88.0 |
+| React | React | 19.3.0 |
 
 ---
 
@@ -158,7 +159,7 @@ ahora usa `trip.viaje_solicitado` con estados mapeados.
 **Estado:** Produccion
 **Endpoints:** 200+ funcionales
 **Documentacion:** Swagger en `/docs`
-**Alembic head:** `m3_020`
+**Alembic head:** `m3_025`
 **Diff BD <-> ORM:** 0 items
 
 **Grupos principales:**
@@ -331,19 +332,23 @@ configurables por tenant, mismo resultado siempre.
 
 ### 5.8. App Chofer (Expo / React Native)
 
-**Estado:** En desarrollo
+**Estado:** Produccion (iOS y Android validados)
 **Build:** EAS Build (perfil development)
 
-**Backend listo:**
+**Caracteristicas completas:**
 
 - Auth + JWT.
 - Check-in / check-out con codigo de validacion.
+- **Navegacion con React Navigation** (migrado desde `expo-router` en R21).
+- **Viaje de calle con autocompletado real** (Google Places + `locationBias` por GPS).
+- **Calculo de precio en tiempo real** (motor unificado).
+- **Finalizacion de viaje** con liquidacion automatica.
 - Ciclo de vida del viaje (aceptar, llegar, iniciar, finalizar).
 - Gestion de viajes huerfanos (R17).
 - Notificaciones in-app.
 - WebSocket para ubicacion en tiempo real.
 
-**Frontend pendiente:**
+**Pendiente:**
 
 - UI del flujo de forzar cierre de viajes huerfanos (G67).
 - UI de metricas propias del chofer.
@@ -413,7 +418,7 @@ o `en_curso`) al intentar cerrar turno:
 - **QR publico** (comercios adheridos).
 - **Portal corporativo** (empleados).
 - **Via publica** (chofer registra viaje manual).
-- **App movil** (backend listo, frontend en desarrollo).
+- **App movil** (frontend validado en iOS y Android).
 
 ### 7.5. Despacho manual (corporativo)
 
@@ -463,7 +468,7 @@ o `en_curso`) al intentar cerrar turno:
 | Modulo Corporativo | Produccion | Despacho manual, pipeline de estados |
 | Modulo Propietario | Produccion | Vehiculos, contratos, turnos, gastos, mantenimiento, documentos, neumaticos |
 | Sistema de Tarifas | Produccion | 4 modos, configurable por tenant |
-| App Movil (Chofer) | Backend listo, frontend en desarrollo | Backend soporta todo el ciclo |
+| App Movil (Chofer) | Produccion | iOS y Android validados. React Navigation. SDK 58. |
 | App Movil (Pasajero) | Reemplazada por landing web | No se hara |
 | Modulo de Cupones / Puntos | Estructura lista, endpoints pendientes | Tablas creadas, sin UI |
 | Facturacion PDF | Estructura lista, generacion pendiente | Endpoints de facturacion listos |
@@ -478,120 +483,3 @@ o `en_curso`) al intentar cerrar turno:
 cd D:\aTaxip\backend
 .\venv\Scripts\Activate.ps1
 python run.py
-
-Servidor: http://localhost:8000
-Documentacion: http://localhost:8000/docs
-
-Variables de entorno (.env):
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/taxip_db
-SECRET_KEY=...
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=...
-SMTP_PASSWORD=...
-CLOUDINARY_CLOUD_NAME=...
-
-Backend con reload (solo dev):
-powershell
-
-$env:RELOAD = "true"
-python run.py
-
-Default: RELOAD=false (produccion).
-10.2. Dashboard (Next.js 14)
-bash
-
-cd D:\aTaxip\dashboard
-npm install
-npm run dev
-
-Acceso: http://localhost:3000
-10.3. Landing (Next.js 15)
-bash
-
-cd D:\aTaxip\landing
-npm install
-npm run dev
-
-Acceso: http://localhost:3001 (por defecto)
-10.4. App Chofer (Expo)
-bash
-
-cd D:\aTaxip\app-chofer
-npm install
-eas build --profile development --platform android
-
-Cuenta EAS: megarcia34
-Proyecto: @megarcia34/taxip-chofer
-projectId: b54c9f37-bdd0-4845-8c78-9628a3cda6a2
-
-Workaround activo: 2 parches en patches/expo-router+57.0.24.patch
-por bug de expo-router con React 19. No tocar hasta que expo saque fix upstream.
-11. DOCUMENTACION ADICIONAL
-
-    Swagger/OpenAPI: http://localhost:8000/docs
-
-    Repositorio backend: D:\aTaxip\backend
-
-    Repositorio dashboard: D:\aTaxip\dashboard
-
-    Repositorio landing: D:\aTaxip\landing
-
-    Repositorio app chofer: D:\aTaxip\app-chofer
-
-    Base de datos: PostgreSQL con PostGIS
-
-Documentos clave del proyecto:
-
-    Contexto del proyecto: docs/CONTEXTO_TAXIP_v1.md
-
-    Reglas BD <-> ORM: docs/REGLAS_ALINEACION_BD_ORM.md
-
-    Deuda tecnica: docs/DEUDA_TECNICA_ACTUAL.md
-
-    Historico de rondas: docs/HISTORICO_CERRADAS.md
-
-    Decisiones ORM: docs/orm_sync/orm_decisiones.md
-
-12. PENDIENTES Y PROXIMOS PASOS
-Corto plazo (prioridad alta)
-
-    App movil chofer (frontend nativo): completar UI del flujo de forzar cierre de viajes huerfanos.
-
-    Notificaciones push (Firebase) para choferes y propietarios.
-
-    Subida de comprobantes (gastos, mantenimientos) a Cloudinary.
-
-    UI del dashboard propietario para metricas de fallback de precios (G63.frontend_propietario).
-
-Mediano plazo
-
-    Modulo de cupones y puntos (UI + endpoints).
-
-    Facturacion PDF automatica para empresas corporativas.
-
-    Graficos interactivos en dashboards (Chart.js).
-
-    Billetera TaxIP (Momento 3): wallet con saldo del usuario final.
-
-    Despliegue del backend a produccion (URL publica para G80).
-
-Largo plazo
-
-    Mantenimiento predictivo con IA.
-
-    Integracion con gateways de pago (MercadoPago).
-
-    Viajes compartidos (pool).
-
-13. CONTACTO Y SOPORTE
-Area	Responsable
-Backend (FastAPI)	Equipo de desarrollo backend
-Frontend (Dashboard / Landing)	Equipo de desarrollo frontend
-App Chofer (Expo)	Equipo de desarrollo mobile
-Base de Datos	DBA
-Google Maps / Cloudinary	Administrador de servicios cloud
-
-Este documento refleja el estado del sistema al 2026-10-13 (post R18).
-Cualquier actualizacion debe registrar la fecha y la version.
-
-FIN DEL DOCUMENTO

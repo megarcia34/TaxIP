@@ -45,22 +45,133 @@ async def aceptar_viaje(
     current_user: tuple = Depends(get_current_driver_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Aceptar un viaje (chofer)"""
+    """
+    Aceptar un viaje (chofer).
+    - Asigna el viaje al chofer.
+    - Actualiza chofer_vehiculo.estado_laboral = 'ocupado'.
+    - Notifica por WS a los demás choferes que el viaje fue tomado (VIAJE_TOMADO).
+    """
+    from app.websocket.connection_manager import manager
+    from app.websocket.events import EventType
+
     driver_id, control_base_id, _, _ = current_user
 
-    try:
-        result = await actualizar_estado_viaje(
-            db, viaje_id, control_base_id, "aceptado", "aceptado_en"
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # 1. Validar viaje y estado
+    ctx_query = await db.execute(
+        text("""
+            SELECT estado, chofer_id
+            FROM trip.viaje_solicitado
+            WHERE id = :viaje_id AND control_base_id = :control_base_id
+            LIMIT 1
+        """),
+        {"viaje_id": viaje_id, "control_base_id": control_base_id},
+    )
+    ctx = ctx_query.first()
 
-    if not result:
+    if not ctx:
         raise HTTPException(status_code=404, detail="Viaje no encontrado")
 
-    await db.commit()
-    return {"success": True, "message": "Viaje aceptado"}
+    estado_actual, chofer_asignado = ctx
 
+    if estado_actual != 'pendiente':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El viaje ya está en estado '{estado_actual}' y no puede aceptarse.",
+        )
+
+    # 2. Obtener chofer_vehiculo_id
+    cv_query = await db.execute(
+        text("""
+            SELECT id
+            FROM fleet.chofer_vehiculo
+            WHERE usuario_id = :driver_id AND activo = true
+            LIMIT 1
+        """),
+        {"driver_id": driver_id},
+    )
+    cv_row = cv_query.first()
+    chofer_vehiculo_id = cv_row[0] if cv_row else None
+
+    # 3. Asignar el viaje
+    await db.execute(
+        text("""
+            UPDATE trip.viaje_solicitado
+            SET estado = 'aceptado',
+                aceptado_en = NOW(),
+                chofer_id = :driver_id,
+                chofer_vehiculo_id = :cv_id,
+                updated_at = NOW()
+            WHERE id = :viaje_id
+        """),
+        {
+            "viaje_id": viaje_id,
+            "driver_id": driver_id,
+            "cv_id": chofer_vehiculo_id,
+        },
+    )
+
+    # 4. Marcar chofer como ocupado
+    if chofer_vehiculo_id:
+        await db.execute(
+            text("""
+                UPDATE fleet.chofer_vehiculo
+                SET estado_laboral = 'ocupado', updated_at = NOW()
+                WHERE id = :cv_id
+            """),
+            {"cv_id": chofer_vehiculo_id},
+        )
+
+    # 5. Registrar en historial
+    await db.execute(
+        text("""
+            INSERT INTO trip.historial_estado_viaje (
+                id, viaje_id, estado, observacion, created_at
+            ) VALUES (
+                gen_random_uuid(), :viaje_id, 'aceptado',
+                'Viaje aceptado por chofer', NOW()
+            )
+        """),
+        {"viaje_id": viaje_id},
+    )
+
+    await db.commit()
+
+    # 6. Notificar a los demás choferes que el viaje fue tomado
+    todos_conectados = manager.get_choferes_disponibles(
+        control_base_id=str(control_base_id)
+    )
+    for otro_chofer_id in todos_conectados:
+        if otro_chofer_id != str(driver_id):
+            await manager.send_personal(
+                user_id=otro_chofer_id,
+                event=EventType.VIAJE_TOMADO,
+                data={"viaje_id": str(viaje_id)},
+            )
+    
+    logger.info(f"Viaje {viaje_id} aceptado por {driver_id}. Notificado a {len(todos_conectados)} choferes.")
+
+    # 7. Notificar al pasajero (si existe y no es anónimo)
+    pasajero_query = await db.execute(
+        text("""
+            SELECT pasajero_id, es_anonimo FROM trip.viaje_solicitado
+            WHERE id = :viaje_id
+        """),
+        {"viaje_id": viaje_id},
+    )
+    pasajero_row = pasajero_query.first()
+    if pasajero_row and not pasajero_row[1]:
+        pasajero_id = pasajero_row[0]
+        if pasajero_id:
+            try:
+                await manager.send_personal(
+                    user_id=str(pasajero_id),
+                    event=EventType.VIAJE_ASIGNADO,
+                    data={"viaje_id": str(viaje_id)},
+                )
+            except Exception as e:
+                logger.warning(f"No se pudo notificar al pasajero: {e}")
+
+    return {"success": True, "message": "Viaje aceptado"}
 
 # ============================================
 # LLEGAR AL ORIGEN (M3 - Etapa 10.2)

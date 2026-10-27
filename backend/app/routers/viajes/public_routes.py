@@ -8,13 +8,13 @@ from sqlalchemy import text
 from uuid import uuid4, UUID
 from datetime import datetime
 import logging
+import asyncio
 
 from app.database import get_db
 from app.routers.viajes.schemas import (
     SolicitarViajePublicoRequest,
     SolicitarViajePublicoResponse
 )
-from app.routers.viajes.services import encontrar_y_asignar_chofer
 from app.services.precio_estimado import calcular_precio_estimado
 from app.schemas.reserva_schemas import EstimacionPrecioRequest
 
@@ -59,11 +59,10 @@ async def calcular_tarifa_publico(
         tiempo_minutos = max(1, int(distancia_km * 2))
         
         # 4. Usar el servicio unificado de cálculo de tarifa
-        # Crear request con todos los campos requeridos
         estimacion_request = EstimacionPrecioRequest(
             tipo_vehiculo="standard",
-            direccion_origen="",  # Campo requerido, no usado para cálculo
-            direccion_destino="",  # Campo requerido, no usado para cálculo
+            direccion_origen="",
+            direccion_destino="",
             paradas_intermedias=[],
             tiempo_espera_minutos=0,
             latitud_origen=origen_lat,
@@ -72,7 +71,6 @@ async def calcular_tarifa_publico(
             longitud_destino=destino_lng
         )
         
-        # Obtener el precio usando el servicio completo
         resultado = await calcular_precio_estimado(
             request=estimacion_request,
             control_base_id=control_base_id,
@@ -117,13 +115,104 @@ async def calcular_tarifa_publico_get(
     return await calcular_tarifa_publico(origen_lat, origen_lng, destino_lat, destino_lng, db)
 
 
+# ============================================
+# FUNCION AUXILIAR: BARRIDO PROGRESIVO
+# ============================================
+async def publicar_viaje_progresivo(
+    db: AsyncSession,
+    viaje_id: UUID,
+    control_base_id: UUID,
+    origen_lat: float,
+    origen_lng: float,
+    viaje_data: dict,
+):
+    """
+    Publica el viaje a choferes cercanos en radios progresivos:
+    1km -> 2km -> 3km -> 5km. Espera 10 segundos entre cada radio.
+    Si alguien acepta antes, corta el barrido.
+    """
+    from app.websocket.connection_manager import manager
+    from app.websocket.events import EventType
+
+    radios = [1000, 2000, 3000, 5000]  # 1km, 2km, 3km, 5km
+    notificados = set()
+
+    for radio_metros in radios:
+        # Verificar si el viaje ya fue aceptado (estado distinto de 'pendiente')
+        check_estado = await db.execute(
+            text("SELECT estado FROM trip.viaje_solicitado WHERE id = :viaje_id"),
+            {"viaje_id": viaje_id}
+        )
+        estado_actual = check_estado.scalar()
+        if estado_actual != 'pendiente':
+            logger.info(
+                f"Viaje {viaje_id} ya no está pendiente (estado={estado_actual}). "
+                f"Deteniendo barrido progresivo."
+            )
+            break
+
+        # Buscar choferes conectados por WS y disponibles
+        todos_conectados = manager.get_choferes_disponibles(
+            control_base_id=str(control_base_id)
+        )
+        if not todos_conectados:
+            logger.warning(f"No hay choferes conectados por WS para el tenant {control_base_id}")
+            await asyncio.sleep(10)
+            continue
+
+        # Filtrar por PostGIS
+        ids_str = ",".join([f"'{uid}'" for uid in todos_conectados])
+        query_cercanos = text(f"""
+            SELECT usuario_id
+            FROM fleet.chofer_vehiculo
+            WHERE usuario_id IN ({ids_str})
+              AND ubicacion IS NOT NULL
+              AND ST_DWithin(
+                  ubicacion,
+                  ST_SetSRID(ST_MakePoint(:origen_lng, :origen_lat), 4326)::geography,
+                  :radio_metros
+              )
+        """)
+        result_cercanos = await db.execute(query_cercanos, {
+            "origen_lat": origen_lat,
+            "origen_lng": origen_lng,
+            "radio_metros": radio_metros,
+        })
+        choferes_cercanos = [str(row[0]) for row in result_cercanos.fetchall()]
+
+        # Solo notificar a los que no fueron notificados antes
+        nuevos = [c for c in choferes_cercanos if c not in notificados]
+
+        if nuevos:
+            for chofer_id in nuevos:
+                await manager.send_personal(
+                    user_id=chofer_id,
+                    event=EventType.NUEVO_VIAJE,
+                    data=viaje_data,
+                )
+                notificados.add(chofer_id)
+            logger.info(
+                f"Viaje {viaje_id}: notificado a {len(nuevos)} choferes "
+                f"en radio de {radio_metros}m."
+            )
+
+        # Esperar 10 segundos antes de ampliar el radio
+        await asyncio.sleep(10)
+
+    logger.info(
+        f"Barrido progresivo finalizado para viaje {viaje_id}. "
+        f"Notificados: {len(notificados)} choferes."
+    )
+
+
 @router.post("/solicitar", response_model=SolicitarViajePublicoResponse)
 async def solicitar_viaje_publico(
     request: SolicitarViajePublicoRequest,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Request a trip (public endpoint) - automatic driver assignment
+    Request a trip (public endpoint) - publica el viaje a choferes cercanos
+    con barrido progresivo (1km -> 2km -> 3km -> 5km).
     """
     try:
         # Obtener control_base_id por defecto
@@ -181,7 +270,7 @@ async def solicitar_viaje_publico(
             
             await db.commit()
         
-        # Crear viaje
+        # Crear viaje en estado 'pendiente'
         viaje_id = uuid4()
         insert_viaje = text("""
             INSERT INTO trip.viaje_solicitado (
@@ -215,22 +304,41 @@ async def solicitar_viaje_publico(
         })
         
         await db.commit()
-        
-        # Buscar y asignar chofer automáticamente
-        chofer_asignado = await encontrar_y_asignar_chofer(
-            db, viaje_id, control_base_id, request.origen_lat, request.origen_lng
+
+        # ============================================
+        # PUBLICAR VIAJE CON BARRIDO PROGRESIVO
+        # ============================================
+        viaje_data = {
+            "id": str(viaje_id),
+            "direccion_origen": request.direccion_origen,
+            "direccion_destino": request.direccion_destino,
+            "origen_lat": request.origen_lat,
+            "origen_lng": request.origen_lng,
+            "destino_lat": request.destino_lat,
+            "destino_lng": request.destino_lng,
+            "precio_estimado": float(request.precio_estimado or 0),
+            "nombre_pasajero": request.nombre_pasajero or "Usuario Web",
+            "estado": "pendiente",
+        }
+
+        # Lanzamos el barrido en background
+        asyncio.create_task(
+            publicar_viaje_progresivo(
+                db=db,
+                viaje_id=viaje_id,
+                control_base_id=control_base_id,
+                origen_lat=request.origen_lat,
+                origen_lng=request.origen_lng,
+                viaje_data=viaje_data,
+            )
         )
-        
-        tiempo_espera = 5
-        if chofer_asignado and chofer_asignado.get("distancia"):
-            tiempo_espera = max(1, int(chofer_asignado["distancia"] * 2))
-        
+
         return SolicitarViajePublicoResponse(
             success=True,
             viaje_id=viaje_id,
-            mensaje="Viaje solicitado correctamente" + (" - Conductor asignado" if chofer_asignado else " - Buscando conductor..."),
-            chofer_asignado=chofer_asignado,
-            tiempo_espera_estimado=tiempo_espera if chofer_asignado else None
+            mensaje="Viaje solicitado correctamente - Buscando conductor...",
+            chofer_asignado=None,
+            tiempo_espera_estimado=None,
         )
     except HTTPException:
         raise
@@ -241,7 +349,7 @@ async def solicitar_viaje_publico(
             detail=f"Error al solicitar viaje: {str(e)}"
         )
     
-    # ============================================
+# ============================================
 # OBTENER ESTADO DEL VIAJE (PÚBLICO)
 # ============================================
 @router.get("/{viaje_id}/estado")

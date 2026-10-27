@@ -18,7 +18,7 @@ class ViajeDashboardResponse(BaseModel):
     """
     viaje_id: UUID
     estado: str
-    direccion_origen: str = ""
+    direccion_origen: str
     direccion_destino: str = ""
     precio_estimado: Optional[float] = None
     precio_final: Optional[float] = None

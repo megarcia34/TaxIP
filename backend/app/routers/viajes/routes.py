@@ -1,4 +1,4 @@
-"""""
+"""
 Viajes - Rutas principales
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -46,7 +46,6 @@ from .schemas import (
     CalificarViajeRequest,
     CalificarViajeResponse,
     CalcularCostoRequest,
-    # CalcularCostoResponse,  # ⚠️ Opcional: si ya no lo usas, puedes comentarlo o borrarlo
     ObjetoOlvidadoRequest,
     ObjetoOlvidadoResponse,
     CompartirViajeResponse,
@@ -68,16 +67,12 @@ from .services import (
     formatear_respuesta_viaje,
     calcular_distancia,
     calcular_tiempo_estimado,
-    # calcular_precio,  # ⚠️ Opcional: si ya no se usa porque ahora usamos el motor unificado
     es_horario_nocturno,
     obtener_tarifas_default
 )
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/viajes", tags=["Viajes"])
-
-
-
 
 
 # ============================================
@@ -95,7 +90,6 @@ async def calcular_costo(
     """
     _, control_base_id, _, _ = current_user
 
-    # 1. Obtener distancia y tiempo con Directions API (fallback a Haversine)
     try:
         ruta = await directions_service.calcular_ruta_por_coords(
             request.origen_latitud, request.origen_longitud,
@@ -115,7 +109,6 @@ async def calcular_costo(
         distancia_km = distancia_metros / 1000.0
         tiempo_minutos = calcular_tiempo_estimado(distancia_metros) // 60
 
-    # 2. Preparar el request para el motor unificado
     tipo_vehiculo_str = (request.tipo_vehiculo or "standard").lower()
     try:
         tipo_vehiculo_enum = TipoVehiculoEnum(tipo_vehiculo_str)
@@ -124,7 +117,7 @@ async def calcular_costo(
 
     estimacion_request = EstimacionPrecioRequest(
         tipo_vehiculo=tipo_vehiculo_enum,
-        direccion_origen="",  # El motor unificado usa las coords, pero el schema lo pide
+        direccion_origen="",
         direccion_destino="",
         paradas_intermedias=[],
         tiempo_espera_minutos=0,
@@ -134,7 +127,6 @@ async def calcular_costo(
         longitud_destino=request.destino_longitud,
     )
 
-    # 3. Calcular precio usando el MOTOR UNIFICADO
     try:
         resultado = await calcular_precio_estimado(
             request=estimacion_request,
@@ -143,7 +135,7 @@ async def calcular_costo(
             distancia_km=distancia_km,
             tiempo_minutos=tiempo_minutos,
             fecha_hora=datetime.now(),
-            es_feriado=False,  # O determinar externamente si tu app lo requiere
+            es_feriado=False,
         )
         return resultado
         
@@ -157,7 +149,8 @@ async def calcular_costo(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"Error al calcular tarifa: {str(e)}"
         )
-    
+
+
 # ============================================
 # NUEVO M3: VIAJE DE CALLE (Etapa 10.1)
 # ============================================
@@ -170,22 +163,9 @@ async def solicitar_viaje_calle(
 ):
     """
     Registrar un viaje de calle (pasajero anónimo que subió al auto).
-
-    El viaje se crea directo en estado 'en_curso' porque el pasajero
-    ya está a bordo. No hay broadcast ni asignación: el chofer lo toma
-    espontáneamente.
-
-    Requiere:
-    - Chofer autenticado (get_current_driver_user).
-    - Chofer con vehículo activo en el tenant.
-    - Chofer con turno activo (fleet.turno_chofer.estado = 'ACTIVO').
-    - Destino obligatorio (para calcular precio).
-
-    El precio se calcula con el MOTOR UNIFICADO TAXIP 2.1.
     """
     chofer_id, control_base_id, _, _ = current_user
 
-    # 1. Validar método de pago
     METODOS_VALIDOS = {"efectivo", "tarjeta_debito", "qr", "transferencia"}
     if request.metodo_pago not in METODOS_VALIDOS:
         raise HTTPException(
@@ -193,7 +173,6 @@ async def solicitar_viaje_calle(
             detail=f"Método de pago inválido. Permitidos: {sorted(METODOS_VALIDOS)}",
         )
 
-    # 2. Resolver chofer_vehiculo activo + turno activo en una sola query
     ctx_query = text("""
         SELECT
             cv.id            AS chofer_vehiculo_id,
@@ -231,9 +210,6 @@ async def solicitar_viaje_calle(
             detail="Chofer sin turno activo. Inicie turno antes de registrar un viaje de calle.",
         )
 
-    # 3. Calcular distancia, tiempo y precio con MOTOR UNIFICADO
-
-    # 3.1. Distancia con Directions API (fallback Haversine)
     try:
         ruta = await directions_service.calcular_ruta_por_coords(
             request.origen_lat, request.origen_lng,
@@ -254,11 +230,9 @@ async def solicitar_viaje_calle(
         )
         tiempo_estimado_segundos = calcular_tiempo_estimado(distancia_metros)
 
-    # 3.2. Preparar cálculo con Motor Unificado
     distancia_km = distancia_metros / 1000.0
     tiempo_minutos = tiempo_estimado_segundos // 60
 
-    # Determinar tipo de vehículo (default 'standard' si no viene en el request)
     tipo_vehiculo_str = getattr(request, 'tipo_vehiculo', 'standard') or 'standard'
     try:
         tipo_vehiculo_enum = TipoVehiculoEnum(tipo_vehiculo_str.lower())
@@ -267,7 +241,7 @@ async def solicitar_viaje_calle(
 
     estimacion_request = EstimacionPrecioRequest(
         tipo_vehiculo=tipo_vehiculo_enum,
-        direccion_origen="",  # No usado para cálculo, pero requerido por schema
+        direccion_origen="",
         direccion_destino="",
         paradas_intermedias=getattr(request, 'paradas_intermedias', []) or [],
         tiempo_espera_minutos=0,
@@ -305,12 +279,9 @@ async def solicitar_viaje_calle(
             detail=f"Error al calcular tarifa: {str(e)}",
         )
 
-    # 3.3. Reverse geocoding del origen (G25)
-    # Reemplaza el placeholder "Ubicación GPS del chofer" por la dirección real.
     geo = await reverse_geocode(request.origen_lat, request.origen_lng)
     direccion_origen_final = geo["direccion"]
 
-    # 4. Insertar viaje
     viaje_id = uuid_lib.uuid4()
     paradas_json = json.dumps(getattr(request, 'paradas_intermedias', []) or [])
 
@@ -361,7 +332,6 @@ async def solicitar_viaje_calle(
         "tiempo_estimado_segundos": tiempo_estimado_segundos,
     })
 
-    # 5. Registrar historial de estado
     historial_query = text("""
         INSERT INTO trip.historial_estado_viaje (
             id, viaje_id, estado, latitud, longitud, observacion, created_at
@@ -378,7 +348,6 @@ async def solicitar_viaje_calle(
         "origen_lng": request.origen_lng,
     })
 
-    # 6. Marcar chofer ocupado
     update_chofer = text("""
         UPDATE fleet.chofer_vehiculo
         SET estado_laboral = 'ocupado',
@@ -387,10 +356,8 @@ async def solicitar_viaje_calle(
     """)
     await db.execute(update_chofer, {"chofer_vehiculo_id": chofer_vehiculo_id})
 
-    # 7. Commit único
     await db.commit()
 
-    # 8. Leer el viaje recién creado y devolverlo completo
     result = await db.execute(GET_VIAJE_BY_ID, {
         "viaje_id": viaje_id,
         "control_base_id": control_base_id,
@@ -398,17 +365,76 @@ async def solicitar_viaje_calle(
     row = result.first()
     return await formatear_respuesta_viaje(row)
 
+
 # ============================================
-# SOLICITAR VIAJE (LEGACY) - ELIMINADO EN R16
+# VIAJE ACTIVO DEL CHOFER (NUEVO - J15)
 # ============================================
-# Deuda G74: el endpoint POST /viajes/solicitar (legacy) fue eliminado.
-# Auditoria 2026-09-25: 0 clientes reales.
-# El endpoint publico equivalente es /viajes/public/solicitar.
-# ============================================
+
+@router.get("/activo")
+async def obtener_viaje_activo(
+    current_user: tuple = Depends(get_current_driver_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Obtiene el viaje activo del chofer autenticado (estado 'aceptado' o 'en_curso').
+    Devuelve null si no hay ninguno.
+    """
+    chofer_id, control_base_id, _, _ = current_user
+
+    query = text("""
+        SELECT
+            vs.id, vs.estado, vs.direccion_origen, vs.direccion_destino,
+            ST_X(vs.origen::geometry) as origen_lat,
+            ST_Y(vs.origen::geometry) as origen_lng,
+            ST_X(vs.destino::geometry) as destino_lat,
+            ST_Y(vs.destino::geometry) as destino_lng,
+            vs.precio_estimado, vs.precio_final, vs.moneda,
+            vs.tiempo_estimado_segundos, vs.distancia_metros,
+            vs.solicitado_en, vs.aceptado_en, vs.iniciado_en,
+            vs.metodo_pago, vs.pasajero_id
+        FROM trip.viaje_solicitado vs
+        WHERE vs.chofer_id = :chofer_id
+          AND vs.control_base_id = :control_base_id
+          AND vs.estado IN ('aceptado', 'en_curso')
+        ORDER BY vs.created_at DESC
+        LIMIT 1
+    """)
+
+    result = await db.execute(query, {
+        "chofer_id": chofer_id,
+        "control_base_id": control_base_id,
+    })
+    row = result.first()
+
+    if not row:
+        return {"viaje_activo": None}
+
+    return {
+        "viaje_activo": {
+            "id": str(row[0]),
+            "estado": row[1],
+            "direccion_origen": row[2],
+            "direccion_destino": row[3],
+            "origen_lat": float(row[4]) if row[4] else None,
+            "origen_lng": float(row[5]) if row[5] else None,
+            "destino_lat": float(row[6]) if row[6] else None,
+            "destino_lng": float(row[7]) if row[7] else None,
+            "precio_estimado": float(row[8]) if row[8] else None,
+            "precio_final": float(row[9]) if row[9] else None,
+            "moneda": row[10] or "ARS",
+            "tiempo_estimado_segundos": row[11],
+            "distancia_metros": row[12],
+            "solicitado_en": row[13],
+            "aceptado_en": row[14],
+            "iniciado_en": row[15],
+            "metodo_pago": row[16],
+            "pasajero_id": str(row[17]) if row[17] else None,
+        }
+    }
 
 
 # ============================================
-# INCLUIR SUB-ROUTERS (refactor 2026-09-24)
+# INCLUIR SUB-ROUTERS
 # ============================================
 from app.routers.viajes import routes_objetos
 from app.routers.viajes import routes_dashboard

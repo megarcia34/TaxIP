@@ -58,6 +58,8 @@ from app.routers.chofer_splash import router as chofer_splash_router
 from app.database import get_db, AsyncSessionLocal
 from app.websocket.handlers import handle_websocket
 from app.dependencies import get_current_super_admin_user
+# junto a los demas imports de routers de chofer:
+from app.routers.chofer_finanzas import router as chofer_finanzas_router
 
 # Importar routers principales
 from app.routers import auth, choferes, chofer_registro, chofer_documentos, control_base
@@ -205,6 +207,7 @@ app.include_router(propietario_router, prefix="/api")
 logger.info("Router de propietario registrado")
 app.include_router(corporate.router)
 app.include_router(choferes_public_router)
+app.include_router(chofer_finanzas_router)
 app.include_router(liquidacion_router)
 app.include_router(chofer_registro_progresivo_router)
 app.include_router(chofer_turnos_router)

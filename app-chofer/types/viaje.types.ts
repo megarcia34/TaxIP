@@ -203,7 +203,7 @@ export interface ViajeActivo {
 export interface SolicitarViajeRequest {
   origen_latitud: number;
   origen_longitud: number;
-  direccion_origen: string;
+  direccion_origen?: string;
   destino_latitud?: number;
   destino_longitud?: number;
   direccion_destino?: string;

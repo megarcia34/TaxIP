@@ -86,7 +86,7 @@ export type WsCloseCode = (typeof WS_CLOSE_CODES)[keyof typeof WS_CLOSE_CODES];
  * Constantes del heartbeat.
  * Ref: events.py.
  */
-export const WS_HEARTBEAT_INTERVAL_SECONDS = 30;
+export const WS_HEARTBEAT_INTERVAL_SECONDS = 15;
 export const WS_HEARTBEAT_TIMEOUT_SECONDS = 90;
 export const WS_AUTH_TIMEOUT_SECONDS = 5;
 

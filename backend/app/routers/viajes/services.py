@@ -120,7 +120,8 @@ def limpiar_texto(texto: str) -> str:
 # FORMATEADORES DE RESPUESTAS
 # ============================================
 
-async def formatear_respuesta_viaje(row) -> Dict[str, Any]:
+async def formatear_respuesta_viaje(row) -> Dict[str, Any]:    
+   
     """
     Convierte una fila de GET_VIAJE_BY_ID en un dict para ViajeEstadoResponse.
 

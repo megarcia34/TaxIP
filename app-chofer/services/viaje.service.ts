@@ -1,8 +1,5 @@
 /**
  * Servicio del Módulo 3 - Viajes.
- *
- * Traduce entre camelCase (frontend) y snake_case (backend) donde aplica.
- * Ref: app/routers/viajes/viaje_schemas.py.
  */
 import api from './api';
 import type {
@@ -15,19 +12,17 @@ import type {
   HistorialViajeItem,
   MapaEstaticoResponse,
   ReverseGeocodeResponse,
-  SolicitarViajeCalleRequest,   
+  SolicitarViajeCalleRequest,
   SolicitarViajeResponse,
   ViajeSolicitado,
 } from '@/types/viaje.types';
 
-// Tipos para el forward geocoding
 export interface GeocodeForwardResponse {
   lat: number;
   lng: number;
   direccion_formateada: string;
 }
 
-// Tipos para autocompletado y place details
 export interface AutocompletePrediction {
   description: string;
   place_id: string;
@@ -41,7 +36,7 @@ export interface PlaceDetailsResponse {
 
 export const viajeService = {
   // ============================================================
-  // VIAJE DE CALLE (Etapa 10)
+  // VIAJE DE CALLE
   // ============================================================
   async solicitarViajeCalle(
     datos: SolicitarViajeCalleRequest
@@ -54,7 +49,7 @@ export const viajeService = {
   },
 
   // ============================================================
-  // CICLO DE VIDA DEL VIAJE (Fase B + Etapa 4)
+  // CICLO DE VIDA DEL VIAJE
   // ============================================================
   async aceptarViaje(viajeId: string): Promise<AccionViajeResponse> {
     const response = await api.post<AccionViajeResponse>(
@@ -83,7 +78,7 @@ export const viajeService = {
     );
     return response.data;
   },
-  
+
   async cancelarViaje(
     viajeId: string,
     motivo?: string
@@ -142,12 +137,6 @@ export const viajeService = {
   // ============================================================
   // GEOCODING Y AUTOCOMPLETE
   // ============================================================
-  
-  /**
-   * Forward geocoding: convierte una dirección de texto en coordenadas.
-   * POST /api/viajes/geocode/forward
-   * Usado por la app del chofer para cargar el destino de un viaje de calle.
-   */
   async geocodeAddress(
     address: string,
     lat?: number,
@@ -160,11 +149,6 @@ export const viajeService = {
     return response.data;
   },
 
-  /**
-   * Autocompletado de direcciones.
-   * POST /api/viajes/autocomplete
-   * Devuelve una lista de sugerencias priorizadas por cercanía al GPS.
-   */
   async autocomplete(
     input: string,
     lat?: number,
@@ -177,10 +161,6 @@ export const viajeService = {
     return response.data.predictions;
   },
 
-  /**
-   * Obtiene coordenadas y dirección formateada a partir de un place_id.
-   * POST /api/viajes/geocode/place-details
-   */
   async geocodePlace(placeId: string): Promise<PlaceDetailsResponse> {
     const response = await api.post<PlaceDetailsResponse>(
       '/api/viajes/geocode/place-details',
@@ -226,5 +206,19 @@ export const viajeService = {
       datos
     );
     return response.data;
+  },
+
+  // ============================================================
+  // VIAJE ACTIVO (NUEVO - J15)
+  // ============================================================
+  async obtenerViajeActivo(): Promise<any | null> {
+    try {
+      const response = await api.get<{ viaje_activo: any | null }>(
+        '/api/viajes/activo'
+      );
+      return response.data.viaje_activo;
+    } catch (error) {
+      return null;
+    }
   },
 };

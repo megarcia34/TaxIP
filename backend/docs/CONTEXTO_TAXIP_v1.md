@@ -1,14 +1,14 @@
 # CONTEXTO TAXIP 2.0 — Estado y Deuda Pendiente
 
-**Ultima actualizacion:** 2026-10-21 (post R21)
+**Ultima actualizacion:** 2026-10-27 (post R22)
 **Alembic head:** m3_025
 **Diff BD <-> ORM:** 1 item (indice preexistente en payment.py — deuda aceptada)
-**Tag activo:** ronda20-completa
+**Tag activo:** ronda22-completa
 **Repo:** github.com/megarcia34/TaxIP (main)
 
 **Reglas de alineacion BD <-> ORM:** ver `docs/REGLAS_ALINEACION_BD_ORM.md`.
-**Historico de rondas:** ver `docs/HISTORICO_CERRADAS.md`.
-**Contexto de negocio:** ver `docs/RESUMEN_EJECUTIVO_2026-10-13.md` (pendiente actualizar a R20).
+**Historico de rondas cerradas:** ver `docs/HISTORICO_CERRADAS.md`.
+**Contexto de negocio:** ver `docs/RESUMEN_EJECUTIVO_2026-10-13.md` (pendiente actualizar a R21).
 **Decisiones tecnicas ORM:** ver `docs/orm_sync/orm_decisiones.md`.
 
 ---
@@ -17,10 +17,10 @@
 
 - **Alineacion estructural BD <-> ORM:** 1 item pendiente (preexistente, deuda aceptada).
 - **Deuda alta prioridad:** 0 items.
-- **Deuda media prioridad:** ~18 items (3 nuevas de R20).
-- **Deuda baja prioridad:** ~25 items.
-- **Tocar Frontend:** 2 items (deuda historica).
-- **Expo-router / EAS:** 3 items (workaround activo, no tocar).
+- **Deuda media prioridad:** ~18 items.
+- **Deuda baja prioridad:** ~21 items.
+- **Tocar Frontend:** 1 item (G67).
+- **Expo-router / EAS:** 0 items (migracion completada).
 
 **Ultimas rondas cerradas:**
 
@@ -31,6 +31,8 @@
 - **R18:** `metodo_pago` completo (flujo_propietario, flujo_empresa, billetera, fk_catalogo via muerta).
 - **R19:** backend completo de ciclo de vida de vehiculo (`m3_021`), perfil propietario + cuentas de cobro (`m3_022`), notificacion antiguedad taxi (`m3_023`).
 - **R20:** frontend completo del dashboard propietario (perfil, cuentas, chofer, vehiculos, contratos con codigo de 6 digitos).
+- **R21:** Dashboard Tenant (solicitudes pendientes, aprobación/rechazo). **Migración completa de `expo-router` a React Navigation** (por bug de React 19). Actualización a **Expo SDK 58**. Implementación de **autocompletado real** con Google Places y `locationBias` por GPS. Fix de historial de viajes (LEFT JOIN). Flujo completo del chofer validado en iOS y Android.
+- **R22:** **Nuevas funcionalidades:** Módulo Finanzas del Chofer (resumen, gastos con Cloudinary, integración dual write). Módulo Perfil del Chofer (datos, documentos, reporte de actividad, cambio de contraseña). Gestión de Viajes del Chofer (publicación por radio 1-5km, aceptación, ciclo de vida completo). GPS en tiempo real desde la app del chofer vía WebSocket. Contratos editables con horarios flexibles y extensión.
 
 ---
 
@@ -42,33 +44,9 @@ _(vacio)_
 
 ## MEDIA PRIORIDAD
 
-### storage.unificar_cloudinary_local
-
-**Titulo:** Unificar storage: `storage_service` (local) vs `cloudinary_storage`
-
-**Estado:** Deuda abierta. Mitigada parcialmente en R20.
-
-**Contexto:**
-
-Hay dos servicios de storage conviviendo:
-
-| Servicio | Archivo | Destino | Uso actual |
-|---|---|---|---|
-| `storage_service` | `app/services/storage.py` | Filesystem local (`./uploads/...`) | Endpoints legacy |
-| `cloudinary_storage` | `app/services/cloudinary_storage.py` | Cloudinary | Endpoints nuevos |
-
-**En R20:** el endpoint `POST /api/chofer/subir-documento` fue migrado a Cloudinary. Ahora ambos endpoints del chofer usan `cloudinary_storage.upload_documento_chofer()`.
-
-**Deuda pendiente:** auditar los demas usos de `storage_service.save_document()` y `save_photo()` para determinar si conviene migrarlos.
-
-**Archivos referenciados:**
-- `app/services/storage.py`
-- `app/services/cloudinary_storage.py`
-- `app/routers/chofer_documentos.py` (migrado)
-
 ### apiClient.duplicado_legacy_modular
 
-**Titulo:** Dos `apiClient` convivendo (legacy vs modular)
+**Titulo:** Dos `apiClient` conviviendo (legacy vs modular)
 
 **Estado:** Deuda abierta. Detectada en R20.
 
@@ -91,11 +69,6 @@ Hay dos instancias de axios:
 **Riesgos:** comportamiento distinto ante 401, rutas inconsistentes, duplicacion.
 
 **Accion futura:** migrar `lib/api.ts` a `lib/api/client.ts`, unificar interceptor de refresh.
-
-
-### documentos.duplicados_en_db
-**Estado:** ✅ Cerrada en R21.
-**Contexto:** Se implementó UPSERT en `crear_documento_vehiculo` (actualiza si existe, inserta si no). Ya no se duplican documentos por tipo.
 
 ### vehiculos.habilitacion_obligatoria
 
@@ -127,17 +100,13 @@ Tras un cambio en un archivo que importa otro modulo modificado. Verificar `Last
 
 Sintoma: INSERTs fallan por columna inexistente, sin error visible.
 
-### F5 — `ViajeSolicitado.origen_lat/lng` vs `ViajeActivo.origen`
-
-Numeros sueltos vs Coordenada. Mapear en el store al conectar el WS.
-
 ### F6 — `auth.codigo_metadatos` es tabla separada
 
 El INSERT en `codigo_verificacion` solo no alcanza. Documentar en flujo del propietario.
 
 ### J15 — No hay deteccion de viaje activo al abrir la app
 
-Plan: endpoint `GET /api/chofer/viaje-activo` + chequeo en `(app)/_layout.tsx`.
+**Estado:** Implementado en R21 (endpoint `GET /api/viajes/activo` + `useEffect` en `HomeScreen`), pero **revertido temporalmente** por conflicto con la serialización de `POST /api/viajes/calle`. **Pendiente de reintentar.**
 
 ### metodo_pago.recaudacion
 
@@ -182,6 +151,42 @@ Cuando se cambia el tipo o nullable de una columna, `diff.py` puede reportarla c
 
 `tenant.configuracion_tenant.comision_credito` (default 3.50%) existe y es real. Aplica al flujo corporativo (Momento 2). Documentar en la UI del dashboard empresa.
 
+### mapa.invertido_al_retomar_viaje
+
+**Estado:** Deuda abierta. No saldada en R22.
+
+**Sintoma:** Cuando el chofer cierra la app con un viaje en curso y la vuelve a abrir, el endpoint `GET /api/viajes/activo` detecta el viaje, pero el mapa estático se genera con las coordenadas invertidas (`origen_lat` = longitud, `origen_lng` = latitud). Google Directions devuelve `ZERO_RESULTS` y el mapa queda en blanco. El viaje se crea, finaliza y registra correctamente en la base de datos (solo el mapa no se muestra).
+
+**Accion futura:** Revisar `public_routes.py` y `routes_geocode.py` (backend) o el `MapPicker` (landing) para corregir la inversión de coordenadas.
+
+### websocket.reconexion_bucle
+**Síntoma:** El WebSocket del chofer se reconecta cada ~15-20s con código 1000 (cierre normal) o 1006 (abnormal). El servicio `websocketService` reconecta automáticamente, pero el ciclo es molesto.
+**Impacto:** Bajo. El GPS se envía y la app sigue funcionando.
+**Acción futura:** Investigar por qué el frontend cierra la conexión (posible `useEffect` que dispara `desconectar/conectar`).
+**Ref:** `services/websocket.service.ts`, `HomeScreen.tsx`.
+
+### mapa.lat_lng_invertidos_landing
+**Síntoma:** El mapa estático en la landing muestra "No se encontró una ruta" porque el backend envía `origen_lat` y `origen_lng` invertidos al endpoint `/api/viajes/mapa-estatico`.
+**Impacto:** Cosmético. No bloquea el flujo del chofer ni del pasajero.
+**Acción futura:** Revisar `public_routes.py` y `routes_geocode.py` (backend) o el `MapPicker` (landing).
+
+### barrido.duracion_corta
+**Síntoma:** El barrido progresivo de viajes dura solo 40s (10s × 4 radios: 1km, 2km, 3km, 5km). Si el chofer no está conectado en ese momento, el viaje queda huérfano en `pendiente`.
+**Impacto:** Medio. En producción, extender el barrido o agregar un job de limpieza.
+**Acción futura:** Extender a 2-3 minutos, o job que cancele viajes pendientes huérfanos después de X minutos.
+**Ref:** `app/routers/viajes/public_routes.py` (función `publicar_viaje_progresivo`).
+
+### viaje.distancia_tiempo_websocket
+**Síntoma:** En `ViajeDetalleScreen`, "DISTANCIA" y "TIEMPO" aparecen como `—` porque el backend no envía `distancia_metros` ni `tiempo_estimado_segundos` en el payload del WebSocket (`nuevo_viaje`).
+**Impacto:** Cosmético.
+**Acción futura:** Agregar esos campos al `viaje_data` en `public_routes.py`.
+**Ref:** `app/routers/viajes/public_routes.py`, `types/viaje.types.ts`.
+
+### token.dashboard.expirado
+**Síntoma:** El dashboard del propietario muestra `Token expirado` cada ~30 minutos y se re-loguea solo.
+**Impacto:** Bajo.
+**Acción futura:** Revisar `ACCESS_TOKEN_EXPIRE_MINUTES` en `app/core/security.py` o el interceptor de refresh del dashboard.
+
 ---
 
 ## BAJA PRIORIDAD
@@ -191,36 +196,26 @@ Cuando se cambia el tipo o nullable de una columna, `diff.py` puede reportarla c
 
 ### Frontend
 - **D2** — tsconfig.json con ignoreDeprecations "6.0".
-- **D6** — splash.tsx "paso 2 veces la pantalla" (no reproducible).
-- **E2** — MetodoPago limitado a 4 valores (viajes comunes).
 
 ### Endpoints faltantes
 - **F4** — /cobro-qr, webhooks de pasarela.
-- **F8** — app/_layout.tsx limpia taxip-turno al arrancar (fragil).
 
 ### Proceso, encoding, metadata
-- **G23** — Backend no valida que destino_lat/lng esten cerca del origen.
 - **G28** — Posible race en rotacion de logs con --reload.
 - **G29** — Consola PowerShell 5.1 con mojibake en logs.
-- **G32** — direccion_origen requerido en SolicitarViajeCalleRequest.
-- **G33** — Idem G32 para el tipo TS SolicitarViajeCalleRequest.
-- **G37** — Warning VirtualizedLists en calle.tsx.
 - **G42** — Duplicacion de calculo de precio entre calcular_costo y solicitar_viaje_calle.
 - **G54** — Landing usa Haversine en lugar de Directions.
 - **G55** — Landing resuelve tenant con SELECT LIMIT 1 sin ORDER BY.
 - **G73** — ~29 no-ASCII preexistentes en routes.py.
 
 ### Funcional heredada
-- **H1** — splash.tsx navega a /registro/paso1-cuenta para etapas 1-4.
 - **H2** — Home muestra datos mock (resultadosAyer).
-- **H3** — Home tiene "viajes" y "finanzas" con disabled: true.
 
 ### ORM y funcional futuro
 - **J1** — pasajero_id nullable en DB pero NOT NULL en ORM.
 - **J2** — es_anonimo existe en DB pero no en ORM.
 - **J4** — Extension de viaje.
 - **J5** — "Siga ese auto".
-- **J14** — viaje.store construye ViajeActivo a mano desde ViajeSolicitado.
 - **J19** — Recargos: iniciado_en vs now().
 
 ### Nuevas Ronda 4
@@ -236,11 +231,8 @@ Cuando se cambia el tipo o nullable de una columna, `diff.py` puede reportarla c
 
 ## TOCAR FRONTEND
 
-### G63.frontend_propietario
-Backend de G63 completo (contadores + audit + 2 endpoints), pero falta el frontend del propietario. **En R20 se agrego la pantalla `/dashboard-propietario/metricas-fallbacks`.** ✅ Cerrada.
-
 ### G67.frontend_chofer
-Backend de G67 completo (2 endpoints + notificaciones), pero falta el frontend del chofer para que pueda usar la funcionalidad. **Pendiente para R21+ (app chofer).**
+Backend de G67 completo (2 endpoints + notificaciones), pero falta el frontend del chofer para que pueda usar la funcionalidad. **Pendiente para R23+ (app chofer).**
 
 ### G80
 La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en terreno: build preview o production apuntando al backend publico. **Bloqueada por deploy a produccion.**
@@ -257,14 +249,24 @@ La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en ter
 
 ---
 
-## DEUDAS DE EXPO-ROUTER CON REACT 19 (workaround activo)
+## DEUDAS SALDADAS EN R21
 
-- **G77** — Bug de expo-router 57.0.24 con React 19.
-- **G78** — Workaround: 2 parches en `patches/expo-router+57.0.24.patch`.
-- **G79** — Workflow de compilacion migrado a EAS Build.
+- **`documentos.duplicados_en_db`** — Implementado UPSERT en `crear_documento_vehiculo`.
+- **`storage.unificar_cloudinary_local`** — Todos los documentos usan Cloudinary.
+- **`auth.uso_expo_router`** — Migración completa a React Navigation.
+- **`G37` (Warning VirtualizedLists)** — El componente `GooglePlacesAutocomplete` fue reemplazado por autocompletado propio.
+- **`F8` (app/_layout.tsx limpia taxip-turno)** — El entry point ahora es `index.js` + `App.tsx`.
+- **`G77`, `G78`, `G79` (Deudas de expo-router)** — Obsoletas por migración a React Navigation.
 
-Cuenta: megarcia34. Proyecto: @megarcia34/taxip-chofer.
-**No tocar hasta que expo saque fix upstream.**
+---
+
+## DEUDAS SALDADAS EN R22
+
+### H3 — Home tenía "viajes" y "finanzas" deshabilitados
+**Estado:** Saldada.
+**Detalle:** Se habilitaron ambos módulos en `HomeScreen.tsx`:
+- "Finanzas" → `disabled: false`.
+- "Gestión de Viajes" → `disabled: !hayTurnoActivo` (solo requiere turno activo).
 
 ---
 
@@ -274,10 +276,10 @@ Cuenta: megarcia34. Proyecto: @megarcia34/taxip-chofer.
 |---|---|
 | Alta prioridad | 0 |
 | Media prioridad | ~18 |
-| Baja prioridad | ~25 |
+| Baja prioridad | ~21 |
 | Tocar Frontend | 1 (G67) |
-| Expo-router / EAS | 3 |
-| **TOTAL PENDIENTES** | **~47 items** |
+| Expo-router / EAS | 0 |
+| **TOTAL PENDIENTES** | **~40 items** |
 
 ---
 

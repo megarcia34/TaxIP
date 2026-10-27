@@ -65,6 +65,7 @@ class WebSocketService {
   }
 
   desconectar(): void {
+    console.log('[WS] desconectar() llamado desde:', new Error().stack);
     this.reconectarActivo = false;
     this.limpiarTimers();
     if (this.ws) {
@@ -154,6 +155,7 @@ class WebSocketService {
     }; 
 
     this.ws.onclose = (event) => {
+      console.log('[WS] cerrado:', event.code, event.reason, 'por:', new Error().stack);
       console.log('[WS] cerrado:', event.code, event.reason);
       this.limpiarTimers();
       this.ws = null;

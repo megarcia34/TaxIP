@@ -131,6 +131,17 @@ export const authService = {
       throw error;
     }
   },
+
+  /**
+   * Cambiar contraseña del usuario autenticado.
+   * PUT /api/auth/cambiar-contrasenia
+   */
+  async cambiarPassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.put('/api/auth/cambiar-contrasenia', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  },
 };
 
 // Registrar refresh() en api.ts para romper el require cycle.

@@ -194,7 +194,7 @@ export const controlBaseAPI = {
   },
 }
 
-// ============================================
+// // ============================================
 // PROPIETARIO API (ÚNICA DEFINICIÓN)
 // ============================================
 
@@ -228,6 +228,11 @@ export const propietarioAPI = {
   },
   createContrato: async (data: any) => {
     const response = await apiClient.post('/api/propietario/contratos', data)
+    return response.data
+  },
+  // 👇 MÉTODO NUEVO PARA EDITAR CONTRATO
+  editarContrato: async (id: string, data: any) => {
+    const response = await apiClient.put(`/api/propietario/contratos/${id}`, data)
     return response.data
   },
   finalizarContrato: async (id: string) => {
@@ -275,7 +280,6 @@ export const propietarioAPI = {
     return response.data
   },
 }
-
 // ============================================
 // HELPER PARA OBTENER HEADERS (ÚNICA DEFINICIÓN)
 // ============================================

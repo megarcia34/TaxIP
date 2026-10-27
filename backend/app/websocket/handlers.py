@@ -47,17 +47,10 @@ async def handle_websocket(
 ):
     """
     Main WebSocket handler for a connected user.
-
-    Args:
-        websocket: el socket.
-        user_id: id del usuario autenticado.
-        rol: tipo de usuario, si viene del JWT. Si no, se resuelve de la DB.
     """
-    # Si no vino el rol, resolverlo de la DB. Siempre resolver el tenant.
     if rol == "unknown":
         rol, control_base_id = await _resolver_rol_y_tenant(user_id)
     else:
-        # Aunque tengamos el rol del JWT, el tenant no viene ahí.
         _, control_base_id = await _resolver_rol_y_tenant(user_id)
 
     await manager.connect(websocket, user_id, rol, control_base_id)
@@ -110,10 +103,18 @@ async def process_message(
 
         if lat and lng:
             async with AsyncSessionLocal() as db:
+                # FIX: castear a numeric para columnas y a double precision para ST_MakePoint
                 query = text("""
                     UPDATE fleet.chofer_vehiculo
-                    SET latitud = :lat, longitud = :lng,
-                        ubicacion = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                    SET latitud = CAST(:lat AS numeric(10,8)),
+                        longitud = CAST(:lng AS numeric(11,8)),
+                        ubicacion = ST_SetSRID(
+                            ST_MakePoint(
+                                CAST(:lng AS double precision),
+                                CAST(:lat AS double precision)
+                            ),
+                            4326
+                        )::geography,
                         ultima_conexion = NOW()
                     WHERE usuario_id = :user_id
                 """)
@@ -121,14 +122,25 @@ async def process_message(
                     query,
                     {"lat": lat, "lng": lng, "user_id": UUID(user_id)},
                 )
+                
+                logger.info(f"[location_update] GPS actualizado para {user_id}: {lat}, {lng}")
 
                 if viaje_id:
                     log_query = text("""
                         INSERT INTO audit.log_gps
                             (id, viaje_id, usuario_id, latitud, longitud, ubicacion, created_at)
                         VALUES
-                            (gen_random_uuid(), :viaje_id, :user_id, :lat, :lng,
-                             ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, NOW())
+                            (gen_random_uuid(), :viaje_id, :user_id,
+                             CAST(:lat AS numeric(10,8)),
+                             CAST(:lng AS numeric(11,8)),
+                             ST_SetSRID(
+                                 ST_MakePoint(
+                                     CAST(:lng AS double precision),
+                                     CAST(:lat AS double precision)
+                                 ),
+                                 4326
+                             )::geography,
+                             NOW())
                     """)
                     await db.execute(
                         log_query,

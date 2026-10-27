@@ -999,6 +999,126 @@ async def _get_contrato_by_id(contrato_id: UUID, db: AsyncSession) -> ContratoRe
     
     return _map_row_to_contrato_response(row)
 
+# ============================================
+# 12. ACTUALIZAR CONTRATO (NUEVO)
+# ============================================
+
+@router.put("/contratos/{contrato_id}")
+async def actualizar_contrato(
+    contrato_id: UUID,
+    data: ContratoCreate, # Usamos el mismo schema que crear
+    ctx: dict = Depends(get_propietario_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Actualiza un contrato existente (horarios, extensión, días, etc).
+    Solo permite editar contratos ACTIVOS o PROGRAMADOS.
+    """
+    propietario_id = UUID(ctx["propietario_id"])
+    control_base_id = UUID(ctx["control_base_id"])
+    
+    # 1. Verificar que el contrato existe y es del propietario
+    existe, estado = await verificar_contrato_existe(contrato_id, propietario_id, db)
+    if not existe:
+        raise HTTPException(status_code=404, detail="Contrato no encontrado")
+    
+    # 2. Si está finalizado, no se puede editar
+    if estado == 'FINALIZADO':
+        raise HTTPException(status_code=400, detail="No se puede editar un contrato finalizado")
+    
+    # 3. Validar que el vehículo y chofer sigan siendo válidos
+    es_valido, mensaje, status_code = await verificar_propiedad_vehiculo(
+        data.vehiculo_id, propietario_id, control_base_id, db
+    )
+    if not es_valido:
+        raise HTTPException(status_code=status_code or 400, detail=mensaje)
+        
+    es_valido, mensaje = await verificar_chofer_valido(data.chofer_id, control_base_id, db)
+    if not es_valido:
+        raise HTTPException(status_code=404, detail=mensaje)
+    
+    # 4. Validar conflictos con otros contratos (excluyendo este)
+    hay_conflictos, mensajes = await verificar_conflictos_contrato(
+        data.vehiculo_id,
+        data.chofer_id,
+        data.hora_inicio,
+        data.hora_fin,
+        control_base_id,
+        db,
+        contrato_excluido_id=contrato_id, # <-- CLAVE: excluimos el contrato actual
+        dias_contractuales=data.dias_contractuales,
+        fecha_inicio=data.fecha_inicio or date.today(),
+        fecha_fin=data.fecha_fin
+    )
+    if hay_conflictos:
+        raise HTTPException(status_code=409, detail=" | ".join(mensajes))
+
+    # 5. Preparar parámetros
+    params = preparar_parametros_contrato(
+        tipo_contrato=data.tipo_contrato,
+        canon_diario=data.canon_diario if data.tipo_contrato == "ALQUILER" else None,
+        km_incluidos_dia=data.km_incluidos_dia if data.tipo_contrato == "ALQUILER" else None,
+        valor_km_excedente=data.valor_km_excedente if data.tipo_contrato == "ALQUILER" else None,
+        modalidad_computo=data.modalidad_computo if data.tipo_contrato == "ALQUILER" else None,
+        dias_contractuales=data.dias_contractuales,
+        tratamiento_dia_no_trabajado=data.tratamiento_dia_no_trabajado if data.tipo_contrato == "ALQUILER" else None,
+        porcentaje_chofer=data.porcentaje_chofer if data.tipo_contrato == "PORCENTAJE" else None,
+        dia_inicio_semana=data.dia_inicio_semana if data.tipo_contrato == "ALQUILER" else None,
+        fecha_inicio=data.fecha_inicio or date.today(),
+        fecha_fin=data.fecha_fin
+    )
+
+    # 6. Convertir horarios y días
+    hora_inicio_time = datetime.strptime(data.hora_inicio, "%H:%M").time()
+    hora_fin_time = datetime.strptime(data.hora_fin, "%H:%M").time()
+    hora_fin_extension_time = datetime.strptime(data.hora_fin_extension, "%H:%M").time() if data.hora_fin_extension else None
+    
+    dias_json = json.dumps(params.get("dias_contractuales")) if params.get("dias_contractuales") else None
+
+    # 7. Update
+    update_query = text("""
+        UPDATE fleet.contrato_vehiculo
+        SET hora_inicio = :hora_inicio,
+            hora_fin = :hora_fin,
+            duracion_minima_horas = :duracion_minima_horas,
+            permite_extension = :permite_extension,
+            hora_fin_extension = :hora_fin_extension,
+            porcentaje_chofer = :porcentaje_chofer,
+            canon_diario = :canon_diario,
+            km_incluidos_dia = :km_incluidos_dia,
+            valor_km_excedente = :valor_km_excedente,
+            modalidad_computo = :modalidad_computo,
+            dias_contractuales = :dias_contractuales,
+            tratamiento_dia_no_trabajado = :tratamiento_dia_no_trabajado,
+            dia_inicio_semana = :dia_inicio_semana,
+            fecha_inicio = :fecha_inicio,
+            fecha_fin = :fecha_fin,
+            updated_at = NOW()
+        WHERE id = :contrato_id
+    """)
+    
+    await db.execute(update_query, {
+        "contrato_id": contrato_id,
+        "hora_inicio": hora_inicio_time,
+        "hora_fin": hora_fin_time,
+        "duracion_minima_horas": data.duracion_minima_horas,
+        "permite_extension": data.permite_extension,
+        "hora_fin_extension": hora_fin_extension_time,
+        "porcentaje_chofer": params.get("porcentaje_chofer"),
+        "canon_diario": params.get("canon_diario"),
+        "km_incluidos_dia": params.get("km_incluidos_dia"),
+        "valor_km_excedente": params.get("valor_km_excedente"),
+        "modalidad_computo": params.get("modalidad_computo"),
+        "dias_contractuales": dias_json,
+        "tratamiento_dia_no_trabajado": params.get("tratamiento_dia_no_trabajado"),
+        "dia_inicio_semana": params.get("dia_inicio_semana"),
+        "fecha_inicio": data.fecha_inicio or date.today(),
+        "fecha_fin": data.fecha_fin
+    })
+    
+    await db.commit()
+    
+    return await _get_contrato_by_id(contrato_id, db)
 
 def _map_row_to_contrato_response(row) -> ContratoResponse:
     """

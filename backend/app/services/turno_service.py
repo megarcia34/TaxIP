@@ -144,7 +144,8 @@ class TurnoService:
             SELECT 
                 c.id, c.estado_contrato, c.fecha_inicio, c.fecha_fin,
                 c.dias_contractuales, c.hora_inicio, c.hora_fin,
-                c.duracion_minima_horas, c.permite_extension, c.hora_fin_extension
+                c.duracion_minima_horas, c.permite_extension, c.hora_fin_extension,
+                c.tipo_contrato
             FROM fleet.contrato_vehiculo c
             WHERE c.chofer_id = :chofer_id
               AND c.vehiculo_id = :vehiculo_id
@@ -173,6 +174,7 @@ class TurnoService:
         duracion_minima_horas = row[7]
         permite_extension = row[8]
         hora_fin_extension = row[9]
+        tipo_contrato = row[10]
 
         # 5. Validar fechas de vigencia
         ahora = datetime.now()
@@ -189,7 +191,7 @@ class TurnoService:
                 detail=f"El contrato ya finalizó (terminó: {fecha_fin})"
             )
 
-        # 6. Validar día contractual
+        # 6. Validar día contractual (solo si tiene días configurados)
         dias_list = []
         if dias_contractuales:
             if isinstance(dias_contractuales, list):
@@ -208,7 +210,7 @@ class TurnoService:
                 detail=f"El día {dia_actual} no está autorizado. Días permitidos: {', '.join(dias_list)}"
             )
 
-        # 7. Validar horario actual (NUEVO: reemplaza turno_asignado)
+        # 7. Validar horario actual con soporte para EXTENSION
         if not hora_inicio or not hora_fin:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -219,11 +221,63 @@ class TurnoService:
         hora_fin_str = hora_fin.strftime("%H:%M")
         hora_actual_str = ahora.strftime("%H:%M")
 
-        if not hora_actual_esta_en_rango(ahora, hora_inicio_str, hora_fin_str):
+        # Calcular duración total del turno base y validar máximo 16 horas (legal)
+        minutos_inicio = calcular_minutos(hora_inicio_str)
+        minutos_fin = calcular_minutos(hora_fin_str)
+        if minutos_fin > minutos_inicio:
+            duracion_turno_min = minutos_fin - minutos_inicio
+        else:
+            duracion_turno_min = (1440 - minutos_inicio) + minutos_fin
+        duracion_turno_hs = duracion_turno_min / 60
+
+        if duracion_turno_hs > 16:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"La hora actual ({hora_actual_str}) está fuera del horario del contrato ({hora_inicio_str}-{hora_fin_str})"
+                detail=f"El contrato define un turno base de {duracion_turno_hs:.1f}hs, lo cual excede el límite legal de 16 horas. Contactá a tu propietario."
             )
+
+        # Verificar si está dentro del horario normal (turno base)
+        esta_en_rango_base = hora_actual_esta_en_rango(ahora, hora_inicio_str, hora_fin_str)
+
+        # Si no está en el horario base, verificar si cae en el horario de extensión
+        esta_en_rango_extension = False
+        if not esta_en_rango_base and permite_extension and hora_fin_extension:
+            hora_fin_ext_str = hora_fin_extension.strftime("%H:%M")
+            
+            minutos_actual = ahora.hour * 60 + ahora.minute
+            minutos_fin_base = calcular_minutos(hora_fin_str)
+            minutos_fin_ext = calcular_minutos(hora_fin_ext_str)
+            
+            if minutos_fin_ext > minutos_fin_base:
+                # Extensión en el mismo día
+                if minutos_actual >= minutos_fin_base and minutos_actual <= minutos_fin_ext:
+                    esta_en_rango_extension = True
+            else:
+                # Extensión cruza medianoche
+                if minutos_actual >= minutos_fin_base or minutos_actual <= minutos_fin_ext:
+                    esta_en_rango_extension = True
+
+        # LÓGICA DIFERENCIADA POR TIPO DE CONTRATO (CORREGIDA)
+        if tipo_contrato == 'ALQUILER':
+            # CONTRATO ALQUILER: Flexibilidad total (solo validamos 16hs arriba)
+            logger.info(
+                f"Check-in permitido (ALQUILER, sin restricción horaria). "
+                f"Chofer: {chofer_id}, Contrato: {contrato_id}, Hora: {hora_actual_str}"
+            )
+        else:
+            # CONTRATO PORCENTAJE o AUTO_GESTION: Validación ESTRICTA
+            if not esta_en_rango_base and not esta_en_rango_extension:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"La hora actual ({hora_actual_str}) está fuera del horario permitido. Turno base: {hora_inicio_str}-{hora_fin_str}. Extensión: {'Hasta ' + hora_fin_extension.strftime('%H:%M') if permite_extension else 'No permitida'}."
+                )
+
+            if esta_en_rango_extension:
+                logger.info(
+                    f"Check-in en horario de EXTENSIÓN. Chofer: {chofer_id}, "
+                    f"Actual: {hora_actual_str}, Base: {hora_inicio_str}-{hora_fin_str}, "
+                    f"Extensión hasta: {hora_fin_extension.strftime('%H:%M')}"
+                )
 
         # 8. Crear turno con snapshots de horarios
         turno = TurnoChofer(
@@ -246,7 +300,7 @@ class TurnoService:
         await db.commit()
         await db.refresh(turno)
 
-                # 9. Actualizar estado laboral del chofer
+        # 9. Actualizar estado laboral del chofer
         chofer_vehiculo = await db.execute(
             select(ChoferVehiculo)
             .where(

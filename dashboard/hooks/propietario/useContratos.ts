@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { propietarioAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
-// Tipos (copiados de page.tsx o creados en types/)
+// Tipos
 interface Contrato {
   id: string;
   vehiculo_id: string;
@@ -17,16 +17,22 @@ interface CrearContratoData {
   // ... todos los campos del formulario
 }
 
+// ============================================================
+// LISTAR CONTRATOS
+// ============================================================
 export function useContratos(filterActivo?: boolean | null) {
   return useQuery({
     queryKey: ['contratos', filterActivo],
     queryFn: () => propietarioAPI.getContratos(filterActivo ?? undefined),
-    staleTime: 60000, // 1 minuto
+    staleTime: 60000,
     refetchOnWindowFocus: false,
     enabled: true,
   });
 }
 
+// ============================================================
+// CREAR CONTRATO
+// ============================================================
 export function useCrearContrato() {
   const queryClient = useQueryClient();
   
@@ -42,6 +48,31 @@ export function useCrearContrato() {
   });
 }
 
+// ============================================================
+// EDITAR CONTRATO (NUEVO - CORREGIDO)
+// ============================================================
+export function useEditarContrato() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      // Usamos la misma estructura de propietarioAPI o hacemos la llamada directa
+      const response = await propietarioAPI.editarContrato(id, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contratos'] });
+      toast.success('Contrato actualizado correctamente');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || 'Error al actualizar contrato');
+    },
+  });
+}
+
+// ============================================================
+// FINALIZAR CONTRATO
+// ============================================================
 export function useFinalizarContrato() {
   const queryClient = useQueryClient();
   
@@ -57,6 +88,9 @@ export function useFinalizarContrato() {
   });
 }
 
+// ============================================================
+// CONFIGURAR CONTRATO PENDIENTE
+// ============================================================
 export function useConfigurarContrato() {
   const queryClient = useQueryClient();
   
@@ -72,10 +106,10 @@ export function useConfigurarContrato() {
     },
   });
 }
-// ============================================================
-// GENERAR CODIGO DE INICIO DE TURNO
-// ============================================================
 
+// ============================================================
+// GENERAR CÓDIGO DE INICIO DE TURNO
+// ============================================================
 import { contratosAccionesAPI } from '@/lib/api/contratosAcciones';
 
 export function useGenerarCodigo() {
