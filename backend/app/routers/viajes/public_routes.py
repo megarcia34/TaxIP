@@ -374,10 +374,10 @@ async def obtener_estado_viaje_publico(
             vs.finalizado_en,
             vs.nombre_pasajero,
             COALESCE(p.nombre || ' ' || p.apellido, u.email) as chofer_nombre,
-            ST_X(vs.origen::geometry) as origen_lat,
-            ST_Y(vs.origen::geometry) as origen_lng,
-            ST_X(vs.destino::geometry) as destino_lat,
-            ST_Y(vs.destino::geometry) as destino_lng
+            ST_Y(vs.origen::geometry) as origen_lat,
+            ST_X(vs.origen::geometry) as origen_lng,
+            ST_Y(vs.destino::geometry) as destino_lat,
+            ST_X(vs.destino::geometry) as destino_lng
         FROM trip.viaje_solicitado vs
         LEFT JOIN auth.usuario u ON u.id = vs.chofer_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
