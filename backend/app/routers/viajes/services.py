@@ -389,10 +389,10 @@ async def obtener_viaje_con_detalles(
             v.marca,
             v.modelo,
             COALESCE(p_prop.nombre || ' ' || p_prop.apellido, u_prop.email, 'No asignado') as propietario_nombre,
-            ST_X(vs.origen::geometry) as origen_lat,
-            ST_Y(vs.origen::geometry) as origen_lng,
-            ST_X(vs.destino::geometry) as destino_lat,
-            ST_Y(vs.destino::geometry) as destino_lng
+            ST_Y(vs.origen::geometry) as origen_lat,
+            ST_X(vs.origen::geometry) as origen_lng,
+            ST_Y(vs.destino::geometry) as destino_lat,
+            ST_X(vs.destino::geometry) as destino_lng,
         FROM trip.viaje_solicitado vs
         JOIN auth.usuario u ON u.id = vs.pasajero_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
