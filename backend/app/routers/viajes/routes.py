@@ -384,18 +384,18 @@ async def obtener_viaje_activo(
     query = text("""
         SELECT
             vs.id, vs.estado, vs.direccion_origen, vs.direccion_destino,
-            ST_X(vs.origen::geometry) as origen_lat,
-            ST_Y(vs.origen::geometry) as origen_lng,
-            ST_X(vs.destino::geometry) as destino_lat,
-            ST_Y(vs.destino::geometry) as destino_lng,
+            ST_Y(vs.origen::geometry) as origen_lat,
+            ST_X(vs.origen::geometry) as origen_lng,
+            ST_Y(vs.destino::geometry) as destino_lat,
+            ST_X(vs.destino::geometry) as destino_lng,
             vs.precio_estimado, vs.precio_final, vs.moneda,
             vs.tiempo_estimado_segundos, vs.distancia_metros,
             vs.solicitado_en, vs.aceptado_en, vs.iniciado_en,
             vs.metodo_pago, vs.pasajero_id
         FROM trip.viaje_solicitado vs
         WHERE vs.chofer_id = :chofer_id
-          AND vs.control_base_id = :control_base_id
-          AND vs.estado IN ('aceptado', 'en_curso')
+            AND vs.control_base_id = :control_base_id
+            AND vs.estado IN ('aceptado', 'en_curso')
         ORDER BY vs.created_at DESC
         LIMIT 1
     """)
