@@ -134,7 +134,10 @@ export function useBooking() {
   // ============================================
   // SOLICITAR VIAJE
   // ============================================
-  const solicitarViaje = async (): Promise<string> => {
+  const solicitarViaje = async (extras?: {
+    distancia_metros?: number;
+    tiempo_estimado_segundos?: number;
+  }): Promise<string> => {
     setIsSubmitting(true);
     setError(null);
 
@@ -161,6 +164,9 @@ export function useBooking() {
         precio_estimado: precioEstimado || undefined,
         nombre_pasajero: formData.nombre,
         telefono_pasajero: formData.telefono,
+        // ✅ AGREGADO: distancia y tiempo reales
+        distancia_metros: extras?.distancia_metros,
+        tiempo_estimado_segundos: extras?.tiempo_estimado_segundos,
       });
 
       console.log('✅ Viaje solicitado:', response);

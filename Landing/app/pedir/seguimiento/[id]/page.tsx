@@ -402,35 +402,44 @@ export default function SeguimientoPage() {
                 <div
                   style={{
                     padding: "1.5rem",
-                    backgroundColor: "#FEF2F2",
+                    backgroundColor: viaje.motivo_cancelacion === 'sin_moviles_disponibles' ? "#FEF3C7" : "#FEF2F2",
                     borderRadius: "0.75rem",
                     textAlign: "center",
-                    border: "1px solid #EF4444",
+                    border: `1px solid ${viaje.motivo_cancelacion === 'sin_moviles_disponibles' ? "#F59E0B" : "#EF4444"}`,
                     marginBottom: "1.5rem",
                   }}
                 >
-                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🚫</div>
-                  <p style={{ fontWeight: 600, color: "#991B1B" }}>Este viaje ha sido cancelado</p>
+                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>
+                    {viaje.motivo_cancelacion === 'sin_moviles_disponibles' ? '⏳' : '🚫'}
+                  </div>
+                  <p style={{ fontWeight: 600, color: viaje.motivo_cancelacion === 'sin_moviles_disponibles' ? "#92400E" : "#991B1B" }}>
+                    {viaje.motivo_cancelacion === 'sin_moviles_disponibles' 
+                      ? 'No hay móviles en la zona' 
+                      : 'Este viaje ha sido cancelado'}
+                  </p>
                   <p style={{ fontSize: "0.875rem", color: "#6B7280" }}>
-                    Si necesitas ayuda, contacta a nuestro soporte.
+                    {viaje.motivo_cancelacion === 'sin_moviles_disponibles'
+                      ? ' Solicita otro viaje en unos minutos.'
+                      : 'Si necesitas ayuda, contacta a nuestro soporte.'}
                   </p>
                 </div>
               )}
-
               {/* Botones */}
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem" }}>
+                
+                {/* Botón de cancelar (solo si está pendiente o aceptado) */}
                 {!esCancelado && !esFinalizado && (
                   <button
                     onClick={cancelarViaje}
                     style={{
-                      padding: "0.5rem 1.5rem",
+                      padding: "0.75rem",
                       border: "1px solid #EF4444",
                       borderRadius: "0.75rem",
                       backgroundColor: "transparent",
                       color: "#EF4444",
                       cursor: "pointer",
                       fontSize: "0.875rem",
-                      fontWeight: 500,
+                      fontWeight: 600,
                       transition: "all 0.2s ease",
                     }}
                     onMouseEnter={(e) => {
@@ -443,14 +452,22 @@ export default function SeguimientoPage() {
                     Cancelar Viaje
                   </button>
                 )}
-                <Link href="/" style={{ marginLeft: "auto" }}>
-                  <Button variant="outline" size="sm">Volver al inicio</Button>
-                </Link>
-                {esFinalizado && (
-                  <Link href="/pedir">
-                    <Button size="sm">Solicitar otro viaje</Button>
+
+                {/* Botón para volver a pedir (si está cancelado o finalizado) */}
+                {(esCancelado || esFinalizado) && (
+                  <Link href="/pedir" style={{ textDecoration: 'none' }}>
+                    <Button style={{ width: '100%', backgroundColor: '#FBBF24', color: '#1a1a1a', fontWeight: 600 }}>
+                      🚕 Pedir otro viaje
+                    </Button>
                   </Link>
                 )}
+
+                {/* Botón secundario para volver al inicio */}
+                <Link href="/" style={{ textDecoration: 'none', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', color: '#6B7280', textDecoration: 'underline' }}>
+                    Volver al inicio
+                  </span>
+                </Link>
               </div>
             </div>
 

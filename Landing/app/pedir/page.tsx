@@ -449,7 +449,6 @@ export default function PedirPage() {
         return;
       }
       
-      // Usamos el resultado booleano directo de validarEmail
       if (!emailValid) {
         const esEmailValido = await validarEmail(formData.email);
         if (!esEmailValido) {
@@ -462,7 +461,11 @@ export default function PedirPage() {
     if (!isValid()) return;
 
     try {
-      const id = await solicitarViaje();
+      // ✅ PASAMOS LA DISTANCIA Y EL TIEMPO REAL AL HOOK
+      const id = await solicitarViaje({
+        distancia_metros: routeDistanceKm ? Math.round(routeDistanceKm * 1000) : undefined,
+        tiempo_estimado_segundos: routeDurationMin ? Math.round(routeDurationMin * 60) : undefined,
+      });
       setViajeId(id);
       setSubmitSuccess(true);
       setTimeout(() => {
