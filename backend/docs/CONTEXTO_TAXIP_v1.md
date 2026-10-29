@@ -1,9 +1,9 @@
 # CONTEXTO TAXIP 2.0 — Estado y Deuda Pendiente
 
-**Ultima actualizacion:** 2026-10-27 (post R22)
+**Ultima actualizacion:** 2026-10-29 (post R23.1)
 **Alembic head:** m3_025
 **Diff BD <-> ORM:** 1 item (indice preexistente en payment.py — deuda aceptada)
-**Tag activo:** ronda22-completa
+**Tag activo:** ronda23.1-fix-coordenadas-websocket
 **Repo:** github.com/megarcia34/TaxIP (main)
 
 **Reglas de alineacion BD <-> ORM:** ver `docs/REGLAS_ALINEACION_BD_ORM.md`.
@@ -17,9 +17,9 @@
 
 - **Alineacion estructural BD <-> ORM:** 1 item pendiente (preexistente, deuda aceptada).
 - **Deuda alta prioridad:** 0 items.
-- **Deuda media prioridad:** ~18 items.
+- **Deuda media prioridad:** ~13 items.
 - **Deuda baja prioridad:** ~21 items.
-- **Tocar Frontend:** 1 item (G67).
+- **Tocar Frontend:** 1 item (G80).
 - **Expo-router / EAS:** 0 items (migracion completada).
 
 **Ultimas rondas cerradas:**
@@ -33,6 +33,8 @@
 - **R20:** frontend completo del dashboard propietario (perfil, cuentas, chofer, vehiculos, contratos con codigo de 6 digitos).
 - **R21:** Dashboard Tenant (solicitudes pendientes, aprobación/rechazo). **Migración completa de `expo-router` a React Navigation** (por bug de React 19). Actualización a **Expo SDK 58**. Implementación de **autocompletado real** con Google Places y `locationBias` por GPS. Fix de historial de viajes (LEFT JOIN). Flujo completo del chofer validado en iOS y Android.
 - **R22:** **Nuevas funcionalidades:** Módulo Finanzas del Chofer (resumen, gastos con Cloudinary, integración dual write). Módulo Perfil del Chofer (datos, documentos, reporte de actividad, cambio de contraseña). Gestión de Viajes del Chofer (publicación por radio 1-5km, aceptación, ciclo de vida completo). GPS en tiempo real desde la app del chofer vía WebSocket. Contratos editables con horarios flexibles y extensión.
+- **R23:** **Fix de mapas y coordenadas.** Corrección transversal de `ST_X`/`ST_Y` invertidos en 5 archivos del backend (`public_routes.py`, `routes.py`, `routes_dashboard.py`, `routes_historial.py`, `services.py`). Fix de sintaxis SQL en `SELECT` (comas sobrantes). Verificación exitosa de reconexión WebSocket (CloseCode 1006). Flujo Landing -> Chofer -> GPS verificado.
+- **R23.1:** **Fix de WebSocket, Viajes Huérfanos y UX.** Montaje global del hook `useWebSocket` en `App.tsx` para evitar desconexiones. Implementación del `ModalViajesHuerfanos` para cierre de turnos bloqueados. Envío de `distancia_metros` y `tiempo_estimado_segundos` reales desde la landing al WebSocket. Nuevo job en el scheduler que cancela viajes pendientes huérfanos a los 5 minutos con mensaje UX personalizado.
 
 ---
 
@@ -151,41 +153,18 @@ Cuando se cambia el tipo o nullable de una columna, `diff.py` puede reportarla c
 
 `tenant.configuracion_tenant.comision_credito` (default 3.50%) existe y es real. Aplica al flujo corporativo (Momento 2). Documentar en la UI del dashboard empresa.
 
-### mapa.invertido_al_retomar_viaje
-
-**Estado:** Deuda abierta. No saldada en R22.
-
-**Sintoma:** Cuando el chofer cierra la app con un viaje en curso y la vuelve a abrir, el endpoint `GET /api/viajes/activo` detecta el viaje, pero el mapa estático se genera con las coordenadas invertidas (`origen_lat` = longitud, `origen_lng` = latitud). Google Directions devuelve `ZERO_RESULTS` y el mapa queda en blanco. El viaje se crea, finaliza y registra correctamente en la base de datos (solo el mapa no se muestra).
-
-**Accion futura:** Revisar `public_routes.py` y `routes_geocode.py` (backend) o el `MapPicker` (landing) para corregir la inversión de coordenadas.
-
-### websocket.reconexion_bucle
-**Síntoma:** El WebSocket del chofer se reconecta cada ~15-20s con código 1000 (cierre normal) o 1006 (abnormal). El servicio `websocketService` reconecta automáticamente, pero el ciclo es molesto.
-**Impacto:** Bajo. El GPS se envía y la app sigue funcionando.
-**Acción futura:** Investigar por qué el frontend cierra la conexión (posible `useEffect` que dispara `desconectar/conectar`).
-**Ref:** `services/websocket.service.ts`, `HomeScreen.tsx`.
-
-### mapa.lat_lng_invertidos_landing
-**Síntoma:** El mapa estático en la landing muestra "No se encontró una ruta" porque el backend envía `origen_lat` y `origen_lng` invertidos al endpoint `/api/viajes/mapa-estatico`.
-**Impacto:** Cosmético. No bloquea el flujo del chofer ni del pasajero.
-**Acción futura:** Revisar `public_routes.py` y `routes_geocode.py` (backend) o el `MapPicker` (landing).
-
-### barrido.duracion_corta
-**Síntoma:** El barrido progresivo de viajes dura solo 40s (10s × 4 radios: 1km, 2km, 3km, 5km). Si el chofer no está conectado en ese momento, el viaje queda huérfano en `pendiente`.
-**Impacto:** Medio. En producción, extender el barrido o agregar un job de limpieza.
-**Acción futura:** Extender a 2-3 minutos, o job que cancele viajes pendientes huérfanos después de X minutos.
-**Ref:** `app/routers/viajes/public_routes.py` (función `publicar_viaje_progresivo`).
-
-### viaje.distancia_tiempo_websocket
-**Síntoma:** En `ViajeDetalleScreen`, "DISTANCIA" y "TIEMPO" aparecen como `—` porque el backend no envía `distancia_metros` ni `tiempo_estimado_segundos` en el payload del WebSocket (`nuevo_viaje`).
-**Impacto:** Cosmético.
-**Acción futura:** Agregar esos campos al `viaje_data` en `public_routes.py`.
-**Ref:** `app/routers/viajes/public_routes.py`, `types/viaje.types.ts`.
-
 ### token.dashboard.expirado
 **Síntoma:** El dashboard del propietario muestra `Token expirado` cada ~30 minutos y se re-loguea solo.
 **Impacto:** Bajo.
 **Acción futura:** Revisar `ACCESS_TOKEN_EXPIRE_MINUTES` en `app/core/security.py` o el interceptor de refresh del dashboard.
+
+### turno.huerfano_turno_anterior
+**Síntoma:** Si un viaje queda en estado `aceptado` o `en_curso` de un turno que se cerró (por error o corte), el nuevo turno no puede cerrarlo forzadamente porque el `turno_id` no coincide. El backend devuelve "El viaje no pertenece a este turno".
+**Acción futura:** Permitir cerrar viajes de turnos anteriores o reasignarlos automáticamente al turno activo.
+
+### dashboard.estado_inconsistente
+**Síntoma:** El dashboard del propietario muestra contratos "Finalizados" pero los turnos en `fleet.turno_chofer` siguen `ACTIVO`, dejando vehículos bloqueados.
+**Acción futura:** Sincronizar el cierre de contratos con el cierre de turnos en el backend.
 
 ---
 
@@ -231,9 +210,6 @@ Cuando se cambia el tipo o nullable de una columna, `diff.py` puede reportarla c
 
 ## TOCAR FRONTEND
 
-### G67.frontend_chofer
-Backend de G67 completo (2 endpoints + notificaciones), pero falta el frontend del chofer para que pueda usar la funcionalidad. **Pendiente para R23+ (app chofer).**
-
 ### G80
 La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en terreno: build preview o production apuntando al backend publico. **Bloqueada por deploy a produccion.**
 
@@ -270,16 +246,45 @@ La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en ter
 
 ---
 
+## DEUDAS SALDADAS EN R23
+
+- **`mapa.lat_lng_invertidos_landing`** — Saldada. Se corrigió la inversión de `ST_X`/`ST_Y` en `public_routes.py`, `routes_dashboard.py`, `routes_historial.py` y `services.py`. La landing ahora calcula la ruta correctamente.
+- **`mapa.invertido_al_retomar_viaje`** — Saldada. Corregido en `routes.py` (endpoint `/api/viajes/activo`). La app chofer ahora muestra el mapa correcto al retomar un viaje.
+- **`websocket.reconexion_bucle`** — Saldada (verificada). Se forzó un cierre abrupto (CloseCode 1006) y el `websocketService` de la app chofer se reconectó automáticamente sin intervención. El backend limpió la conexión caída correctamente.
+- **Bug 2 (GPS no envía coordenadas)** — Descartado. La migración a React Navigation (R21) ya había eliminado el `_layout.tsx` que borraba el AsyncStorage. Los logs confirman que el GPS envía coordenadas cada 15 segundos sin problemas.
+
+---
+
+## DEUDAS SALDADAS EN R23.1
+
+- **`viaje.distancia_tiempo_websocket`** — Saldada. El backend ahora envía `distancia_metros` y `tiempo_estimado_segundos` en el payload del WebSocket y los guarda en la DB. La landing los calcula con Google Maps y los envía.
+- **`barrido.duracion_corta`** — Saldada. Se agregó un job en el scheduler que cancela viajes en estado `pendiente` después de 5 minutos sin chofer asignado. La landing muestra el mensaje "No hay móviles en la zona".
+- **`G67.frontend_chofer`** — Saldada. Se creó el `ModalViajesHuerfanos` y se integró en `TurnosScreen` para forzar el cierre de viajes colgados.
+- **`websocket.reconexion_bucle` (fix global)** — Saldada. El hook `useWebSocket` ahora se monta globalmente en `App.tsx`, manteniendo la conexión estable.
+- **`turno.mensaje_error_generico`** — Saldada. El backend ahora devuelve un mensaje claro indicando qué chofer tiene el vehículo ocupado y desde cuándo.
+
+---
+
+## DEUDAS NUEVAS (R24)
+
+### viaje.finalizar_antes_de_tiempo
+**Síntoma:** En la pantalla de viaje en curso, el chofer no tiene un botón para finalizar el viaje antes de llegar al destino (ej. si el pasajero se baja antes).
+**Acción futura:** Agregar un botón de "Finalizar viaje aquí" que calcule el precio hasta la ubicación actual o permita ingresar un monto manual.
+
+*(Las deudas `turno.huerfano_turno_anterior` y `dashboard.estado_inconsistente` ya fueron agregadas a MEDIA PRIORIDAD).*
+
+---
+
 ## RECUENTO
 
 | Categoria | Cantidad |
 |---|---|
 | Alta prioridad | 0 |
-| Media prioridad | ~18 |
+| Media prioridad | ~16 |
 | Baja prioridad | ~21 |
-| Tocar Frontend | 1 (G67) |
+| Tocar Frontend | 1 (G80) |
 | Expo-router / EAS | 0 |
-| **TOTAL PENDIENTES** | **~40 items** |
+| **TOTAL PENDIENTES** | **~38 items** |
 
 ---
 

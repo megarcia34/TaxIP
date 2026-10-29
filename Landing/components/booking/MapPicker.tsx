@@ -243,6 +243,11 @@ export function MapPicker({
       setRouteError(null);
       setRouteInfo(null);
 
+      console.log('[MapPicker] Route request:', {
+        origin: { lat: origin.lat, lng: origin.lng },
+        destination: { lat: destination.lat, lng: destination.lng },
+      });
+
       const result = await calcularRuta(
         { lat: origin.lat, lng: origin.lng },
         { lat: destination.lat, lng: destination.lng },
@@ -295,7 +300,11 @@ export function MapPicker({
       }
 
     } catch (error: any) {
-      console.error('Error calculando ruta:', error);
+      console.error('[MapPicker] Error calculando ruta:', {
+        message: error.message,
+        origin: { lat: origin?.lat, lng: origin?.lng },
+        destination: { lat: destination?.lat, lng: destination?.lng },
+      });
       
       // Manejar errores específicos
       if (error.message?.includes('ZERO_RESULTS')) {
