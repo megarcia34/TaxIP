@@ -425,6 +425,8 @@ class SolicitarViajePublicoRequest(BaseModel):
     precio_estimado: Optional[float] = None
     nombre_pasajero: Optional[str] = None
     telefono_pasajero: Optional[str] = None
+    distancia_metros: Optional[int] = None
+    tiempo_estimado_segundos: Optional[int] = None
 
     class Config:
         from_attributes = True

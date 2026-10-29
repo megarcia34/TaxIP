@@ -204,7 +204,6 @@ async def publicar_viaje_progresivo(
         f"Notificados: {len(notificados)} choferes."
     )
 
-
 @router.post("/solicitar", response_model=SolicitarViajePublicoResponse)
 async def solicitar_viaje_publico(
     request: SolicitarViajePublicoRequest,
@@ -272,19 +271,26 @@ async def solicitar_viaje_publico(
         
         # Crear viaje en estado 'pendiente'
         viaje_id = uuid4()
+        
+        # Extraer distancia y tiempo del request (si vienen)
+        distancia_metros = getattr(request, 'distancia_metros', None)
+        tiempo_estimado_segundos = getattr(request, 'tiempo_estimado_segundos', None)
+
         insert_viaje = text("""
             INSERT INTO trip.viaje_solicitado (
                 id, control_base_id, pasajero_id,
                 direccion_origen, direccion_destino,
                 origen, destino,
-                estado, precio_estimado, created_at, nombre_pasajero
+                estado, precio_estimado, created_at, nombre_pasajero,
+                distancia_metros, tiempo_estimado_segundos
             )
             VALUES (
                 :id, :control_base_id, :pasajero_id,
                 :direccion_origen, :direccion_destino,
                 ST_SetSRID(ST_MakePoint(:origen_lng, :origen_lat), 4326),
                 ST_SetSRID(ST_MakePoint(:destino_lng, :destino_lat), 4326),
-                'pendiente', :precio_estimado, NOW(), :nombre_pasajero
+                'pendiente', :precio_estimado, NOW(), :nombre_pasajero,
+                :distancia_metros, :tiempo_estimado_segundos
             )
             RETURNING id
         """)
@@ -300,7 +306,9 @@ async def solicitar_viaje_publico(
             "destino_lat": request.destino_lat,
             "destino_lng": request.destino_lng,
             "precio_estimado": request.precio_estimado or 0,
-            "nombre_pasajero": request.nombre_pasajero or "Usuario Web"
+            "nombre_pasajero": request.nombre_pasajero or "Usuario Web",
+            "distancia_metros": distancia_metros,
+            "tiempo_estimado_segundos": tiempo_estimado_segundos
         })
         
         await db.commit()
@@ -319,6 +327,9 @@ async def solicitar_viaje_publico(
             "precio_estimado": float(request.precio_estimado or 0),
             "nombre_pasajero": request.nombre_pasajero or "Usuario Web",
             "estado": "pendiente",
+            # ✅ AGREGADO: distancia y tiempo para que la app chofer no muestre "—"
+            "distancia_metros": distancia_metros,
+            "tiempo_estimado_segundos": tiempo_estimado_segundos,
         }
 
         # Lanzamos el barrido en background
@@ -349,7 +360,7 @@ async def solicitar_viaje_publico(
             detail=f"Error al solicitar viaje: {str(e)}"
         )
     
-# ============================================
+## ============================================
 # OBTENER ESTADO DEL VIAJE (PÚBLICO)
 # ============================================
 @router.get("/{viaje_id}/estado")
@@ -372,6 +383,7 @@ async def obtener_estado_viaje_publico(
             vs.aceptado_en,
             vs.iniciado_en,
             vs.finalizado_en,
+            vs.motivo_cancelacion,
             vs.nombre_pasajero,
             COALESCE(p.nombre || ' ' || p.apellido, u.email) as chofer_nombre,
             ST_Y(vs.origen::geometry) as origen_lat,
@@ -401,10 +413,90 @@ async def obtener_estado_viaje_publico(
         "aceptado_en": row[7],
         "iniciado_en": row[8],
         "finalizado_en": row[9],
-        "pasajero_nombre": row[10],
-        "chofer_nombre": row[11],
-        "origen_lat": float(row[12]) if row[12] else None,
-        "origen_lng": float(row[13]) if row[13] else None,
-        "destino_lat": float(row[14]) if row[14] else None,
-        "destino_lng": float(row[15]) if row[15] else None,
+        "motivo_cancelacion": row[10] if row[10] else None,  # ✅ CORREGIDO
+        "pasajero_nombre": row[11],                          # ✅ CORREGIDO
+        "chofer_nombre": row[12],                            # ✅ CORREGIDO
+        "origen_lat": float(row[13]) if row[13] else None,
+        "origen_lng": float(row[14]) if row[14] else None,
+        "destino_lat": float(row[15]) if row[15] else None,
+        "destino_lng": float(row[16]) if row[16] else None,
+    }
+# ============================================
+# CANCELAR VIAJE (PUBLICO)
+# ============================================
+
+@router.post("/{viaje_id}/cancelar")
+async def cancelar_viaje_publico(
+    viaje_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancela un viaje publico. Solo permitido si el viaje esta en estado
+    'pendiente' o 'aceptado' (no se puede cancelar un viaje en curso o finalizado).
+
+    Si el viaje ya tenia un chofer asignado, se le notifica por WebSocket.
+    """
+    from app.websocket.connection_manager import manager
+    from app.websocket.events import EventType
+
+    # 1. Verificar estado actual del viaje
+    query = text("""
+        SELECT id, estado, chofer_id, control_base_id
+        FROM trip.viaje_solicitado
+        WHERE id = :viaje_id
+    """)
+    result = await db.execute(query, {"viaje_id": viaje_id})
+    row = result.first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Viaje no encontrado")
+
+    viaje_id_db, estado_actual, chofer_id, control_base_id = row
+
+    # 2. Validar estado
+    if estado_actual in ('finalizado', 'cancelado'):
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede cancelar un viaje en estado '{estado_actual}'"
+        )
+
+    # 3. Actualizar estado a 'cancelado'
+    update_query = text("""
+        UPDATE trip.viaje_solicitado
+        SET estado = 'cancelado',
+            cancelado_en = NOW(),
+            updated_at = NOW()
+        WHERE id = :viaje_id
+    """)
+    await db.execute(update_query, {"viaje_id": viaje_id})
+
+    # 4. Registrar en historial de estados
+    historial_query = text("""
+        INSERT INTO trip.historial_estado_viaje (
+            id, viaje_id, estado, observacion, created_at
+        ) VALUES (
+            gen_random_uuid(), :viaje_id, 'cancelado',
+            'Cancelado por el pasajero desde la landing', NOW()
+        )
+    """)
+    await db.execute(historial_query, {"viaje_id": viaje_id})
+
+    # 5. Notificar al chofer si estaba asignado
+    if chofer_id:
+        try:
+            await manager.send_personal(
+                user_id=str(chofer_id),
+                event=EventType.VIAJE_CANCELADO if hasattr(EventType, 'VIAJE_CANCELADO') else 'viaje_cancelado',
+                data={"viaje_id": str(viaje_id), "motivo": "cancelado_por_pasajero"}
+            )
+        except Exception as e:
+            logger.warning(f"No se pudo notificar cancelacion al chofer {chofer_id}: {e}")
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "viaje_id": str(viaje_id),
+        "estado": "cancelado",
+        "message": "Viaje cancelado correctamente"
     }

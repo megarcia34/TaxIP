@@ -211,9 +211,9 @@ async def procesar_viajes_huerfanos():
                 FROM trip.viaje_solicitado
                 WHERE chofer_id IS NOT NULL
                   AND (
-                    (estado = 'en_curso' AND iniciado_en < NOW() - INTERVAL '24 hours')
+                    (estado = 'en_curso' AND iniciado_en < NOW() - INTERVAL '4 hours')
                     OR
-                    (estado = 'aceptado' AND aceptado_en < NOW() - INTERVAL '4 hours')
+                    (estado = 'aceptado' AND aceptado_en < NOW() - INTERVAL '15 minutes')
                   )
             """)
             result = await db.execute(query)
@@ -312,7 +312,7 @@ async def procesar_turnos_colgados():
                 SELECT id, chofer_id, vehiculo_id, inicio_turno
                 FROM fleet.turno_chofer
                 WHERE estado = 'ACTIVO'
-                  AND inicio_turno < NOW() - INTERVAL '24 hours'
+                  AND inicio_turno < NOW() - INTERVAL '16 hours'
             """)
             result = await db.execute(query)
             turnos = result.all()
@@ -360,6 +360,94 @@ async def procesar_turnos_colgados():
             logger.error(f"Error en procesar_turnos_colgados: {e}")
             await db.rollback()
 
+# ============================================================
+# JOB 7: CANCELACION DE VIAJES PENDIENTES VENCIDOS (cada 1 min)
+# ============================================================
+
+async def procesar_pendientes_vencidos():
+    """
+    Cancela viajes en estado 'pendiente' que superaron el tiempo maximo
+    de espera sin encontrar chofer.
+
+    Un viaje pendiente se considera vencido si:
+    - estado='pendiente'
+    - created_at < NOW() - 5 minutos
+    - chofer_id IS NULL (nunca fue asignado)
+
+    El pasajero recibe el estado 'cancelado' con motivo
+    'sin_moviles_disponibles' para que la landing muestre
+    el mensaje correspondiente.
+    """
+    async with AsyncSessionLocal() as db:
+        try:
+            # 1. Detectar pendientes vencidos
+            query = text("""
+                SELECT id, pasajero_id, control_base_id
+                FROM trip.viaje_solicitado
+                WHERE estado = 'pendiente'
+                  AND chofer_id IS NULL
+                  AND created_at < NOW() - INTERVAL '5 minutes'
+            """)
+            result = await db.execute(query)
+            viajes = result.all()
+
+            if not viajes:
+                return
+
+            logger.warning(f"Cancelando {len(viajes)} viajes pendientes vencidos (sin moviles)")
+
+            for viaje in viajes:
+                viaje_id = viaje[0]
+                pasajero_id = viaje[1]
+
+                logger.info(f"   Viaje {viaje_id}: sin moviles disponibles tras 5 min")
+
+                # 2. Cancelar viaje
+                await db.execute(text("""
+                    UPDATE trip.viaje_solicitado
+                    SET estado = 'cancelado',
+                        cancelado_en = NOW(),
+                        cancelado_por = 'sistema',
+                        motivo_cancelacion = 'sin_moviles_disponibles',
+                        updated_at = NOW()
+                    WHERE id = :viaje_id
+                """), {"viaje_id": viaje_id})
+
+                # 3. Historial
+                await db.execute(text("""
+                    INSERT INTO trip.historial_estado_viaje (
+                        id, viaje_id, estado, observacion, created_at
+                    ) VALUES (
+                        gen_random_uuid(), :viaje_id, 'cancelado',
+                        'Cancelado automaticamente: sin moviles disponibles.',
+                        NOW()
+                    )
+                """), {"viaje_id": viaje_id})
+
+                # 4. Notificar al pasajero por WebSocket (si esta conectado)
+                if pasajero_id:
+                    try:
+                        from app.websocket.connection_manager import manager
+                        from app.websocket.events import EventType
+
+                        await manager.send_personal(
+                            user_id=str(pasajero_id),
+                            event=getattr(EventType, 'VIAJE_CANCELADO', 'viaje_cancelado'),
+                            data={
+                                "viaje_id": str(viaje_id),
+                                "motivo": "sin_moviles_disponibles",
+                                "mensaje": "No hay moviles en la zona. Intenta mas tarde.",
+                            }
+                        )
+                    except Exception as e:
+                        logger.warning(f"No se pudo notificar cancelacion al pasajero {pasajero_id}: {e}")
+
+            await db.commit()
+            logger.info(f"Limpieza de pendientes completada: {len(viajes)} viajes cancelados")
+
+        except Exception as e:
+            logger.error(f"Error en procesar_pendientes_vencidos: {e}")
+            await db.rollback()
 
 # ============================================================
 # LOOP PRINCIPAL DEL SCHEDULER
@@ -371,13 +459,14 @@ async def scheduler_loop():
 
     Granularidad: 5 segundos (necesario para timeout de broadcast de 50s).
     """
-    logger.info("Scheduler iniciado")
+    logger.info("   Scheduler iniciado")
     logger.info("   Timeouts broadcast: cada 5s")
     logger.info("   Reservas: cada 60s")
     logger.info("   KPIs: cada 1h")
     logger.info("   Viajes huerfanos: cada 1h")
     logger.info("   Turnos colgados: cada 1h")
     logger.info("   Vencimientos: cada 6h")
+    logger.info("   Pendientes vencidos (sin moviles): cada 60s")
 
     seconds_counter = 0
 
@@ -397,6 +486,10 @@ async def scheduler_loop():
             # Cada 3600s: limpieza de viajes huerfanos (J17)
             if seconds_counter % 3600 == 0 and seconds_counter > 0:
                 await procesar_viajes_huerfanos()
+
+            # Cada 60s: cancelacion de pendientes vencidos (sin moviles)
+            if seconds_counter % 60 == 0 and seconds_counter > 0:
+                await procesar_pendientes_vencidos()
 
             # Cada 3600s: limpieza de turnos colgados (G64)
             if seconds_counter % 3600 == 0 and seconds_counter > 0:

@@ -445,9 +445,37 @@ async def check_in_turno(
     """)
     result = await db.execute(query_turno, {"user_id": user_id})
     if result.first():
-        raise HTTPException(400, "Ya tienes un turno activo")
+        raise HTTPException(400, "Ya tienes un turno activo. Finalizalo antes de iniciar otro.")
 
-    # 6. Validar km
+    # 6. Verificar que el vehiculo no tenga un turno activo de otro chofer
+    query_vehiculo_ocupado = text("""
+        SELECT
+            tc.id AS turno_id,
+            tc.inicio_turno,
+            COALESCE(p.nombre || ' ' || p.apellido, u.email) AS chofer_nombre,
+            u.email AS chofer_email
+        FROM fleet.turno_chofer tc
+        JOIN auth.usuario u ON u.id = tc.chofer_id
+        LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+        WHERE tc.vehiculo_id = :vehiculo_id
+          AND tc.estado = 'ACTIVO'
+        LIMIT 1
+    """)
+    result = await db.execute(query_vehiculo_ocupado, {"vehiculo_id": vehiculo_id})
+    turno_ocupado = result.first()
+
+    if turno_ocupado:
+        turno_id_ocupado, inicio_ocupado, chofer_nombre, chofer_email = turno_ocupado
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"El vehiculo ya tiene un turno ACTIVO iniciado por otro chofer "
+                f"({chofer_nombre} - {chofer_email}) el {inicio_ocupado.strftime('%d/%m/%Y %H:%M')}. "
+                f"Pedile que cierre su turno o contacta al administrador para liberarlo."
+            ),
+        )
+
+    # 6.bis. Validar km
     if request.km_inicial < 0:
         raise HTTPException(400, "El kilometraje no puede ser negativo")
 
@@ -538,15 +566,33 @@ async def check_in_directo(
     if not result.first():
         raise HTTPException(403, "No sos propietario de este vehículo")
 
-    # 3. Verificar que el vehículo no tenga turno activo
+        # 3. Verificar que el vehículo no tenga turno activo
     query_turno = text("""
-        SELECT id FROM fleet.turno_chofer
-        WHERE vehiculo_id = :vehiculo_id AND estado = 'ACTIVO'
+        SELECT
+            tc.id AS turno_id,
+            tc.inicio_turno,
+            COALESCE(p.nombre || ' ' || p.apellido, u.email) AS chofer_nombre,
+            u.email AS chofer_email
+        FROM fleet.turno_chofer tc
+        JOIN auth.usuario u ON u.id = tc.chofer_id
+        LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+        WHERE tc.vehiculo_id = :vehiculo_id
+        AND tc.estado = 'ACTIVO'
         LIMIT 1
     """)
     result = await db.execute(query_turno, {"vehiculo_id": request.vehiculo_id})
-    if result.first():
-        raise HTTPException(400, "El vehículo ya tiene un turno activo")
+    turno_ocupado = result.first()
+
+    if turno_ocupado:
+        turno_id_ocupado, inicio_ocupado, chofer_nombre, chofer_email = turno_ocupado
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"El vehiculo ya tiene un turno ACTIVO iniciado por otro chofer "
+                f"({chofer_nombre} - {chofer_email}) el {inicio_ocupado.strftime('%d/%m/%Y %H:%M')}. "
+                f"Pedile que cierre su turno o contacta al administrador para liberarlo."
+            ),
+        )
 
     # 4. Verificar que el usuario no tenga turno activo
     query_turno_user = text("""
@@ -556,8 +602,8 @@ async def check_in_directo(
     """)
     result = await db.execute(query_turno_user, {"user_id": user_id})
     if result.first():
-        raise HTTPException(400, "Ya tenés un turno activo")
-
+        raise HTTPException(400, "Ya tenés un turno activo. Finalizalo antes de iniciar otro.")
+    
     # 5. Verificar que el chofer está aprobado
     query_chofer = text("""
         SELECT estado_aprobacion
