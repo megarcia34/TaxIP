@@ -318,6 +318,7 @@ async def solicitar_viaje_publico(
         # ============================================
         viaje_data = {
             "id": str(viaje_id),
+            "viaje_id": str(viaje_id),
             "direccion_origen": request.direccion_origen,
             "direccion_destino": request.direccion_destino,
             "origen_lat": request.origen_lat,

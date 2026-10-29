@@ -326,7 +326,6 @@ async def llegar_viaje(
         "viaje_id": str(viaje_id),
     }
 
-
 # ============================================
 # RECHAZAR VIAJE
 # ============================================
@@ -342,8 +341,12 @@ async def rechazar_viaje(
 
     Registra el rechazo en trip.broadcast_log sin cambiar el estado del viaje.
     El chofer NO es penalizado. El viaje sigue publicado para otros choferes.
+
+    Si el chofer que rechaza es el unico conectado por WebSocket, el viaje
+    se cancela inmediatamente con motivo 'sin_moviles_disponibles'.
     """
     from app.services.broadcast_service import registrar_broadcast_log
+    from app.websocket.connection_manager import manager
 
     driver_id, control_base_id, _, _ = current_user
 
@@ -380,13 +383,69 @@ async def rechazar_viaje(
 
     # 3. El viaje NO cambia de estado. Sigue publicado para otros choferes.
 
+    # 4. Verificar si quedan otros choferes conectados por WebSocket.
+    # Si no hay nadie mas, el viaje quedaria huerfano esperando 5 minutos.
+    # En su lugar, lo cancelamos inmediatamente.
+    origen_query = await db.execute(
+        text("""
+            SELECT 
+                ST_Y(origen::geometry) as origen_lat,
+                ST_X(origen::geometry) as origen_lng
+            FROM trip.viaje_solicitado
+            WHERE id = :viaje_id
+        """),
+        {"viaje_id": viaje_id},
+    )
+    origen_row = origen_query.first()
+
+    if origen_row:
+        origen_lat, origen_lng = origen_row
+
+        # Choferes conectados por WS en el tenant
+        todos_conectados = manager.get_choferes_disponibles(
+            control_base_id=str(control_base_id)
+        )
+
+        # Excluimos al chofer que rechazo
+        otros_conectados = [c for c in todos_conectados if c != str(driver_id)]
+
+        if not otros_conectados:
+            # No hay otros choferes conectados -> cancelar viaje
+            logger.warning(
+                f"Viaje {viaje_id} rechazado por unico chofer conectado. "
+                f"Cancelando por falta de moviles."
+            )
+            await db.execute(
+                text("""
+                    UPDATE trip.viaje_solicitado
+                    SET estado = 'cancelado',
+                        cancelado_en = NOW(),
+                        cancelado_por = 'sistema',
+                        motivo_cancelacion = 'sin_moviles_disponibles',
+                        updated_at = NOW()
+                    WHERE id = :viaje_id
+                """),
+                {"viaje_id": viaje_id},
+            )
+            await db.execute(
+                text("""
+                    INSERT INTO trip.historial_estado_viaje (
+                        id, viaje_id, estado, observacion, created_at
+                    ) VALUES (
+                        gen_random_uuid(), :viaje_id, 'cancelado',
+                        'Cancelado automaticamente: unico chofer rechazo y no hay otros conectados.',
+                        NOW()
+                    )
+                """),
+                {"viaje_id": viaje_id},
+            )
+            await db.commit()
+
     return {
         "success": True,
         "message": "Viaje rechazado",
         "viaje_id": str(viaje_id),
     }
-
-
 # ============================================
 # INICIAR VIAJE
 # ============================================

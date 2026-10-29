@@ -91,40 +91,52 @@ export function useWebSocket() {
   function enrutarMensaje(mensaje: MensajeWS): void {
     switch (mensaje.type) {
       case 'nuevo_viaje': {
-        const p = mensaje.data as PayloadNuevoViaje | undefined;
-        if (!p?.viaje_id) {
-          console.warn('[WS] nuevo_viaje sin viaje_id');
+        const p = mensaje.data as any; // Usamos any para aceptar ambos nombres (id y viaje_id)
+        
+        // ✅ Aceptar tanto "viaje_id" como "id" para evitar desajustes
+        const viajeId = p?.viaje_id || p?.id;
+        
+        if (!viajeId) {
+          console.warn('[WS] nuevo_viaje sin viaje_id ni id');
           return;
         }
+        
         // Adaptamos el payload mínimo del WS a ViajeSolicitado.
-        // ⚠️ DEUDA E3: la forma exacta del payload se confirma cuando el
-        // backend emita un nuevo_viaje real.
-        const viaje: ViajeSolicitado = adaptarNuevoViaje(p);
+        // Forzamos el campo viaje_id para que el adaptador funcione
+        const viaje: ViajeSolicitado = adaptarNuevoViaje({
+          ...p,
+          viaje_id: viajeId,
+        });
+        
         agregarViajeDisponible(viaje);
         break;
       }
 
       case 'viaje_tomado': {
-        const p = mensaje.data as PayloadViajeTomado | undefined;
-        if (p?.viaje_id) quitarViajeDisponible(p.viaje_id);
+        const p = mensaje.data as any;
+        const viajeId = p?.viaje_id || p?.id;
+        if (viajeId) quitarViajeDisponible(viajeId);
         break;
       }
 
       case 'excluido_de_viaje': {
-        const p = mensaje.data as PayloadExcluidoDeViaje | undefined;
-        if (p?.viaje_id) quitarViajeDisponible(p.viaje_id);
+        const p = mensaje.data as any;
+        const viajeId = p?.viaje_id || p?.id;
+        if (viajeId) quitarViajeDisponible(viajeId);
         break;
       }
 
       case 'viaje_cancelado': {
-        const p = mensaje.data as PayloadViajeCancelado | undefined;
-        if (p?.viaje_id) quitarViajeDisponible(p.viaje_id);
+        const p = mensaje.data as any;
+        const viajeId = p?.viaje_id || p?.id;
+        if (viajeId) quitarViajeDisponible(viajeId);
         break;
       }
 
       case 'viaje_expirado': {
-        const p = mensaje.data as PayloadViajeExpirado | undefined;
-        if (p?.viaje_id) quitarViajeDisponible(p.viaje_id);
+        const p = mensaje.data as any;
+        const viajeId = p?.viaje_id || p?.id;
+        if (viajeId) quitarViajeDisponible(viajeId);
         break;
       }
 
@@ -153,11 +165,8 @@ export function useWebSocket() {
  * tarjeta del viaje entrante. Los campos que no vienen se rellenan con
  * null / defaults. La forma completa se obtiene luego con
  * `GET /api/viajes/{id}/estado` si el chofer quiere más detalle.
- *
- * ⚠️ DEUDA E3: confirmar campos exactos del payload cuando se pruebe
- * con un nuevo_viaje real.
  */
-function adaptarNuevoViaje(p: PayloadNuevoViaje): ViajeSolicitado {
+function adaptarNuevoViaje(p: any): ViajeSolicitado {
   const ahora = new Date().toISOString();
   return {
     id: p.viaje_id,

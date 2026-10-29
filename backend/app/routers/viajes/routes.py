@@ -447,3 +447,82 @@ router.include_router(routes_dashboard.router)
 router.include_router(routes_geocode.router)
 router.include_router(routes_historial.router)
 router.include_router(routes_lifecycle.router)
+
+# ============================================
+# VIAJES DISPONIBLES (PARA EL CHOFER)
+# ============================================
+
+@router.get("/disponibles")
+async def obtener_viajes_disponibles(
+    lat: float,
+    lng: float,
+    radio_metros: int = 5000,
+    current_user: tuple = Depends(get_current_driver_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Devuelve los viajes pendientes/publicados en un radio.
+    El chofer puede verlos al abrir la pantalla de Gestion de Viajes.
+    """
+    chofer_id, control_base_id, _, _ = current_user
+
+    query = text("""
+        SELECT 
+            vs.id,
+            vs.direccion_origen,
+            vs.direccion_destino,
+            ST_Y(vs.origen::geometry) as origen_lat,
+            ST_X(vs.origen::geometry) as origen_lng,
+            ST_Y(vs.destino::geometry) as destino_lat,
+            ST_X(vs.destino::geometry) as destino_lng,
+            vs.precio_estimado,
+            vs.nombre_pasajero,
+            vs.created_at,
+            vs.distancia_metros,
+            vs.tiempo_estimado_segundos,
+            ST_Distance(
+                vs.origen::geography,
+                ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+            ) as distancia_chofer_metros
+        FROM trip.viaje_solicitado vs
+        WHERE vs.control_base_id = :control_base_id
+          AND vs.estado IN ('pendiente', 'publicado')
+          AND vs.chofer_id IS NULL
+          AND ST_DWithin(
+              vs.origen::geography,
+              ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+              :radio_metros
+          )
+        ORDER BY vs.created_at ASC
+        LIMIT 10
+    """)
+
+    result = await db.execute(query, {
+        "control_base_id": control_base_id,
+        "lat": lat,
+        "lng": lng,
+        "radio_metros": radio_metros,
+    })
+    rows = result.fetchall()
+
+    return {
+        "total": len(rows),
+        "viajes": [
+            {
+                "id": str(row[0]),
+                "direccion_origen": row[1],
+                "direccion_destino": row[2],
+                "origen_lat": float(row[3]) if row[3] else None,
+                "origen_lng": float(row[4]) if row[4] else None,
+                "destino_lat": float(row[5]) if row[5] else None,
+                "destino_lng": float(row[6]) if row[6] else None,
+                "precio_estimado": float(row[7]) if row[7] else None,
+                "nombre_pasajero": row[8],
+                "solicitado_en": row[9],
+                "distancia_metros": row[10],
+                "tiempo_estimado_segundos": row[11],
+                "distancia_chofer_metros": float(row[12]) if row[12] else None,
+            }
+            for row in rows
+        ]
+    }
