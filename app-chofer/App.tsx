@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { navigationRef } from './src/navigation/navigationRef';
+import { useWebSocket } from '@/hooks/useWebSocket'; // ✅ IMPORTAMOS EL HOOK
 
 // Auth
 import LoginScreen from './src/screens/auth/LoginScreen';
@@ -29,6 +30,11 @@ import Paso6Screen from './src/screens/registro/Paso6Screen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  // ✅ MONTAMOS EL WEBSOCKET GLOBALMENTE
+  // Esto conecta el WS en cuanto el usuario se loguea y se mantiene
+  // conectado mientras navega por toda la app.
+  useWebSocket();
+
   return (
     <NavigationContainer ref={navigationRef}>
       <StatusBar style="light" />

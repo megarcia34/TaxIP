@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -7,7 +8,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { COLORS } from '@/constants/colors';
@@ -18,31 +18,20 @@ import { viajeService } from '@/services/viaje.service';
 import { websocketService } from '@/services/websocket.service';
 import { BannerResultados } from '@/components/home/BannerResultados';
 import { ModuloCard } from '@/components/home/ModuloCard';
-import type { ResultadosResumen } from '@/components/home/BannerResultados';
 
 export default function HomeScreen() {
-  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { user, token } = useAuthStore();
-
+  const navigation = useNavigation<any>();
+  const { user } = useAuthStore();
+  
   const turnoActivo = useTurnoStore((s) => s.turnoActivo);
   const cargarTurnoActivo = useTurnoStore((s) => s.cargarTurnoActivo);
   const setViajeActivo = useViajeStore((s) => s.setViajeActivo);
-
+  
   const hayTurnoActivo = turnoActivo != null;
 
-  const [resultadosAyer, setResultadosAyer] = useState<ResultadosResumen | null>(null);
+  const [resultadosAyer, setResultadosAyer] = useState<any>(null);
   const [isLoadingResultados, setIsLoadingResultados] = useState(false);
-
-  // ============================================
-  // CONECTAR WEBSOCKET AL MONTAR
-  // ============================================
-  useEffect(() => {
-    if (user?.id && token) {
-      console.log('[WS] Conectando WebSocket desde Home...');
-      websocketService.conectar(user.id, token);
-    }
-  }, [user?.id, token]);
 
   // Mock: simular carga de datos del backend
   useEffect(() => {
@@ -69,45 +58,59 @@ export default function HomeScreen() {
     }
   }, [hayTurnoActivo, cargarTurnoActivo]);
 
-  // J15: verificar viaje activo
-  useEffect(() => {
-    const verificarViajeActivo = async () => {
-      try {
-        const viaje = await viajeService.obtenerViajeActivo();
-        if (viaje) {
-          setViajeActivo({
-            id: viaje.id,
-            estado: viaje.estado,
-            origen: viaje.origen_lat && viaje.origen_lng
-              ? { lat: viaje.origen_lat, lng: viaje.origen_lng }
-              : null,
-            destino: viaje.destino_lat && viaje.destino_lng
-              ? { lat: viaje.destino_lat, lng: viaje.destino_lng }
-              : null,
-            direccion_origen: viaje.direccion_origen,
-            direccion_destino: viaje.direccion_destino,
-            pasajero_id: viaje.pasajero_id ?? '',
-            pasajero_nombre: 'Pasajero anónimo',
-            precio_estimado: viaje.precio_estimado,
-            precio_final: viaje.precio_final,
-            moneda: viaje.moneda,
-            tiempo_estimado_segundos: viaje.tiempo_estimado_segundos,
-            distancia_metros: viaje.distancia_metros,
-            solicitado_en: viaje.solicitado_en,
-            aceptado_en: viaje.aceptado_en,
-            iniciado_en: viaje.iniciado_en,
-            origen_tipo: 'via_publica',
-            metodo_pago: viaje.metodo_pago,
-          });
-          navigation.navigate('ViajeDetalle', { id: viaje.id });
-        }
-      } catch (error) {
-        // Si no hay viaje activo, no hacer nada
-      }
-    };
+  // J15: verificar viaje activo (con proteccion contra redireccion si el usuario ya navego)
+  useFocusEffect(
+    useCallback(() => {
+      let cancelado = false;
 
-    verificarViajeActivo();
-  }, [navigation, setViajeActivo]);
+      const verificarViajeActivo = async () => {
+        try {
+          const viaje = await viajeService.obtenerViajeActivo();
+          
+          // Si el usuario ya se fue de la pantalla, no hacer nada
+          if (cancelado) return;
+
+          if (viaje) {
+            setViajeActivo({
+              id: viaje.id,
+              estado: viaje.estado,
+              origen: viaje.origen_lat && viaje.origen_lng
+                ? { lat: viaje.origen_lat, lng: viaje.origen_lng }
+                : null,
+              destino: viaje.destino_lat && viaje.destino_lng
+                ? { lat: viaje.destino_lat, lng: viaje.destino_lng }
+                : null,
+              direccion_origen: viaje.direccion_origen,
+              direccion_destino: viaje.direccion_destino,
+              pasajero_id: viaje.pasajero_id ?? '',
+              pasajero_nombre: 'Pasajero anónimo',
+              precio_estimado: viaje.precio_estimado,
+              precio_final: viaje.precio_final,
+              moneda: viaje.moneda,
+              tiempo_estimado_segundos: viaje.tiempo_estimado_segundos,
+              distancia_metros: viaje.distancia_metros,
+              solicitado_en: viaje.solicitado_en,
+              aceptado_en: viaje.aceptado_en,
+              iniciado_en: viaje.iniciado_en,
+              origen_tipo: 'via_publica',
+              metodo_pago: viaje.metodo_pago,
+            });
+            navigation.navigate('ViajeDetalle', { id: viaje.id });
+          }
+        } catch (error) {
+          // Si no hay viaje activo, no hacer nada
+        }
+      };
+
+      verificarViajeActivo();
+
+      // Cleanup: si el usuario navega a otra pantalla antes de que responda el backend,
+      // se cancela la redireccion
+      return () => {
+        cancelado = true;
+      };
+    }, [navigation, setViajeActivo])
+  );
 
   // ============================================
   // GPS: ENVIAR UBICACIÓN CADA 15 SEGUNDOS
@@ -157,7 +160,6 @@ export default function HomeScreen() {
       };
 
       await enviarUbicacion();
-      // CAMBIO: 15 segundos en lugar de 30
       interval = setInterval(enviarUbicacion, 15000);
     };
 
@@ -267,47 +269,49 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
   logo: {
     color: COLORS.primary,
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
   headerRight: {
     flexDirection: 'row',
+    gap: 12,
   },
   headerButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerIcon: {
-    fontSize: 22,
+    fontSize: 18,
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   saludo: {
     color: COLORS.textPrimary,
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   seccionTitulo: {
     color: COLORS.textPrimary,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.5,
-    opacity: 0.6,
-    marginTop: 8,
+    opacity: 0.5,
     marginBottom: 12,
+    marginTop: 8,
   },
 });

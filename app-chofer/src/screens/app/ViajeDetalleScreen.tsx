@@ -311,10 +311,12 @@ export default function ViajeEnCursoScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <ScreenHeader
+      <ScreenHeader
           titulo="VIAJE EN CURSO"
+          textoIzquierda="← HOME"
+          onIzquierda={() => navigation.navigate('Home')}
           conSafeArea={false}
-        />
+      />
 
         {loading && !viaje && (
           <View style={styles.loadingContainer}>

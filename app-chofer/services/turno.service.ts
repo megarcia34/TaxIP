@@ -195,4 +195,54 @@ export const turnoService = {
     );
     return response.data;
   },
+
+  /**
+   * Lista los viajes huérfanos del turno activo (bloquean el check-out).
+   * GET /api/chofer/turno/viajes-huerfanos
+   */
+  async listarViajesHuerfanos(): Promise<{
+    total: number;
+    puede_cerrar_turno: boolean;
+    viajes: Array<{
+      viaje_id: string;
+      estado: string;
+      created_at: string;
+      iniciado_en: string | null;
+      direccion_origen: string;
+      direccion_destino: string;
+      pasajero_nombre: string | null;
+      precio_estimado: number | null;
+      origen_tipo: string;
+      antiguedad_minutos: number;
+    }>;
+  }> {
+    const response = await api.get('/api/chofer/turno/viajes-huerfanos');
+    return response.data;
+  },
+
+  /**
+   * Cierra forzadamente un viaje huérfano.
+   * POST /api/chofer/turno/viajes-huerfanos/{viaje_id}/cerrar
+   */
+  async cerrarViajeHuerfano(
+    viajeId: string,
+    motivo: string,
+    notas?: string
+  ): Promise<{
+    success: boolean;
+    viaje_id: string;
+    estado_previo: string;
+    estado_nuevo: string;
+    motivo: string;
+    motivo_label: string;
+    precio_final: number | null;
+    puede_cerrar_turno: boolean;
+    message: string;
+  }> {
+    const response = await api.post(
+      `/api/chofer/turno/viajes-huerfanos/${viajeId}/cerrar`,
+      { motivo, notas }
+    );
+    return response.data;
+  },
 };

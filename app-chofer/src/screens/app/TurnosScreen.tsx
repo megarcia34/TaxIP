@@ -21,6 +21,7 @@ import { TurnoActivoCard } from '@/components/turno/TurnoActivoCard';
 import { ModalCodigo } from '@/components/turno/ModalCodigo';
 import { ModalCheckIn } from '@/components/turno/ModalCheckIn';
 import { ModalCheckOut } from '@/components/turno/ModalCheckOut';
+import { ModalViajesHuerfanos } from '@/components/turno/ModalViajesHuerfanos';
 import {
   ModalSeleccionVehiculo,
   VehiculoDisponible,
@@ -64,9 +65,15 @@ export default function TurnosScreen() {
   const [modalSeleccionVisible, setModalSeleccionVisible] = useState(false);
   const [modalCheckInVisible, setModalCheckInVisible] = useState(false);
   const [modalCheckOutVisible, setModalCheckOutVisible] = useState(false);
+  const [modalHuerfanosVisible, setModalHuerfanosVisible] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [isLoadingLocal, setIsLoadingLocal] = useState(false);
+  const [pendingCheckOut, setPendingCheckOut] = useState<{
+    kmFinal: number;
+    combustibleFinal: Combustible;
+    recaudacionTicketera: number;
+  } | null>(null);
 
   const nombreCorto = user?.nombreCompleto?.split(' ')[0] || 'Chofer';
 
@@ -264,7 +271,19 @@ export default function TurnosScreen() {
         err?.response?.data?.detail ||
         err?.message ||
         'Error al finalizar turno';
-      setError(mensaje);
+
+      // R17 - G67: Detectar viajes huérfanos
+      if (mensaje.includes('viajes sin cerrar') || mensaje.includes('viajes-huerfanos')) {
+        setPendingCheckOut({
+          kmFinal,
+          combustibleFinal,
+          recaudacionTicketera,
+        });
+        setModalHuerfanosVisible(true);
+        setModalCheckOutVisible(false);
+      } else {
+        setError(mensaje);
+      }
     } finally {
       setIsLoadingLocal(false);
     }
@@ -420,6 +439,28 @@ export default function TurnosScreen() {
         kmInicial={turnoActivo?.kmInicial || 0}
         isLoading={isLoadingLocal}
         error={error}
+      />
+
+      {/* Modal de viajes huérfanos (R17 - G67) */}
+      <ModalViajesHuerfanos
+        visible={modalHuerfanosVisible}
+        onClose={() => {
+          setModalHuerfanosVisible(false);
+          setPendingCheckOut(null);
+          setError(null);
+        }}
+        onTodosCerrados={async () => {
+          setModalHuerfanosVisible(false);
+          // Reintentar check-out automáticamente
+          if (pendingCheckOut) {
+            await handleCheckOut(
+              pendingCheckOut.kmFinal,
+              pendingCheckOut.combustibleFinal,
+              pendingCheckOut.recaudacionTicketera
+            );
+            setPendingCheckOut(null);
+          }
+        }}
       />
     </LinearGradient>
   );
