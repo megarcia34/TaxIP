@@ -183,6 +183,8 @@ class LiquidacionContextSchema(BaseModel):
     viajes: List[Dict[str, Any]]
     gastos_turno: List[Dict[str, Any]]
     gastos_vehiculo: List[Dict[str, Any]] = []
+    tratamiento_gastos: str = "DESPUES"
+    comision_pasarela: Decimal = Decimal('0')
     
     # PORCENTAJE
     porcentaje_chofer: Optional[Decimal] = None
@@ -233,14 +235,16 @@ class LiquidacionResultado(BaseModel):
     monto_bruto: Decimal
     total_gastos: Decimal
     comision_chofer: Decimal
-    canon: Decimal
+    canon: Decimal = Field(default=0)
     km_excedentes: Decimal = Field(default=0)
     cargo_km_excedentes: Decimal = Field(default=0)
     total_chofer: Decimal
     total_propietario: Decimal
     saldo_chofer: Decimal = Field(default=0)
     saldo_propietario: Decimal = Field(default=0)
+    comision_pasarela: Decimal = Field(default=0)  # ✅ AGREGADO
     detalles: List[LiquidacionDetalleCreate]
+    es_estimacion: bool = Field(default=False)  # ✅ AGREGADO
 
 
 # ============================================================

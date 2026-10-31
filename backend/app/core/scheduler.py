@@ -6,6 +6,8 @@ Jobs programados:
 - Reservas programadas (cada 60s)
 - Refresco de vista materializada KPIs (cada 1h)
 - Limpieza de viajes huerfanos (cada 1h)
+- Limpieza de turnos colgados (cada 1h)
+- Cancelacion de viajes pendientes vencidos (cada 1 min)
 - Notificaciones de vencimiento de documentos (cada 6h)
 """
 import asyncio
@@ -24,10 +26,7 @@ logger = logging.getLogger(__name__)
 # ============================================================
 
 async def procesar_timeouts_broadcast():
-    """
-    Procesa viajes publicados cuyo timeout expiro.
-    Llama a manejar_timeout_broadcast para cada uno.
-    """
+    """..."""
     from app.services.broadcast_service import manejar_timeout_broadcast
 
     async with AsyncSessionLocal() as db:
@@ -58,10 +57,7 @@ async def procesar_timeouts_broadcast():
 # ============================================================
 
 async def procesar_reservas():
-    """
-    Procesa las reservas cuya fecha_programada ha llegado.
-    Convierte el estado de 'programada' a 'pendiente' para que choferes puedan aceptarlas.
-    """
+    """..."""
     async with AsyncSessionLocal() as db:
         query = text("""
             SELECT id, pasajero_id, control_base_id
@@ -134,9 +130,7 @@ async def procesar_reservas():
 # ============================================================
 
 async def refrescar_mv_broadcast_kpis():
-    """
-    Refresca la vista materializada trip.mv_broadcast_kpis.
-    """
+    """..."""
     async with AsyncSessionLocal() as db:
         try:
             await db.execute(text(
@@ -153,9 +147,7 @@ async def refrescar_mv_broadcast_kpis():
 # ============================================================
 
 async def procesar_notificaciones_vencimiento():
-    """
-    Procesa notificaciones de vencimiento de documentos.
-    """
+    """..."""
     from app.services.notificacion_vencimiento import NotificacionVencimientoService
 
     logger.info("Procesando notificaciones de vencimiento de documentos...")
@@ -182,24 +174,9 @@ async def procesar_notificaciones_vencimiento():
 # ============================================================
 
 async def procesar_viajes_huerfanos():
-    """
-    Detecta y cancela viajes huerfanos.
-
-    Un viaje es huerfano si:
-    - estado='en_curso' y iniciado_en < NOW() - 24h
-    - estado='aceptado' y aceptado_en < NOW() - 4h
-
-    Solo se consideran viajes con chofer asignado (chofer_id IS NOT NULL),
-    porque son los que bloquean el check-out del chofer.
-
-    Efectos:
-    - Cancela el viaje.
-    - Inserta en historial_estado_viaje.
-    - Libera al chofer (libre si tiene turno activo, fuera_servicio si no).
-    """
+    """..."""
     async with AsyncSessionLocal() as db:
         try:
-            # 1. Detectar huerfanos
             query = text("""
                 SELECT
                     id,
@@ -236,7 +213,6 @@ async def procesar_viajes_huerfanos():
                     f"chofer_id={chofer_id}, ref={fecha_ref}"
                 )
 
-                # 2. Cancelar viaje
                 await db.execute(text("""
                     UPDATE trip.viaje_solicitado
                     SET estado = 'cancelado',
@@ -247,7 +223,6 @@ async def procesar_viajes_huerfanos():
                     WHERE id = :viaje_id
                 """), {"viaje_id": viaje_id})
 
-                # 3. Historial
                 await db.execute(text("""
                     INSERT INTO trip.historial_estado_viaje (
                         id, viaje_id, estado, observacion, created_at
@@ -260,7 +235,6 @@ async def procesar_viajes_huerfanos():
                     "obs": f"Auto-cancelado por scheduler. Estado previo: {estado}. Referencia: {fecha_ref}.",
                 })
 
-                # 4. Liberar chofer
                 if chofer_vehiculo_id:
                     await db.execute(text("""
                         UPDATE fleet.chofer_vehiculo
@@ -286,6 +260,7 @@ async def procesar_viajes_huerfanos():
             logger.error(f"Error en procesar_viajes_huerfanos: {e}")
             await db.rollback()
 
+
 # ============================================================
 # JOB 6: LIMPIEZA DE TURNOS COLGADOS (cada 1h) - G64
 # ============================================================
@@ -295,16 +270,20 @@ async def procesar_turnos_colgados():
     Detecta y cancela turnos colgados.
 
     Un turno es colgado si:
-    - estado='ACTIVO' y inicio_turno < NOW() - 24h
+    - estado='ACTIVO' y inicio_turno < NOW() - 16h
 
     Un turno normal dura 8-12 horas. Uno excepcional hasta 16 horas.
-    24h es claramente abandono.
+    16h es claramente abandono.
 
     Efectos:
     - Marca el turno como CANCELADO.
     - Guarda fin_turno.
-    - Libera al chofer (fuera_servicio).
+    - Libera al chofer (libre si tiene contrato activo, fuera_servicio si no).
+    - Notifica al chofer por WebSocket.
     """
+    from app.websocket.connection_manager import manager
+    from app.websocket.events import EventType
+
     async with AsyncSessionLocal() as db:
         try:
             # 1. Detectar turnos colgados
@@ -342,13 +321,50 @@ async def procesar_turnos_colgados():
                     WHERE id = :turno_id
                 """), {"turno_id": turno_id})
 
-                # 3. Liberar al chofer
+                # 3. Verificar si el chofer tiene un contrato activo
+                #    Si lo tiene, queda 'libre' (puede iniciar otro turno).
+                #    Si no, queda 'fuera_servicio'.
+                contrato_query = await db.execute(
+                    text("""
+                        SELECT 1 FROM fleet.contrato_vehiculo
+                        WHERE chofer_id = :chofer_id
+                          AND estado_contrato = 'ACTIVO'
+                          AND activo = true
+                        LIMIT 1
+                    """),
+                    {"chofer_id": chofer_id},
+                )
+                tiene_contrato = contrato_query.first() is not None
+
+                estado_laboral = 'libre' if tiene_contrato else 'fuera_servicio'
+
                 await db.execute(text("""
                     UPDATE fleet.chofer_vehiculo
-                    SET estado_laboral = 'fuera_servicio',
+                    SET estado_laboral = :estado,
                         updated_at = NOW()
                     WHERE usuario_id = :chofer_id
-                """), {"chofer_id": chofer_id})
+                """), {"chofer_id": chofer_id, "estado": estado_laboral})
+
+                # 4. Notificar al chofer por WebSocket
+                try:
+                    await manager.send_personal(
+                        user_id=str(chofer_id),
+                        event=getattr(EventType, 'TURNO_CANCELADO', 'turno_cancelado'),
+                        data={
+                            "turno_id": str(turno_id),
+                            "motivo": "turno_colgado",
+                            "mensaje": (
+                                f"Tu turno fue cancelado automaticamente porque "
+                                f"supero las 16 horas de duracion. "
+                                f"Inicia un nuevo turno cuando quieras."
+                            ),
+                        },
+                    )
+                    logger.info(f"Notificacion de cancelacion enviada al chofer {chofer_id}")
+                except Exception as e:
+                    logger.warning(
+                        f"No se pudo notificar cancelacion de turno {turno_id}: {e}"
+                    )
 
             await db.commit()
             logger.info(
@@ -360,27 +376,15 @@ async def procesar_turnos_colgados():
             logger.error(f"Error en procesar_turnos_colgados: {e}")
             await db.rollback()
 
+
 # ============================================================
 # JOB 7: CANCELACION DE VIAJES PENDIENTES VENCIDOS (cada 1 min)
 # ============================================================
 
 async def procesar_pendientes_vencidos():
-    """
-    Cancela viajes en estado 'pendiente' que superaron el tiempo maximo
-    de espera sin encontrar chofer.
-
-    Un viaje pendiente se considera vencido si:
-    - estado='pendiente'
-    - created_at < NOW() - 5 minutos
-    - chofer_id IS NULL (nunca fue asignado)
-
-    El pasajero recibe el estado 'cancelado' con motivo
-    'sin_moviles_disponibles' para que la landing muestre
-    el mensaje correspondiente.
-    """
+    """..."""
     async with AsyncSessionLocal() as db:
         try:
-            # 1. Detectar pendientes vencidos
             query = text("""
                 SELECT id, pasajero_id, control_base_id
                 FROM trip.viaje_solicitado
@@ -402,7 +406,6 @@ async def procesar_pendientes_vencidos():
 
                 logger.info(f"   Viaje {viaje_id}: sin moviles disponibles tras 5 min")
 
-                # 2. Cancelar viaje
                 await db.execute(text("""
                     UPDATE trip.viaje_solicitado
                     SET estado = 'cancelado',
@@ -413,7 +416,6 @@ async def procesar_pendientes_vencidos():
                     WHERE id = :viaje_id
                 """), {"viaje_id": viaje_id})
 
-                # 3. Historial
                 await db.execute(text("""
                     INSERT INTO trip.historial_estado_viaje (
                         id, viaje_id, estado, observacion, created_at
@@ -424,7 +426,6 @@ async def procesar_pendientes_vencidos():
                     )
                 """), {"viaje_id": viaje_id})
 
-                # 4. Notificar al pasajero por WebSocket (si esta conectado)
                 if pasajero_id:
                     try:
                         from app.websocket.connection_manager import manager
@@ -448,6 +449,7 @@ async def procesar_pendientes_vencidos():
         except Exception as e:
             logger.error(f"Error en procesar_pendientes_vencidos: {e}")
             await db.rollback()
+
 
 # ============================================================
 # LOOP PRINCIPAL DEL SCHEDULER

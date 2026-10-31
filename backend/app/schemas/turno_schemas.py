@@ -238,6 +238,7 @@ class ResumenResponse(CamelCaseModel):
     viaje_mas_caro: float
     viaje_mas_bajo: float
     promedio_viaje: float
+    desglose_por_origen: dict[str, dict[str, float | int]] = {}
 
 
 class IniciarJornadaResponse(CamelCaseModel):
@@ -361,3 +362,35 @@ class CerrarViajeHuerfanoResponse(BaseModel):
     precio_final: Optional[float] = None
     puede_cerrar_turno: bool
     message: str
+
+    
+from typing import Optional, Dict
+
+class BannerInfo(BaseModel):
+    titulo: str
+    subtitulo: str
+    color_estado: str
+    tipo_contrato: Optional[str] = None
+    porcentaje_chofer: Optional[float] = None
+    monto_diario: Optional[float] = None
+    tratamiento_gastos: Optional[str] = None
+
+class ResumenResponse(BaseModel):
+    # Campos existentes (asegurate de que esten todos)
+    fecha_inicio: str
+    fecha_fin: str
+    dias: int
+    viajes: int
+    recaudado: float
+    km_recorridos: float
+    duracion_minutos: int
+    viaje_mas_caro: float
+    viaje_mas_bajo: float
+    promedio_viaje: float
+    desglose_por_origen: Optional[Dict[str, Dict[str, float]]] = None
+    
+    
+    banner_info: BannerInfo
+    recaudacion_efectivo: float = 0.0
+    recaudacion_electronico: float = 0.0
+    gastos_turno: float = 0.0

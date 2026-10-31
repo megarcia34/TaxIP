@@ -1,8 +1,9 @@
 # app/services/liquidacion_context.py
 """
-Contexto de liquidación: carga y valida los hechos necesarios
+Contexto de liquidacion: carga y valida los hechos necesarios
 CON HORARIOS FLEXIBLES Y CAMPOS DE ALQUILER
-AHORA CON INGRESO_TURNO - Reemplaza campos legacy de recaudación
+AHORA CON INGRESO_TURNO - Reemplaza campos legacy de recaudacion
+FASE 0: agrega tratamiento_gastos y comision_pasarela
 """
 
 from uuid import UUID
@@ -10,8 +11,9 @@ from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, text
 import json
+
 
 from app.models.turno import TurnoChofer
 from app.models.fleet import ContratoVehiculo, PropietarioVehiculo, GastoVehiculo, IngresoTurno
@@ -24,7 +26,7 @@ from app.core.validaciones_compartidas import calcular_duracion_horas
 
 class LiquidacionContext:
     """
-    Carga y valida todos los hechos necesarios para una liquidación.
+    Carga y valida todos los hechos necesarios para una liquidacion.
     """
 
     def __init__(self, db: AsyncSession):
@@ -44,7 +46,7 @@ class LiquidacionContext:
         if not contrato:
             raise LiquidacionError(f"Contrato no encontrado para turno {turno_id}")
 
-        # 3. Obtener propietario del vehículo
+        # 3. Obtener propietario del vehiculo
         propietario_id = await self._obtener_propietario(turno.vehiculo_id)
 
         # 4. Cargar viajes asociados al turno
@@ -53,7 +55,7 @@ class LiquidacionContext:
         # 5. Cargar gastos del turno
         gastos_turno = await self._cargar_gastos_turno(turno_id)
 
-        # 6. Cargar gastos del vehículo en el período del turno
+        # 6. Cargar gastos del vehiculo en el periodo del turno
         gastos_vehiculo = await self._cargar_gastos_vehiculo(
             vehiculo_id=turno.vehiculo_id,
             desde=turno.inicio_turno,
@@ -96,6 +98,33 @@ class LiquidacionContext:
                 total_corporativo += monto
 
         # ============================================================
+        # FASE 0: TRATAMIENTO DE GASTOS Y COMISION DE PASARELA
+        # ============================================================
+
+        # Leer tratamiento_gastos del contrato (fallback a 'DESPUES')
+        tratamiento_gastos = getattr(contrato, 'tratamiento_gastos', None) or 'DESPUES'
+
+        # Calcular comision de pasarela (costo de recaudacion electronica)
+        # Solo aplica sobre lo electronico, es costo del propietario
+        query_pasarela = text("""
+            SELECT comision_porcentaje
+            FROM payment.configuracion_pasarela
+            WHERE control_base_id = :control_base_id
+              AND activa = true
+            LIMIT 1
+        """)
+        result_pasarela = await self.db.execute(
+            query_pasarela,
+            {"control_base_id": control_base_id}
+        )
+        comision_porcentaje = result_pasarela.scalar() or 0
+
+        # La comision se calcula solo sobre lo electronico
+        comision_pasarela = total_electronico * (
+            Decimal(str(comision_porcentaje)) / Decimal('100')
+        )
+
+        # ============================================================
         # FUENTE DE VERDAD: SOLO INGRESO_TURNO
         # ============================================================
         recaudacion_ticketera = total_taximetro + total_manual
@@ -110,7 +139,7 @@ class LiquidacionContext:
         km_inicial = turno.km_inicial
         km_final = turno.km_final
 
-        # Calcular kilómetros recorridos
+        # Calcular kilometros recorridos
         km_recorridos = Decimal(0)
         if km_inicial is not None and km_final is not None:
             km_recorridos = Decimal(str(km_final - km_inicial))
@@ -124,13 +153,13 @@ class LiquidacionContext:
         valor_km_excedente = contrato.valor_km_excedente
         modalidad_computo = contrato.modalidad_computo or 'DIARIO'
         tratamiento_dia_no_trabajado = contrato.tratamiento_dia_no_trabajado or 'POR_DISPONIBILIDAD'
-        
-        # Obtener días contractuales
+
+        # Obtener dias contractuales
         dias_contractuales = contrato.dias_contractuales
         if isinstance(dias_contractuales, str):
             try:
                 dias_contractuales = json.loads(dias_contractuales)
-            except:
+            except Exception:
                 dias_contractuales = []
         elif not isinstance(dias_contractuales, list):
             dias_contractuales = []
@@ -146,7 +175,7 @@ class LiquidacionContext:
         permite_extension = contrato.permite_extension
         dia_inicio_semana = contrato.dia_inicio_semana
 
-        # Calcular duración del turno (horas trabajadas)
+        # Calcular duracion del turno (horas trabajadas)
         duracion_turno_horas = Decimal(0)
         if turno.inicio_turno and turno.fin_turno:
             diff = turno.fin_turno - turno.inicio_turno
@@ -155,10 +184,10 @@ class LiquidacionContext:
             diff = datetime.now() - turno.inicio_turno
             duracion_turno_horas = Decimal(str(diff.total_seconds() / 3600))
 
-        # Calcular días del turno
+        # Calcular dias del turno
         dias_turno = self._calcular_dias_turno(turno.inicio_turno, turno.fin_turno)
-        
-        # Calcular días trabajados contractualmente
+
+        # Calcular dias trabajados contractualmente
         dias_trabajados = self._calcular_dias_trabajados(
             dias_turno=dias_turno,
             dias_contractuales=dias_contractuales,
@@ -166,7 +195,7 @@ class LiquidacionContext:
             turno_id=turno_id
         )
 
-        # Calcular km incluidos totales según modalidad
+        # Calcular km incluidos totales segun modalidad
         km_incluidos_totales = self._calcular_km_incluidos_totales(
             km_incluidos_dia=km_incluidos_dia,
             dias_trabajados=dias_trabajados,
@@ -184,7 +213,7 @@ class LiquidacionContext:
             if valor_km_excedente is not None:
                 cargo_km_excedentes = km_excedentes * Decimal(str(valor_km_excedente))
 
-        # Calcular canon según días trabajados
+        # Calcular canon segun dias trabajados
         canon_calculado = Decimal(0)
         if canon_diario is not None and dias_trabajados > 0:
             canon_calculado = Decimal(str(canon_diario)) * Decimal(str(dias_trabajados))
@@ -214,11 +243,11 @@ class LiquidacionContext:
             viajes=[self._viaje_to_dict(v) for v in viajes],
             gastos_turno=[self._gasto_turno_to_dict(g) for g in gastos_turno],
             gastos_vehiculo=[self._gasto_vehiculo_to_dict(g) for g in gastos_vehiculo],
-            
+
             # PORCENTAJE - USANDO NUEVOS INGRESOS
             porcentaje_chofer=contrato.porcentaje_chofer,
             recaudacion_ticketera=recaudacion_ticketera,
-            
+
             # ALQUILER
             canon_diario=canon_diario,
             canon_calculado=canon_calculado,
@@ -234,7 +263,7 @@ class LiquidacionContext:
             dias_contractuales=dias_contractuales,
             dias_trabajados=dias_trabajados,
             tratamento_dia_no_trabajado=tratamiento_dia_no_trabajado,
-            
+
             # HORARIOS FLEXIBLES
             hora_inicio=hora_inicio,
             hora_fin=hora_fin,
@@ -243,8 +272,12 @@ class LiquidacionContext:
             hora_fin_extension=hora_fin_extension,
             dia_inicio_semana=dia_inicio_semana,
             duracion_turno_horas=duracion_turno_horas,
-            
-            # NUEVO: INGRESOS DETALLADOS (SOLO CON MONTO > 0)
+
+            # FASE 0: NUEVOS CAMPOS
+            tratamiento_gastos=tratamiento_gastos,
+            comision_pasarela=comision_pasarela,
+
+            # INGRESOS DETALLADOS (SOLO CON MONTO > 0)
             ingresos=ingresos_filtrados,
             total_ingresos_aprobados=total_ingresos_aprobados,
             total_efectivo=total_efectivo,
@@ -257,11 +290,11 @@ class LiquidacionContext:
         return contexto
 
     # ============================================================
-    # MÉTODOS PRIVADOS
+    # METODOS PRIVADOS
     # ============================================================
 
     async def _obtener_propietario(self, vehiculo_id: UUID) -> UUID:
-        """Obtiene el propietario activo del vehículo"""
+        """Obtiene el propietario activo del vehiculo"""
         query = select(PropietarioVehiculo).where(
             and_(
                 PropietarioVehiculo.vehiculo_id == vehiculo_id,
@@ -271,7 +304,7 @@ class LiquidacionContext:
         result = await self.db.execute(query)
         prop = result.scalar_one_or_none()
         if not prop:
-            raise LiquidacionError(f"No se encontró propietario activo para vehículo {vehiculo_id}")
+            raise LiquidacionError(f"No se encontro propietario activo para vehiculo {vehiculo_id}")
         return prop.propietario_id
 
     async def _cargar_viajes(self, turno_id: UUID) -> List[ViajeSolicitado]:
@@ -292,7 +325,7 @@ class LiquidacionContext:
         return result.scalars().all()
 
     async def _cargar_gastos_vehiculo(self, vehiculo_id: UUID, desde: datetime, hasta: datetime) -> List[GastoVehiculo]:
-        """Carga gastos del vehículo en el período del turno"""
+        """Carga gastos del vehiculo en el periodo del turno"""
         query = select(GastoVehiculo).where(
             and_(
                 GastoVehiculo.vehiculo_id == vehiculo_id,
@@ -368,7 +401,7 @@ class LiquidacionContext:
 
     def _calcular_dias_turno(self, inicio: datetime, fin: Optional[datetime] = None) -> int:
         """
-        Calcula la cantidad de días que abarca el turno.
+        Calcula la cantidad de dias que abarca el turno.
         """
         if fin is None:
             fin = datetime.now()
@@ -383,7 +416,7 @@ class LiquidacionContext:
         turno_id: UUID
     ) -> int:
         """
-        Calcula cuántos días del turno son contractuales según el tratamiento.
+        Calcula cuantos dias del turno son contractuales segun el tratamiento.
         """
         if not dias_contractuales:
             return dias_turno
@@ -405,17 +438,17 @@ class LiquidacionContext:
         turno_id: UUID
     ) -> Optional[Decimal]:
         """
-        Calcula los kilómetros incluidos totales según modalidad.
+        Calcula los kilometros incluidos totales segun modalidad.
         """
         if km_incluidos_dia is None:
             return None
 
         if modalidad == "DIARIO":
             return km_incluidos_dia * Decimal(str(dias_trabajados))
-        
+
         elif modalidad == "SEMANAL":
             dias_semana = len(dias_contractuales) if dias_contractuales else 7
             return km_incluidos_dia * Decimal(str(dias_semana))
-        
+
         else:
             return km_incluidos_dia * Decimal(str(dias_trabajados))

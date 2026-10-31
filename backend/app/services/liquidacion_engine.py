@@ -61,6 +61,25 @@ class LiquidacionEngine:
 
         return liquidacion_id
 
+    async def estimar(self, turno_id: UUID) -> LiquidacionResultado:
+        """
+        Calcula la liquidacion SIN persistir.
+        Usado por el chofer para ver estimacion en tiempo real.
+        """
+        # 1. Cargar contexto (igual que calcular)
+        contexto = await self.context_loader.cargar(turno_id)
+        
+        # 2. Seleccionar calculador
+        calculador = self._seleccionar_calculador(contexto.tipo_contrato)
+        
+        # 3. Ejecutar calculo
+        resultado = await calculador.calcular(contexto)
+        
+        # 4. Marcar como estimacion (no persistir)
+        resultado.es_estimacion = True
+        
+        return resultado
+    
     def _seleccionar_calculador(self, tipo_contrato: str) -> LiquidacionCalculator:
         """Selecciona el calculador adecuado según el tipo de contrato"""
         if tipo_contrato == "ALQUILER":

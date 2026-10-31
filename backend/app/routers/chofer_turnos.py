@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from uuid import UUID, uuid4
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict
 import logging
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -76,6 +77,38 @@ def calcular_duracion(inicio_turno: Optional[datetime]) -> tuple[int, str]:
     formateada = f"{horas:02d}:{mins:02d}:{segs:02d}"
 
     return minutos, formateada
+
+
+
+
+class BannerInfo(BaseModel):
+    titulo: str
+    subtitulo: str
+    color_estado: str
+    tipo_contrato: Optional[str] = None
+    porcentaje_chofer: Optional[float] = None
+    monto_diario: Optional[float] = None
+    tratamiento_gastos: Optional[str] = None
+
+class ResumenResponse(BaseModel):
+    fecha_inicio: str
+    fecha_fin: str
+    dias: int
+    viajes: int
+    recaudado: float
+    km_recorridos: float
+    duracion_minutos: int
+    viaje_mas_caro: float
+    viaje_mas_bajo: float
+    promedio_viaje: float
+    desglose_por_origen: Optional[Dict[str, Dict[str, float]]] = None
+    
+    # Nuevos campos Fase 1
+    banner_info: BannerInfo
+    recaudacion_efectivo: float = 0.0
+    recaudacion_electronico: float = 0.0
+    gastos_turno: float = 0.0
+
 
 
 # ==========================================
@@ -1105,25 +1138,24 @@ async def obtener_modo_inicio(
         requiere_codigo=requiere_codigo,
         vehiculos_disponibles=vehiculos
     )
-
-
-# ==========================================
-# RESUMEN DE ACTIVIDAD (para el Home)
-# ==========================================
 @router.get("/resumen", response_model=ResumenResponse)
 async def obtener_resumen(
-    dias: int = 1,
+    dias: int = 0,
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Obtiene el resumen de actividad del chofer en los últimos N días.
-    - dias=1: ayer
-    - dias=7: última semana
-    - dias=30: último mes
+    Obtiene el resumen de actividad del chofer (Banner Home).
     - dias=0: hoy
+    - dias=1: ayer
+    - dias=7: ultima semana
     """
     user_id, control_base_id, email, tipo = current_user
+    
+    # DEBUG: Descomenta la siguiente linea, reinicia el backend y mira la consola 
+    # para verificar que el user_id coincide con: 095a7189-36fe-47e5-889a-83f84ad6fa94
+    # import logging
+    # logging.info(f"=== DEBUG Banner Resumen === user_id recibido: {user_id}")
 
     hoy = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     if dias == 0:
@@ -1133,58 +1165,179 @@ async def obtener_resumen(
         fecha_fin = hoy
         fecha_inicio = hoy - timedelta(days=dias)
 
-    # 1. Viajes finalizados
+    # 1. Obtener contrato activo del chofer
+    query_contrato = text("""
+        SELECT tipo_contrato, porcentaje_chofer, canon_diario, tratamiento_gastos
+        FROM fleet.contrato_vehiculo
+        WHERE chofer_id = :user_id
+          AND estado_contrato = 'ACTIVO'
+          AND activo = true
+        LIMIT 1
+    """)
+    result_contrato = await db.execute(query_contrato, {"user_id": user_id})
+    row_contrato = result_contrato.first()
+    
+    tipo_contrato = row_contrato[0] if row_contrato else None
+    porcentaje_chofer = float(row_contrato[1]) if row_contrato and row_contrato[1] else None
+    canon_diario = float(row_contrato[2]) if row_contrato and row_contrato[2] else None
+    tratamiento_gastos = row_contrato[3] if row_contrato else 'DESPUES'
+
+    # 2. Viajes finalizados y split de caja (Efectivo vs Electronico)
+    # NOTA: Filtra por finalizado_en >= fecha_inicio. Si los viajes de prueba 
+    # se hicieron ayer, no apareceran en dias=0.
     query_viajes = text("""
         SELECT
             COUNT(*) as viajes,
             COALESCE(SUM(precio_final), 0) as recaudado,
             COALESCE(MAX(precio_final), 0) as viaje_mas_caro,
-            COALESCE(MIN(precio_final), 0) as viaje_mas_bajo
+            COALESCE(MIN(precio_final), 0) as viaje_mas_bajo,
+            COALESCE(SUM(CASE WHEN COALESCE(metodo_pago, 'efectivo') = 'efectivo' THEN precio_final ELSE 0 END), 0) as efectivo,
+            COALESCE(SUM(CASE WHEN COALESCE(metodo_pago, 'efectivo') != 'efectivo' THEN precio_final ELSE 0 END), 0) as electronico
         FROM trip.viaje_solicitado
         WHERE chofer_id = :user_id
           AND estado = 'finalizado'
           AND finalizado_en >= :fecha_inicio
           AND finalizado_en < :fecha_fin
     """)
-    result = await db.execute(query_viajes, {
+    result_viajes = await db.execute(query_viajes, {
         "user_id": user_id,
         "fecha_inicio": fecha_inicio,
         "fecha_fin": fecha_fin
     })
-    row_viajes = result.first()
-
+    row_viajes = result_viajes.first()
+    
     viajes = row_viajes[0] or 0
     recaudado = float(row_viajes[1] or 0)
     viaje_mas_caro = float(row_viajes[2] or 0)
     viaje_mas_bajo = float(row_viajes[3] or 0)
+    recaudacion_efectivo = float(row_viajes[4] or 0)
+    recaudacion_electronico = float(row_viajes[5] or 0)
 
-    # 2. Turnos cerrados (km y duración)
-    query_turnos = text("""
-        SELECT
-            COALESCE(SUM(km_final - km_inicial), 0) as km_recorridos,
-            COALESCE(
-                SUM(EXTRACT(EPOCH FROM (fin_turno - inicio_turno)) / 60),
-                0
-            ) as duracion_minutos
+    # 3. Fix de KM y Duracion para turno ACTIVO
+    query_turno_activo = text("""
+        SELECT id, km_inicial, km_final, inicio_turno
         FROM fleet.turno_chofer
-        WHERE chofer_id = :user_id
-          AND estado IN ('CERRADO', 'PENDIENTE_CONFIRMACION')
-          AND inicio_turno >= :fecha_inicio
-          AND inicio_turno < :fecha_fin
-          AND km_final IS NOT NULL
-          AND fin_turno IS NOT NULL
+        WHERE chofer_id = :user_id AND estado = 'ACTIVO'
+        ORDER BY inicio_turno DESC LIMIT 1
     """)
-    result = await db.execute(query_turnos, {
-        "user_id": user_id,
-        "fecha_inicio": fecha_inicio,
-        "fecha_fin": fecha_fin
-    })
-    row_turnos = result.first()
+    result_turno = await db.execute(query_turno_activo, {"user_id": user_id})
+    row_turno = result_turno.first()
+    
+    km_recorridos = 0.0
+    duracion_minutos = 0
+    turno_id_para_gastos = None
 
-    km_recorridos = float(row_turnos[0] or 0)
-    duracion_minutos = int(row_turnos[1] or 0)
+    if row_turno:
+        turno_id_para_gastos = row_turno[0]
+        km_inicial, km_final, inicio_turno = row_turno[1], row_turno[2], row_turno[3]
+        
+        # Fix KM: si no hay km_final, sumar distancia_metros de viajes finalizados
+        if km_inicial is not None and km_final is not None:
+            km_recorridos = float(km_final - km_inicial)
+        elif km_inicial is not None and km_final is None:
+            query_km_activo = text("""
+                SELECT COALESCE(SUM(distancia_metros), 0)
+                FROM trip.viaje_solicitado
+                WHERE chofer_id = :user_id
+                  AND turno_id = :turno_id
+                  AND estado = 'finalizado'
+            """)
+            res_km = await db.execute(query_km_activo, {"user_id": user_id, "turno_id": row_turno[0]})
+            km_recorridos = float(res_km.scalar() or 0) / 1000.0
+            
+        # FIX DURACION: si el turno esta activo, calcular desde inicio_turno hasta AHORA
+        if inicio_turno is not None:
+            diff = datetime.now() - inicio_turno
+            duracion_minutos = int(diff.total_seconds() // 60)
+    else:
+        # Si no hay turno activo, sumar duracion de turnos cerrados en el periodo
+        query_turnos_cerrados = text("""
+            SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (fin_turno - inicio_turno)) / 60), 0)
+            FROM fleet.turno_chofer
+            WHERE chofer_id = :user_id
+              AND estado IN ('CERRADO', 'PENDIENTE_CONFIRMACION')
+              AND inicio_turno >= :fecha_inicio
+              AND inicio_turno < :fecha_fin
+              AND km_final IS NOT NULL AND fin_turno IS NOT NULL
+        """)
+        result_dur = await db.execute(query_turnos_cerrados, {"user_id": user_id, "fecha_inicio": fecha_inicio, "fecha_fin": fecha_fin})
+        duracion_minutos = int(result_dur.scalar() or 0)
+        
+        # Buscar el ultimo turno cerrado para los gastos
+        query_last_turno = text("""
+            SELECT id FROM fleet.turno_chofer
+            WHERE chofer_id = :user_id AND estado IN ('CERRADO', 'PENDIENTE_CONFIRMACION')
+            AND inicio_turno >= :fecha_inicio AND inicio_turno < :fecha_fin
+            ORDER BY inicio_turno DESC LIMIT 1
+        """)
+        res_last = await db.execute(query_last_turno, {"user_id": user_id, "fecha_inicio": fecha_inicio, "fecha_fin": fecha_fin})
+        last_row = res_last.first()
+        if last_row:
+            turno_id_para_gastos = last_row[0]
 
-    # 3. Calcular promedio
+    # 4. Gastos del turno
+    gastos_turno = 0.0
+    if turno_id_para_gastos:
+        query_gastos = text("SELECT COALESCE(SUM(monto), 0) FROM fleet.gasto_turno WHERE turno_id = :turno_id")
+        res_gastos = await db.execute(query_gastos, {"turno_id": turno_id_para_gastos})
+        gastos_turno = float(res_gastos.scalar() or 0)
+
+    # 5. Desglose por origen
+    query_desglose = text("""
+        SELECT COALESCE(origen_tipo, 'desconocido') as origen, COUNT(*) as viajes, COALESCE(SUM(precio_final), 0) as recaudado
+        FROM trip.viaje_solicitado
+        WHERE chofer_id = :user_id AND estado = 'finalizado'
+          AND finalizado_en >= :fecha_inicio AND finalizado_en < :fecha_fin
+        GROUP BY COALESCE(origen_tipo, 'desconocido')
+    """)
+    result_desglose = await db.execute(query_desglose, {"user_id": user_id, "fecha_inicio": fecha_inicio, "fecha_fin": fecha_fin})
+    desglose = {row[0]: {"viajes": int(row[1]), "recaudado": round(float(row[2]), 2)} for row in result_desglose.fetchall()}
+
+    # 6. CALCULAR BANNER_INFO (Logica de Negocio)
+    banner_info = BannerInfo(titulo="", subtitulo="", color_estado="gris")
+    
+    if not tipo_contrato:
+        banner_info.titulo = "Sin contrato activo"
+        banner_info.subtitulo = "Contacta a tu propietario"
+        
+    elif tipo_contrato == "PORCENTAJE":
+        if tratamiento_gastos == "ANTES":
+            base = max(0, recaudado - gastos_turno)
+            tu_parte = base * (porcentaje_chofer / 100.0)
+        else:
+            tu_parte = (recaudado * (porcentaje_chofer / 100.0)) - gastos_turno
+            
+        banner_info.titulo = f"Tu parte: ${tu_parte:,.0f}"
+        banner_info.subtitulo = f"{viajes} viajes - {porcentaje_chofer}% de ${recaudado:,.0f}"
+        banner_info.color_estado = "primary"
+        banner_info.tipo_contrato = "PORCENTAJE"
+        banner_info.porcentaje_chofer = porcentaje_chofer
+        banner_info.tratamiento_gastos = tratamiento_gastos
+        
+    elif tipo_contrato == "ALQUILER":
+        if recaudado < canon_diario:
+            falta = canon_diario - recaudado
+            banner_info.titulo = f"Faltan ${falta:,.0f} para el canon"
+            banner_info.subtitulo = f"Llevas ${recaudado:,.0f} de ${canon_diario:,.0f} - {viajes} viajes"
+            banner_info.color_estado = "naranja"
+        else:
+            ganancia = recaudado - canon_diario
+            banner_info.titulo = f"Canon cubierto! Ganancia: ${ganancia:,.0f}"
+            banner_info.subtitulo = f"Recaudaste ${recaudado:,.0f} - {viajes} viajes"
+            banner_info.color_estado = "verde"
+            
+        banner_info.tipo_contrato = "ALQUILER"
+        banner_info.monto_diario = canon_diario
+        
+    elif tipo_contrato == "AUTO_GESTION":
+        ganancia_neta = recaudado - gastos_turno
+        banner_info.titulo = f"Ganancia neta: ${ganancia_neta:,.0f}"
+        banner_info.subtitulo = f"{viajes} viajes realizados"
+        banner_info.color_estado = "primary"
+        banner_info.tipo_contrato = "AUTO_GESTION"
+        banner_info.tratamiento_gastos = tratamiento_gastos
+
+    # 7. Calcular promedio y retornar
     promedio_viaje = recaudado / viajes if viajes > 0 else 0
 
     return ResumenResponse(
@@ -1197,10 +1350,13 @@ async def obtener_resumen(
         duracion_minutos=duracion_minutos,
         viaje_mas_caro=round(viaje_mas_caro, 2),
         viaje_mas_bajo=round(viaje_mas_bajo, 2),
-        promedio_viaje=round(promedio_viaje, 2)
+        promedio_viaje=round(promedio_viaje, 2),
+        desglose_por_origen=desglose,
+        banner_info=banner_info,
+        recaudacion_efectivo=round(recaudacion_efectivo, 2),
+        recaudacion_electronico=round(recaudacion_electronico, 2),
+        gastos_turno=round(gastos_turno, 2)
     )
-
-
 @router.get("/{turno_id}")
 async def obtener_detalle_turno(
     turno_id: UUID,
