@@ -19,6 +19,7 @@ export interface ResumenFinanzasTotales {
   comisionPropietario: number;
   comisionEstimada: boolean;
   utilidadNeta: number;
+  desglosePorOrigen?: Record<string, { viajes: number; recaudado: number }>;  // ✅ AGREGADO
 }
 
 export interface ViajeFinanzas {
@@ -34,7 +35,7 @@ export interface GastoFinanzas {
   tipo: string;
   monto: number;
   descripcion: string;
-  urlComprobante: string | null; // <-- AGREGADO para la foto
+  urlComprobante: string | null;
 }
 
 export interface IngresoFinanzas {

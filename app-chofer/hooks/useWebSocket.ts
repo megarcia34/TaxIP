@@ -3,7 +3,7 @@
  *
  * Responsabilidades:
  * - Conectar el websocketService cuando hay token + userId.
- * - Registrar callbacks que sincronizan el estado de conexión con el
+ * - Registrar callbacks que sincronizan el estado de conexion con el
  *   conexion.store y enrutan los mensajes entrantes al viaje.store.
  * - Desconectar al desmontar.
  *
@@ -16,6 +16,7 @@ import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useConexionStore } from '@/stores/conexion.store';
 import { useViajeStore } from '@/stores/viaje.store';
+import { useTurnoStore } from '@/stores/turno.store';
 import { websocketService } from '@/services/websocket.service';
 import type {
   MensajeWS,
@@ -78,12 +79,18 @@ export function useWebSocket() {
     setEstadoWS('conectando');
     websocketService.conectar(userId, token);
 
+    // ✅ NO devolvemos cleanup. La desconexion se maneja en el useEffect
+    // separado de abajo, que solo se ejecuta al desmontar el componente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, userId]);
+
+  // ✅ Desconectar SOLO al desmontar el componente (no en cada re-render).
+  useEffect(() => {
     return () => {
       websocketService.desconectar();
       conectadoConRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, userId]);
+  }, []);
 
   // ------------------------------------------------------------
   // ENRUTAMIENTO DE MENSAJES
@@ -91,23 +98,19 @@ export function useWebSocket() {
   function enrutarMensaje(mensaje: MensajeWS): void {
     switch (mensaje.type) {
       case 'nuevo_viaje': {
-        const p = mensaje.data as any; // Usamos any para aceptar ambos nombres (id y viaje_id)
-        
-        // ✅ Aceptar tanto "viaje_id" como "id" para evitar desajustes
+        const p = mensaje.data as any;
         const viajeId = p?.viaje_id || p?.id;
-        
+
         if (!viajeId) {
           console.warn('[WS] nuevo_viaje sin viaje_id ni id');
           return;
         }
-        
-        // Adaptamos el payload mínimo del WS a ViajeSolicitado.
-        // Forzamos el campo viaje_id para que el adaptador funcione
+
         const viaje: ViajeSolicitado = adaptarNuevoViaje({
           ...p,
           viaje_id: viajeId,
         });
-        
+
         agregarViajeDisponible(viaje);
         break;
       }
@@ -140,6 +143,13 @@ export function useWebSocket() {
         break;
       }
 
+      case 'turno_cancelado': {
+        const p = mensaje.data as any;
+        console.warn('[WS] Turno cancelado por el sistema:', p?.mensaje || '');
+        useTurnoStore.getState().setTurnoActivo(null);
+        break;
+      }
+
       case 'viaje_reasignado':
       case 'cobro_pendiente':
       case 'pago_confirmado':
@@ -158,14 +168,6 @@ export function useWebSocket() {
 // ------------------------------------------------------------
 // ADAPTADOR
 // ------------------------------------------------------------
-/**
- * Adapta el payload del WS `nuevo_viaje` a un `ViajeSolicitado`.
- *
- * El payload del WS trae solo los campos necesarios para mostrar la
- * tarjeta del viaje entrante. Los campos que no vienen se rellenan con
- * null / defaults. La forma completa se obtiene luego con
- * `GET /api/viajes/{id}/estado` si el chofer quiere más detalle.
- */
 function adaptarNuevoViaje(p: any): ViajeSolicitado {
   const ahora = new Date().toISOString();
   return {

@@ -10,8 +10,18 @@ import {
   NativeScrollEvent,
   Dimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // <-- CAMBIO
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '@/constants/colors';
+
+export interface BannerInfo {
+  titulo: string;
+  subtitulo: string;
+  color_estado: string;
+  tipo_contrato?: string;
+  porcentaje_chofer?: number;
+  monto_diario?: number;
+  tratamiento_gastos?: string;
+}
 
 export interface ResultadosResumen {
   fecha: string;
@@ -22,6 +32,12 @@ export interface ResultadosResumen {
   viajeMasCaro: number;
   viajeMasBajo: number;
   promedioViaje: number;
+  desglose_por_origen?: Record<string, { viajes: number; recaudado: number }>;
+  // Nuevos campos Fase 1
+  banner_info: BannerInfo;
+  recaudacion_efectivo: number;
+  recaudacion_electronico: number;
+  gastos_turno: number;
 }
 
 interface BannerResultadosProps {
@@ -33,44 +49,46 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_PADDING = 20;
 const CARD_PADDING = 16;
 const SLIDE_WIDTH = SCREEN_WIDTH - BANNER_PADDING * 2 - CARD_PADDING * 2;
-const AUTO_SCROLL_INTERVAL = 3000; // 3 segundos
-const PAUSE_AFTER_TOUCH = 5000; // 5 segundos de pausa tras deslizar
+const AUTO_SCROLL_INTERVAL = 4000; // Un poco mas lento para que se lea bien
+const PAUSE_AFTER_TOUCH = 5000;
 
 export function BannerResultados({
   datos,
   isLoading = false,
 }: BannerResultadosProps) {
-  const navigation = useNavigation<any>(); // <-- CAMBIO
+  const navigation = useNavigation<any>();
   const scrollRef = useRef<ScrollView>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false);
   const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const formatMoneda = (valor: number) => {
+  const formatMoneda = (valor: number | null | undefined) => {
+    if (valor === null || valor === undefined) return '$0';
     return `$${valor.toLocaleString('es-AR')}`;
   };
 
-  const formatDuracion = (minutos: number) => {
+  const formatDuracion = (minutos: number | null | undefined) => {
+    if (minutos === null || minutos === undefined) return '00:00';
     const horas = Math.floor(minutos / 60);
     const mins = minutos % 60;
-    return `${horas.toString().padStart(2, '0')}:${mins
-      .toString()
-      .padStart(2, '0')}`;
+    return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
-  // ============================================
-  // Manejar scroll manual (pausar/reanudar)
-  // ============================================
-  const handleScrollBeginDrag = () => {
-    // Limpiar timeout anterior si existe
-    if (pauseTimeoutRef.current) {
-      clearTimeout(pauseTimeoutRef.current);
+  const getColorByEstado = (estado: string) => {
+    switch (estado) {
+      case 'naranja': return '#FF9800';
+      case 'verde': return '#4CAF50';
+      case 'gris': return '#9E9E9E';
+      default: return COLORS.primary;
     }
+  };
+
+  const handleScrollBeginDrag = () => {
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
     setIsAutoScrollPaused(true);
   };
 
   const handleScrollEndDrag = () => {
-    // Reanudar después de un tiempo
     pauseTimeoutRef.current = setTimeout(() => {
       setIsAutoScrollPaused(false);
     }, PAUSE_AFTER_TOUCH);
@@ -84,11 +102,7 @@ export function BannerResultados({
 
   const totalSlides = 3;
 
-  // ============================================
-  // Auto-scroll cada 3 segundos
-  // ============================================
   useEffect(() => {
-    // No hacer auto-scroll si no hay datos o si está pausado
     if (!datos || datos.viajes === 0) return;
     if (isAutoScrollPaused) return;
 
@@ -104,94 +118,65 @@ export function BannerResultados({
     return () => clearInterval(interval);
   }, [currentSlide, datos, isAutoScrollPaused]);
 
-  // ============================================
-  // Limpiar timeout al desmontar
-  // ============================================
   useEffect(() => {
     return () => {
-      if (pauseTimeoutRef.current) {
-        clearTimeout(pauseTimeoutRef.current);
-      }
+      if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
     };
   }, []);
 
-  // ============================================
-  // Estado de carga
-  // ============================================
   if (isLoading) {
     return (
       <View style={styles.card}>
         <View style={styles.headerRow}>
-          <Text style={styles.titulo}>RESULTADOS DE AYER</Text>
+          <Text style={styles.titulo}>RESUMEN DE HOY</Text>
         </View>
         <View style={styles.loadingContent}>
           <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Cargando...</Text>
+          <Text style={styles.loadingText}>Cargando datos...</Text>
         </View>
       </View>
     );
   }
 
-  // ============================================
-  // Sin datos
-  // ============================================
   if (!datos || datos.viajes === 0) {
     return (
       <View style={styles.card}>
         <View style={styles.headerRow}>
-          <Text style={styles.titulo}>RESULTADOS DE AYER</Text>
+          <Text style={styles.titulo}>RESUMEN DE HOY</Text>
         </View>
         <View style={styles.emptyRow}>
           <Text style={styles.emptyIcon}>🌙</Text>
-          <Text style={styles.emptyText}>Ayer no trabajaste</Text>
+          <Text style={styles.emptyText}>Hoy no trabajaste</Text>
         </View>
       </View>
     );
   }
 
-  // ============================================
-  // Definir los slides
-  // ============================================
+  // Definicion de los 3 slides dinamicos
   const slides = [
     {
-      id: 'totales',
+      id: 'objetivo',
       items: [
-        { icono: '🚕', valor: `${datos.viajes}`, label: 'viajes' },
         {
-          icono: '💰',
-          valor: formatMoneda(datos.recaudado),
-          label: 'recaudado',
+          icono: '🎯',
+          valor: datos.banner_info?.titulo || 'Sin contrato',
+          label: datos.banner_info?.subtitulo || 'Contacta a tu propietario',
+          color: getColorByEstado(datos.banner_info?.color_estado || 'gris'),
         },
       ],
     },
     {
-      id: 'recorrido',
+      id: 'actividad',
       items: [
-        {
-          icono: '🛣️',
-          valor: `${datos.kmRecorridos} km`,
-          label: 'recorridos',
-        },
-        {
-          icono: '⏱️',
-          valor: formatDuracion(datos.duracionMinutos),
-          label: 'hs trabajadas',
-        },
+        { icono: '🛣️', valor: `${datos.kmRecorridos ?? 0} km`, label: 'recorridos' },
+        { icono: '⏱️', valor: formatDuracion(datos.duracionMinutos), label: 'hs trabajadas' },
       ],
     },
     {
-      id: 'extremos',
+      id: 'caja',
       items: [
-        {
-          icono: '📈',
-          valor: formatMoneda(datos.viajeMasCaro),
-          label: 'más caro',
-        },
-        {
-          icono: '📉',
-          valor: formatMoneda(datos.viajeMasBajo),
-          label: 'más bajo',
-        },
+        { icono: '💵', valor: formatMoneda(datos.recaudacion_efectivo), label: 'efectivo' },
+        { icono: '💳', valor: formatMoneda(datos.recaudacion_electronico), label: 'electronico' },
       ],
     },
   ];
@@ -200,10 +185,8 @@ export function BannerResultados({
     <View style={styles.card}>
       {/* Header */}
       <View style={styles.headerRow}>
-        <Text style={styles.titulo}>RESULTADOS DE AYER</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Historicos')} // <-- CAMBIO
-        >
+        <Text style={styles.titulo}>RESUMEN DE HOY</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Historicos')}>
           <Text style={styles.linkText}>Ver detalle →</Text>
         </TouchableOpacity>
       </View>
@@ -226,23 +209,17 @@ export function BannerResultados({
         {slides.map((slide) => (
           <View key={slide.id} style={styles.slide}>
             <View style={styles.slideInner}>
-              <View style={styles.item}>
-                <Text style={styles.itemIcon}>{slide.items[0].icono}</Text>
-                <View style={styles.itemTextContainer}>
-                  <Text style={styles.itemValue}>{slide.items[0].valor}</Text>
-                  <Text style={styles.itemLabel}>{slide.items[0].label}</Text>
+              {slide.items.map((item, index) => (
+                <View key={index} style={styles.item}>
+                  <Text style={styles.itemIcon}>{item.icono}</Text>
+                  <View style={styles.itemTextContainer}>
+                    <Text style={[styles.itemValue, { color: item.color }]}>
+                      {item.valor}
+                    </Text>
+                    <Text style={styles.itemLabel}>{item.label}</Text>
+                  </View>
                 </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.item}>
-                <Text style={styles.itemIcon}>{slide.items[1].icono}</Text>
-                <View style={styles.itemTextContainer}>
-                  <Text style={styles.itemValue}>{slide.items[1].valor}</Text>
-                  <Text style={styles.itemLabel}>{slide.items[1].label}</Text>
-                </View>
-              </View>
+              ))}
             </View>
           </View>
         ))}
@@ -318,7 +295,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   itemValue: {
-    color: COLORS.primary,
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -221,4 +221,36 @@ export const viajeService = {
       return null;
     }
   },
+
+    /**
+   * Obtiene los viajes disponibles en un radio de la ubicacion actual.
+   * GET /api/viajes/disponibles
+   */
+  async obtenerViajesDisponibles(
+    lat: number,
+    lng: number,
+    radioMetros: number = 5000
+  ): Promise<{
+    total: number;
+    viajes: Array<{
+      id: string;
+      direccion_origen: string;
+      direccion_destino: string;
+      origen_lat: number | null;
+      origen_lng: number | null;
+      destino_lat: number | null;
+      destino_lng: number | null;
+      precio_estimado: number | null;
+      nombre_pasajero: string | null;
+      solicitado_en: string;
+      distancia_metros: number | null;
+      tiempo_estimado_segundos: number | null;
+      distancia_chofer_metros: number | null;
+    }>;
+  }> {
+    const response = await api.get('/api/viajes/disponibles', {
+      params: { lat, lng, radio_metros: radioMetros },
+    });
+    return response.data;
+  },
 };

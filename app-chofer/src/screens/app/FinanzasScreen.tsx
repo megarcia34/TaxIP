@@ -26,19 +26,30 @@ import {
   type ResumenFinanzas,
 } from '@/services/finanzas.service';
 
-const fmtMoney = (n: number) =>
-  '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const fmtMoney = (n: number | null | undefined) => {
+  if (n === null || n === undefined) return '$0';
+  return '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+};
 
-const fmtDuration = (min: number) => {
+const fmtDuration = (min: number | null | undefined) => {
+  if (min === null || min === undefined) return '0h 0m';
   const h = Math.floor(min / 60);
   const m = min % 60;
   return `${h}h ${m}m`;
 };
 
+const ORIGEN_LABELS: Record<string, string> = {
+  plataforma: 'App / Landing',
+  via_publica: 'Calle',
+  qr_comercio: 'QR Comercio',
+  corporativo: 'Corporativo',
+  despacho_manual: 'Despacho Manual',
+  desconocido: 'Sin origen',
+};
+
 export default function FinanzasScreen() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-
   const [data, setData] = useState<ResumenFinanzas | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,7 +86,7 @@ export default function FinanzasScreen() {
     cargar();
   };
 
-  // --- Lógica de la Foto ---
+  // --- Logica de la Foto ---
   const seleccionarImagen = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -89,7 +100,7 @@ export default function FinanzasScreen() {
   const sacarFoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a la cámara');
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a la camara');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.5 });
@@ -101,14 +112,13 @@ export default function FinanzasScreen() {
   const guardarGasto = async () => {
     Keyboard.dismiss();
     if (!nuevoGasto.monto || isNaN(Number(nuevoGasto.monto))) {
-      Alert.alert('Error', 'Ingresa un monto válido');
+      Alert.alert('Error', 'Ingresa un monto valido');
       return;
     }
     if (!data?.turno?.id) {
       Alert.alert('Error', 'No hay turno activo');
       return;
     }
-
     setIsSaving(true);
     try {
       await gastosService.registrarGasto(
@@ -127,6 +137,13 @@ export default function FinanzasScreen() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Helper para color de estado de gasto
+  const getEstadoColor = (estado: string | undefined) => {
+    if (estado === 'aprobado') return '#4CAF50';
+    if (estado === 'rechazado') return '#FF6B6B';
+    return '#FFC107';
   };
 
   if (loading) {
@@ -153,7 +170,7 @@ export default function FinanzasScreen() {
     return (
       <LinearGradient colors={[COLORS.backgroundDark, COLORS.backgroundMedium]} style={[styles.container, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Volver</Text>
+          <Text style={styles.backText}>Volver</Text>
         </TouchableOpacity>
         <View style={styles.center}>
           <Text style={styles.emptyText}>No hay turnos registrados</Text>
@@ -163,13 +180,13 @@ export default function FinanzasScreen() {
     );
   }
 
-  const { turno, resumen, viajes, gastos, ingresos, liquidacion } = data;
+  const { turno, resumen, viajes, gastos, ingresos, liquidacion, estimacion_liquidacion } = data;
 
   return (
     <LinearGradient colors={[COLORS.backgroundDark, COLORS.backgroundMedium]} style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Volver</Text>
+          <Text style={styles.backText}>Volver</Text>
         </TouchableOpacity>
         <Text style={styles.title}>FINANZAS</Text>
         <View style={{ width: 60 }} />
@@ -179,7 +196,7 @@ export default function FinanzasScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
       >
-        {/* 1. Card turno */}
+        {/* Card Turno */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>TURNO</Text>
@@ -187,21 +204,42 @@ export default function FinanzasScreen() {
               <Text style={styles.badgeText}>{turno.estado}</Text>
             </View>
           </View>
-          <Text style={styles.cardLine}>🚕 {turno.vehiculo.patente} — {turno.vehiculo.marca} {turno.vehiculo.modelo}</Text>
           <Text style={styles.cardLine}>
-            ⏱ {fmtDuration(turno.duracionMinutos)}
-            {turno.kmRecorridos != null ? `  ·  🛣 ${turno.kmRecorridos.toFixed(1)} km` : ''}
+            {turno.vehiculo?.patente} - {turno.vehiculo?.marca} {turno.vehiculo?.modelo}
+          </Text>
+          <Text style={styles.cardLine}>
+            {fmtDuration(turno.duracionMinutos)} - {turno.kmRecorridos != null ? `${turno.kmRecorridos.toFixed(1)} km` : '0 km'}
           </Text>
           <Text style={styles.cardMuted}>
-            {turno.inicioTurno ? new Date(turno.inicioTurno).toLocaleString('es-AR') : '—'}
-            {turno.finTurno ? ` → ${new Date(turno.finTurno).toLocaleString('es-AR')}` : ''}
+            {turno.inicioTurno ? new Date(turno.inicioTurno).toLocaleString('es-AR') : '-'}
+            {turno.finTurno ? ` -> ${new Date(turno.finTurno).toLocaleString('es-AR')}` : ''}
           </Text>
         </View>
 
-        {/* 2. Viajes */}
+        {/* BLOQUE 1: LA CAJA (Split Efectivo vs Electronico) */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>CAJA DEL TURNO</Text>
+          <View style={styles.rowBetween}>
+            <Text style={styles.label}>Efectivo en tu poder</Text>
+            <Text style={styles.valueGreen}>{fmtMoney(resumen.recaudacion_efectivo)}</Text>
+          </View>
+          <View style={styles.rowBetween}>
+            <Text style={styles.label}>Acreditado al Propietario</Text>
+            <Text style={styles.value}>{fmtMoney(resumen.recaudacion_electronico)}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.rowBetween}>
+            <Text style={styles.labelBold}>Recaudacion Total</Text>
+            <Text style={styles.valueBold}>{fmtMoney(resumen.recaudacionTotal)}</Text>
+          </View>
+        </View>
+
+        {/* BLOQUE 2: LISTA DE VIAJES */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>VIAJES ({viajes.length})</Text>
-          {viajes.length === 0 ? <Text style={styles.cardMuted}>Sin viajes</Text> : (
+          {viajes.length === 0 ? (
+            <Text style={styles.cardMuted}>Sin viajes</Text>
+          ) : (
             viajes.map((v, i) => (
               <View key={i} style={styles.listItem}>
                 <View style={{ flex: 1 }}>
@@ -214,7 +252,7 @@ export default function FinanzasScreen() {
           )}
         </View>
 
-        {/* 3. Gastos */}
+        {/* BLOQUE 3: GASTOS CON SEMAFORO */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>GASTOS ({gastos.length})</Text>
@@ -222,7 +260,9 @@ export default function FinanzasScreen() {
               <Text style={styles.addBtnText}>+ Agregar</Text>
             </TouchableOpacity>
           </View>
-          {gastos.length === 0 ? <Text style={styles.cardMuted}>Sin gastos</Text> : (
+          {gastos.length === 0 ? (
+            <Text style={styles.cardMuted}>Sin gastos</Text>
+          ) : (
             gastos.map((g, i) => (
               <View key={i} style={styles.listItem}>
                 <View style={{ flex: 1 }}>
@@ -236,53 +276,90 @@ export default function FinanzasScreen() {
                       <Text style={{ fontSize: 20 }}>🧾</Text>
                     </TouchableOpacity>
                   )}
+                  <View style={[
+                    styles.badgeEstado,
+                    { backgroundColor: getEstadoColor(g.estado_aprobacion) }
+                  ]}>
+                    <Text style={styles.badgeText}>{g.estado_aprobacion || 'pendiente'}</Text>
+                  </View>
                 </View>
               </View>
             ))
           )}
         </View>
 
-        {/* 4. Resumen + Recaudación Unificados */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>RESUMEN</Text>
-          <View style={styles.rowBetween}><Text style={styles.label}>Viajes</Text><Text style={styles.value}>{resumen.totalViajes}</Text></View>
-          
-          <View style={styles.rowBetween}>
-            <Text style={styles.label}>Recaudación (viajes)</Text>
-            <Text style={styles.valueGreen}>{fmtMoney(resumen.recaudacionTotal)}</Text>
-          </View>
-          
-          {/* Desglose por método dentro del resumen */}
-          {Object.entries(resumen.recaudacionPorMetodo).map(([metodo, monto]) => (
-            <View key={metodo} style={[styles.rowBetween, { paddingLeft: 12 }]}>
-              <Text style={styles.itemSub}>{metodo}</Text>
-              <Text style={styles.value}>{fmtMoney(monto)}</Text>
+        {/* BLOQUE 4: ESTIMACION DE LIQUIDACION EN VIVO */}
+        {estimacion_liquidacion && (
+          <View style={[styles.card, { borderWidth: 1, borderStyle: 'dashed', borderColor: '#FFC107', opacity: 0.95 }]}>
+            <Text style={styles.cardTitle}>⚠️ ESTIMACION (Pendiente de Conciliacion)</Text>
+            <Text style={styles.cardMuted}>Monto sujeto a aprobacion final del propietario</Text>
+            <View style={styles.divider} />
+            <View style={styles.rowBetween}>
+              <Text style={styles.label}>Monto bruto</Text>
+              <Text style={styles.value}>{fmtMoney(estimacion_liquidacion.monto_bruto)}</Text>
             </View>
-          ))}
+            <View style={styles.rowBetween}>
+              <Text style={styles.label}>Total gastos</Text>
+              <Text style={styles.valueRed}>-{fmtMoney(estimacion_liquidacion.total_gastos)}</Text>
+            </View>
+            <View style={styles.rowBetween}>
+              <Text style={styles.label}>Tu parte (chofer)</Text>
+              <Text style={styles.valueGreen}>{fmtMoney(estimacion_liquidacion.comision_chofer)}</Text>
+            </View>
+            <View style={styles.rowBetween}>
+              <Text style={styles.label}>Propietario</Text>
+              <Text style={styles.value}>{fmtMoney(estimacion_liquidacion.utilidad_propietario)}</Text>
+            </View>
+          </View>
+        )}
 
-          <View style={styles.rowBetween}>
-            <Text style={styles.label}>Ingreso Efectivo </Text>
-            <Text style={styles.valueGreen}>{fmtMoney(resumen.ingresosManuales)}</Text>
-          </View>
-          <View style={styles.rowBetween}><Text style={styles.label}>Gastos</Text><Text style={styles.valueRed}>-{fmtMoney(resumen.gastosTotal)}</Text></View>
-          <View style={styles.rowBetween}>
-            <Text style={styles.label}>Comisión propietario{resumen.comisionEstimada ? ' (est.)' : ''}</Text>
-            <Text style={styles.valueRed}>-{fmtMoney(resumen.comisionPropietario)}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.rowBetween}><Text style={styles.labelBold}>UTILIDAD NETA</Text><Text style={styles.valueBold}>{fmtMoney(resumen.utilidadNeta)}</Text></View>
+        {/* BLOQUE 5: ESTADO DE CONCILIACION */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>ESTADO DEL TURNO</Text>
+          {liquidacion ? (
+            <View>
+              <View style={styles.rowBetween}>
+                <Text style={styles.label}>Liquidacion</Text>
+                <View style={[styles.badge, { backgroundColor: '#4CAF50' }]}>
+                  <Text style={styles.badgeText}>{liquidacion.estado}</Text>
+                </View>
+              </View>
+              <View style={styles.rowBetween}>
+                <Text style={styles.label}>Monto bruto</Text>
+                <Text style={styles.value}>{fmtMoney(liquidacion.montoBruto)}</Text>
+              </View>
+              <View style={styles.rowBetween}>
+                <Text style={styles.label}>Comision chofer</Text>
+                <Text style={styles.valueGreen}>{fmtMoney(liquidacion.comisionChofer)}</Text>
+              </View>
+              <View style={styles.rowBetween}>
+                <Text style={styles.label}>Utilidad propietario</Text>
+                <Text style={styles.value}>{fmtMoney(liquidacion.utilidadPropietario)}</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.rowBetween}>
+              <Text style={styles.label}>Conciliacion</Text>
+              <View style={[styles.badge, { backgroundColor: '#FFC107' }]}>
+                <Text style={styles.badgeText}>Pendiente</Text>
+              </View>
+            </View>
+          )}
         </View>
 
-        {/* 5. Liquidación */}
-        {liquidacion && (
+        {/* Desglose por canal */}
+        {resumen.desglosePorOrigen && Object.keys(resumen.desglosePorOrigen).length > 0 && (
           <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>LIQUIDACIÓN</Text>
-              <View style={[styles.badge, { backgroundColor: '#4CAF50' }]}><Text style={styles.badgeText}>{liquidacion.estado}</Text></View>
-            </View>
-            <View style={styles.rowBetween}><Text style={styles.label}>Monto bruto</Text><Text style={styles.value}>{fmtMoney(liquidacion.montoBruto)}</Text></View>
-            <View style={styles.rowBetween}><Text style={styles.label}>Comisión chofer</Text><Text style={styles.valueGreen}>{fmtMoney(liquidacion.comisionChofer)}</Text></View>
-            <View style={styles.rowBetween}><Text style={styles.label}>Utilidad propietario</Text><Text style={styles.value}>{fmtMoney(liquidacion.utilidadPropietario)}</Text></View>
+            <Text style={styles.cardTitle}>DESGLOSE POR CANAL</Text>
+            {Object.entries(resumen.desglosePorOrigen).map(([origen, data]) => (
+              <View key={origen} style={styles.rowBetween}>
+                <Text style={styles.label}>{ORIGEN_LABELS[origen] || origen}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Text style={styles.itemSub}>{data.viajes} viajes</Text>
+                  <Text style={styles.valueGreen}>{fmtMoney(data.recaudado)}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -294,7 +371,6 @@ export default function FinanzasScreen() {
             <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }} keyboardShouldPersistTaps="handled">
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Nuevo Gasto</Text>
-
                 <Text style={styles.label}>Tipo de Gasto</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                   {['COMBUSTIBLE', 'LUBRICANTE', 'LAVADO', 'REPARACION', 'OTROS'].map((tipo) => (
@@ -307,7 +383,6 @@ export default function FinanzasScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
-
                 <Text style={styles.label}>Monto ($)</Text>
                 <TextInput
                   style={styles.input}
@@ -316,22 +391,19 @@ export default function FinanzasScreen() {
                   onChangeText={(t) => setNuevoGasto({ ...nuevoGasto, monto: t })}
                   placeholder="0.00"
                   placeholderTextColor="#666"
-                  returnKeyType="done" 
-                  onSubmitEditing={() => Keyboard.dismiss()} 
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
                 />
-
                 <Text style={styles.label}>Comprobante</Text>
                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
                   <TouchableOpacity style={styles.photoBtn} onPress={sacarFoto}>
-                    <Text style={styles.photoBtnText}>📷 Cámara</Text>
+                    <Text style={styles.photoBtnText}>Camara</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.photoBtn} onPress={seleccionarImagen}>
-                    <Text style={styles.photoBtnText}>🖼 Galería</Text>
+                    <Text style={styles.photoBtnText}>Galeria</Text>
                   </TouchableOpacity>
                 </View>
-
                 {imagenUri && <Image source={{ uri: imagenUri }} style={styles.previewImage} />}
-
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
                   <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#555' }]} onPress={() => { Keyboard.dismiss(); setIsModalVisible(false); }}>
                     <Text style={styles.modalBtnText}>Cancelar</Text>
@@ -350,18 +422,17 @@ export default function FinanzasScreen() {
       <Modal visible={!!imagenComprobante} transparent={true} animationType="fade">
         <View style={styles.imageViewerOverlay}>
           <TouchableOpacity style={styles.closeButton} onPress={() => setImagenComprobante(null)}>
-            <Text style={styles.closeButtonText}>✕</Text>
+            <Text style={styles.closeButtonText}>X</Text>
           </TouchableOpacity>
           {imagenComprobante && (
-            <Image 
-              source={{ uri: imagenComprobante }} 
-              style={styles.fullImage} 
-              resizeMode="contain" 
+            <Image
+              source={{ uri: imagenComprobante }}
+              style={styles.fullImage}
+              resizeMode="contain"
             />
           )}
         </View>
       </Modal>
-
     </LinearGradient>
   );
 }
@@ -387,6 +458,7 @@ const styles = StyleSheet.create({
   cardMuted: { color: COLORS.textSecondary, fontSize: 12, marginTop: 4 },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  badgeEstado: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
   label: { color: COLORS.textSecondary, fontSize: 14 },
   labelBold: { color: COLORS.textPrimary, fontSize: 14, fontWeight: 'bold' },
@@ -398,8 +470,6 @@ const styles = StyleSheet.create({
   listItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   itemTitle: { color: COLORS.textPrimary, fontSize: 13 },
   itemSub: { color: COLORS.textSecondary, fontSize: 11, marginTop: 2 },
-  
-  // Modal Gasto
   addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   addBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
@@ -415,8 +485,6 @@ const styles = StyleSheet.create({
   tipoBtnActive: { backgroundColor: 'rgba(255, 193, 7, 0.2)', borderColor: COLORS.primary },
   tipoBtnText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: 'bold' },
   tipoBtnTextActive: { color: COLORS.primary },
-
-  // Visor de Imagen
   imageViewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
   closeButton: { position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 },
   closeButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },

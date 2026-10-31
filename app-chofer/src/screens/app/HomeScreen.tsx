@@ -18,6 +18,7 @@ import { viajeService } from '@/services/viaje.service';
 import { websocketService } from '@/services/websocket.service';
 import { BannerResultados } from '@/components/home/BannerResultados';
 import { ModuloCard } from '@/components/home/ModuloCard';
+import { turnoService } from '@/services/turno.service';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -33,22 +34,67 @@ export default function HomeScreen() {
   const [resultadosAyer, setResultadosAyer] = useState<any>(null);
   const [isLoadingResultados, setIsLoadingResultados] = useState(false);
 
-  // Mock: simular carga de datos del backend
+  // ✅ Cargar datos reales del turno (hoy)
   useEffect(() => {
-    setIsLoadingResultados(true);
-    setTimeout(() => {
-      setResultadosAyer({
-        fecha: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-        viajes: 12,
-        recaudado: 4500,
-        kmRecorridos: 120,
-        duracionMinutos: 510,
-        viajeMasCaro: 800,
-        viajeMasBajo: 200,
-        promedioViaje: 375,
-      });
-      setIsLoadingResultados(false);
-    }, 800);
+    let montado = true;
+
+    const cargarResultados = async () => {
+      setIsLoadingResultados(true);
+      try {
+        // dias=0 es "hoy"
+        const data = await turnoService.obtenerResumen(0);
+        if (!montado) return;
+
+        setResultadosAyer({
+          fecha: data.fecha_inicio,
+          viajes: data.viajes,
+          recaudado: data.recaudado,
+          kmRecorridos: data.km_recorridos,
+          duracionMinutos: data.duracion_minutos,
+          viajeMasCaro: data.viaje_mas_caro,
+          viajeMasBajo: data.viaje_mas_bajo,
+          promedioViaje: data.promedio_viaje,
+          // ✅ AGREGADO: campos nuevos del Banner
+          banner_info: data.banner_info,
+          recaudacion_efectivo: data.recaudacion_efectivo,
+          recaudacion_electronico: data.recaudacion_electronico,
+          gastos_turno: data.gastos_turno,
+        });
+      } catch (error: any) {
+        console.warn('[Home] Error cargando resultados:', error?.message);
+        // Si falla, dejamos los datos en null o vacíos
+        if (montado) {
+          setResultadosAyer({
+            fecha: new Date().toISOString().split('T')[0],
+            viajes: 0,
+            recaudado: 0,
+            kmRecorridos: 0,
+            duracionMinutos: 0,
+            viajeMasCaro: 0,
+            viajeMasBajo: 0,
+            promedioViaje: 0,
+            // ✅ AGREGADO: campos nuevos en el fallback
+            banner_info: null,
+            recaudacion_efectivo: 0,
+            recaudacion_electronico: 0,
+            gastos_turno: 0,
+          });
+        }
+      } finally {
+        if (montado) setIsLoadingResultados(false);
+      }
+    };
+
+    // Cargar al montar
+    cargarResultados();
+
+    // Opcional: recargar cada 60 segundos para mantener actualizado
+    const interval = setInterval(cargarResultados, 60000);
+
+    return () => {
+      montado = false;
+      clearInterval(interval);
+    };
   }, []);
 
   // J12: al montar, si el store persistido esta vacio, verificar el turno
