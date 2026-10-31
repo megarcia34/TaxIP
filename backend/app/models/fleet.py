@@ -544,21 +544,65 @@ class PropietarioVehiculo(Base):
     )
 
 # app/models/fleet.py
-
 class ContratoVehiculo(Base):
     __tablename__ = "contrato_vehiculo"
+    
+    # --- Columnas ---
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    control_base_id = Column(UUID(as_uuid=True), ForeignKey("tenant.control_base.id"), nullable=False)
+    propietario_id = Column(UUID(as_uuid=True), ForeignKey("auth.usuario.id"), nullable=False)
+    vehiculo_id = Column(UUID(as_uuid=True), ForeignKey("fleet.vehiculo.id"), nullable=False)
+    chofer_id = Column(UUID(as_uuid=True), ForeignKey("auth.usuario.id"), nullable=False)
+    
+    tipo_contrato = Column(String(50), nullable=False) # PORCENTAJE, ALQUILER, AUTO_GESTION
+    porcentaje_chofer = Column(Numeric(5, 2), nullable=True)
+    monto_diario = Column(Numeric(12, 2), nullable=True)
+    canon_diario = Column(Numeric(12, 2), nullable=True)
+    
+    fecha_inicio = Column(DateTime, nullable=False, default=datetime.utcnow)
+    fecha_fin = Column(DateTime, nullable=True)
+    
+    activo = Column(Boolean, nullable=False, default=False)
+    estado_contrato = Column(String(50), nullable=False, default='PENDIENTE_CONFIGURACION')
+    
+    # Configuración de Alquiler
+    km_incluidos_dia = Column(Numeric(10, 2), nullable=True)
+    valor_km_excedente = Column(Numeric(10, 2), nullable=True)
+    modalidad_computo = Column(String(50), nullable=True, default='DIARIO')
+    dias_contractuales = Column(JSONB, nullable=True, default=[])
+    tratamiento_dia_no_trabajado = Column(String(50), nullable=True, default='POR_DISPONIBILIDAD')
+    
+    # Horarios Flexibles
+    dia_inicio_semana = Column(String(50), nullable=True)
+    hora_inicio = Column(Time, nullable=False)
+    hora_fin = Column(Time, nullable=False)
+    duracion_minima_horas = Column(Integer, nullable=False, default=6)
+    permite_extension = Column(Boolean, nullable=False, default=False)
+    hora_fin_extension = Column(Time, nullable=True)
+    compensacion_km = Column(String(50), nullable=False, default='DIARIA')
+    
+    # NUEVO CAMPO: Tratamiento de gastos (ANTES / DESPUES)
+    tratamiento_gastos = Column(String(50), nullable=True, default='DESPUES')
+    
+    # Timestamps
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # --- Índices y Constraints ---
     __table_args__ = (
         Index("idx_contrato_estado", "estado_contrato"),
         Index("ix_contrato_vehiculo_hora_inicio", "hora_inicio"),
         Index("ix_contrato_vehiculo_hora_fin", "hora_fin"),
         Index("idx_contrato_chofer_historial", "chofer_id", "fecha_inicio"),
         Index("idx_contrato_vehiculo_historial", "vehiculo_id", "fecha_inicio"),
-                Index(
+        Index(
             "idx_contrato_propietario_activo",
             "propietario_id",
             "activo",
             postgresql_where=text("activo = true"),
         ),
+        
+        # Constraints existentes
         CheckConstraint(
             "tratamiento_dia_no_trabajado IN ('POR_DISPONIBILIDAD', 'NO_COBRA', 'DESCUENTO_PROPORCIONAL')",
             name="chk_contrato_tratamiento_dia"
@@ -569,44 +613,50 @@ class ContratoVehiculo(Base):
         ),
         CheckConstraint(
             "compensacion_km IN ('DIARIA', 'ACUMULADA', 'COMPENSADA')",
-            name="compensacion_km",
+            name="chk_compensacion_km",
         ),
         CheckConstraint(
             "estado_contrato IN ('PENDIENTE_CONFIGURACION', 'PROGRAMADO', 'ACTIVO', 'FINALIZADO')",
-            name="estado",
+            name="chk_estado_contrato",
         ),
         CheckConstraint(
             "(permite_extension = false AND hora_fin_extension IS NULL) OR (permite_extension = true AND hora_fin_extension IS NOT NULL)",
-            name="extension_valida",
+            name="chk_extension_valida",
         ),
         CheckConstraint(
             "dia_inicio_semana IN ('lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo') OR dia_inicio_semana IS NULL",
-            name="dia_inicio_semana",
+            name="chk_dia_inicio_semana",
         ),
         CheckConstraint(
             "(tipo_contrato = 'PORCENTAJE' AND porcentaje_chofer IS NOT NULL AND porcentaje_chofer >= 0 AND porcentaje_chofer <= 100) OR (tipo_contrato <> 'PORCENTAJE' AND porcentaje_chofer IS NULL)",
-            name="porcentaje",
+            name="chk_porcentaje",
         ),
         CheckConstraint(
             "(estado_contrato = 'ACTIVO' AND activo = true) OR (estado_contrato IN ('PENDIENTE_CONFIGURACION', 'PROGRAMADO', 'FINALIZADO') AND activo = false)",
-            name="activo_estado",
+            name="chk_activo_estado",
         ),
         CheckConstraint(
             "hora_fin IS NULL OR hora_inicio IS NULL OR hora_fin <> hora_inicio",
-            name="horario_valido",
+            name="chk_horario_valido",
         ),
         CheckConstraint(
             "duracion_minima_horas IS NULL OR duracion_minima_horas >= 1",
-            name="duracion_minima",
+            name="chk_duracion_minima",
         ),
         CheckConstraint(
             "tipo_contrato <> 'AUTO_GESTION' OR propietario_id = chofer_id",
-            name="auto_gestion",
+            name="chk_auto_gestion",
         ),
+        
+        # NUEVO CONSTRAINT para tratamiento_gastos
+        CheckConstraint(
+            "tratamiento_gastos IN ('ANTES', 'DESPUES')",
+            name="chk_contrato_tratamiento_gastos"
+        ),
+        
         {"schema": "fleet"},
     )
     
-
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     control_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.control_base.id", ondelete="CASCADE"), nullable=False)
     propietario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("auth.usuario.id", ondelete="CASCADE"), nullable=False)
