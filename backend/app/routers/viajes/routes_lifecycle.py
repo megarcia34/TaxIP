@@ -34,7 +34,6 @@ from app.core.metrics import metrics, Keys
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-
 # ============================================
 # ACEPTAR VIAJE
 # ============================================
@@ -79,10 +78,10 @@ async def aceptar_viaje(
             detail=f"El viaje ya está en estado '{estado_actual}' y no puede aceptarse.",
         )
 
-    # 2. Obtener chofer_vehiculo_id
+    # 2. Obtener chofer_vehiculo_id y vehiculo_id
     cv_query = await db.execute(
         text("""
-            SELECT id
+            SELECT id, vehiculo_id
             FROM fleet.chofer_vehiculo
             WHERE usuario_id = :driver_id AND activo = true
             LIMIT 1
@@ -91,8 +90,23 @@ async def aceptar_viaje(
     )
     cv_row = cv_query.first()
     chofer_vehiculo_id = cv_row[0] if cv_row else None
+    vehiculo_id = cv_row[1] if cv_row else None
 
-    # 3. Asignar el viaje
+    # 2.bis Obtener turno activo del chofer
+    turno_query = await db.execute(
+        text("""
+            SELECT id
+            FROM fleet.turno_chofer
+            WHERE chofer_id = :driver_id AND estado = 'ACTIVO'
+            ORDER BY inicio_turno DESC
+            LIMIT 1
+        """),
+        {"driver_id": driver_id},
+    )
+    turno_row = turno_query.first()
+    turno_id = turno_row[0] if turno_row else None
+
+    # 3. Asignar el viaje (incluyendo vehiculo_id y turno_id)
     await db.execute(
         text("""
             UPDATE trip.viaje_solicitado
@@ -100,6 +114,8 @@ async def aceptar_viaje(
                 aceptado_en = NOW(),
                 chofer_id = :driver_id,
                 chofer_vehiculo_id = :cv_id,
+                vehiculo_id = :vehiculo_id,
+                turno_id = :turno_id,
                 updated_at = NOW()
             WHERE id = :viaje_id
         """),
@@ -107,6 +123,8 @@ async def aceptar_viaje(
             "viaje_id": viaje_id,
             "driver_id": driver_id,
             "cv_id": chofer_vehiculo_id,
+            "vehiculo_id": vehiculo_id,
+            "turno_id": turno_id,
         },
     )
 
