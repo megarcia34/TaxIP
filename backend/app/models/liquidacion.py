@@ -26,6 +26,10 @@ class Liquidacion(Base):
             "metodo_pago IS NULL OR metodo_pago IN ('EFECTIVO', 'TRANSFERENCIA')",
             name="metodo_pago",
         ),
+        CheckConstraint(
+            "estado IN ('BORRADOR', 'CALCULADA', 'CONCILIADA', 'CONCILIADA_AUTOMATICA', 'APROBADA', 'RECHAZADA', 'PAGADA', 'OBSOLETA')",
+            name="estado",
+        ),
         {"schema": "fleet"}
     )
 
@@ -77,6 +81,27 @@ class Liquidacion(Base):
     pagada_en = Column(DateTime, nullable=True)
     metodo_pago = Column(String(50), nullable=True)
     referencia_pago = Column(String(100), nullable=True)
+
+    # ============================================
+    # CONCILIACION (m3_027, R24)
+    # ============================================
+    conciliado_por = Column(
+        PGUUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=True,
+        comment="Usuario que concilió la liquidación (NULL si fue automático)",
+    )
+    conciliado_en = Column(
+        DateTime,
+        nullable=True,
+        comment="Fecha y hora de la conciliación",
+    )
+    tipo_conciliacion = Column(
+        String(20),
+        nullable=False,
+        default='MANUAL',
+        comment="Tipo de conciliación: MANUAL o AUTOMATICA",
+    )
 
     # Relaciones
     turno = relationship("TurnoChofer", lazy="selectin")

@@ -5,7 +5,7 @@ Modelo de Turno/Jornada Laboral del Chofer
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Numeric, Text, Time, Integer, Index, text
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Numeric, Text, Time, Integer, Index,CheckConstraint, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
@@ -22,6 +22,10 @@ class TurnoChofer(Base):
             "idx_turno_chofer_vehiculo_activo",
             "vehiculo_id",
             postgresql_where=text("(estado)::text = 'ACTIVO'::text"),
+        ),
+        CheckConstraint(
+            "estado IN ('ACTIVO', 'PENDIENTE_CONFIRMACION', 'CON_DIFERENCIAS_PENDIENTES', 'EN_DISPUTA', 'CONCILIADO', 'CONCILIADO_AUTOMATICO', 'LIQUIDADO', 'CERRADO', 'CANCELADO')",
+            name="estado",
         ),
         {"schema": "fleet"},
     )
