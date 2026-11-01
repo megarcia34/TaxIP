@@ -68,6 +68,11 @@ from app.models.fleet import (
     RelacionPropietarioVehiculo,
 )
 
+from app.models.conciliacion import (
+    ConciliacionDiferencia,
+    ConciliacionDisputa,
+)
+
 # Geo
 from app.models.geo import (
     Pais,
@@ -175,6 +180,10 @@ __all__ = [
     "LogAcciones",
     "AlertasVencimiento",
 
+    # Conciliacion
+    "ConciliacionDiferencia",
+    "ConciliacionDisputa",
+    
     # Fleet
     "Vehiculo",
     "ChoferVehiculo",
