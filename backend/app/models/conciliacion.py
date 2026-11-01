@@ -5,11 +5,9 @@ Tablas: conciliacion_diferencia, conciliacion_disputa (schema: fleet)
 Creadas en m3_028 (R24).
 """
 
-import uuid
 from datetime import datetime
-from typing import Optional
 from sqlalchemy import (
-    Column, String, DateTime, ForeignKey, Numeric, Text, Integer,
+    Column, String, DateTime, ForeignKey, Numeric, Text,
     Index, CheckConstraint, text,
 )
 from sqlalchemy.orm import relationship
@@ -37,7 +35,11 @@ class ConciliacionDiferencia(Base):
         {"schema": "fleet"},
     )
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(
+        PGUUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
     turno_id = Column(
         PGUUID(as_uuid=True),
         ForeignKey("fleet.turno_chofer.id"),
@@ -56,19 +58,27 @@ class ConciliacionDiferencia(Base):
     concepto = Column(String(50), nullable=False)
     monto = Column(Numeric, nullable=False)
     descripcion = Column(Text, nullable=True)
-    estado = Column(String(20), nullable=False, default='PENDIENTE')
+    estado = Column(String(20), nullable=False, server_default=text("'PENDIENTE'"))
     saldada_en = Column(DateTime, nullable=True)
     saldada_por = Column(
         PGUUID(as_uuid=True),
         ForeignKey("auth.usuario.id"),
         nullable=True,
     )
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=text("NOW()"),
+    )
 
-    # Relaciones
+    # Relaciones (usar string para evitar import circular)
     turno = relationship("TurnoChofer", lazy="selectin")
     liquidacion = relationship("Liquidacion", lazy="selectin")
-    usuario_saldada = relationship("Usuario", foreign_keys=[saldada_por], lazy="selectin")
+    usuario_saldada = relationship(
+        "Usuario",
+        foreign_keys=[saldada_por],
+        lazy="selectin",
+    )
 
 
 class ConciliacionDisputa(Base):
@@ -86,7 +96,11 @@ class ConciliacionDisputa(Base):
         {"schema": "fleet"},
     )
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(
+        PGUUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
     turno_id = Column(
         PGUUID(as_uuid=True),
         ForeignKey("fleet.turno_chofer.id"),
@@ -98,7 +112,7 @@ class ConciliacionDisputa(Base):
         nullable=False,
     )
     motivo = Column(Text, nullable=False)
-    estado = Column(String(30), nullable=False, default='ABIERTA')
+    estado = Column(String(30), nullable=False, server_default=text("'ABIERTA'"))
     resolucion = Column(Text, nullable=True)
     resuelta_por = Column(
         PGUUID(as_uuid=True),
@@ -108,9 +122,21 @@ class ConciliacionDisputa(Base):
     resuelta_en = Column(DateTime, nullable=True)
     plazo_tenant = Column(DateTime, nullable=True)
     plazo_plataforma = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=text("NOW()"),
+    )
 
     # Relaciones
     turno = relationship("TurnoChofer", lazy="selectin")
-    usuario_abierta = relationship("Usuario", foreign_keys=[abierta_por], lazy="selectin")
-    usuario_resuelta = relationship("Usuario", foreign_keys=[resuelta_por], lazy="selectin")
+    usuario_abierta = relationship(
+        "Usuario",
+        foreign_keys=[abierta_por],
+        lazy="selectin",
+    )
+    usuario_resuelta = relationship(
+        "Usuario",
+        foreign_keys=[resuelta_por],
+        lazy="selectin",
+    )
