@@ -3,7 +3,7 @@
 **Ultima actualizacion:** 2026-10-29 (post R23.1)
 **Alembic head:** m3_025
 **Diff BD <-> ORM:** 1 item (indice preexistente en payment.py — deuda aceptada)
-**Tag activo:** ronda23.1-fix-coordenadas-websocket
+**Tag activo:** ronda23.2-banner-finanzas
 **Repo:** github.com/megarcia34/TaxIP (main)
 
 **Reglas de alineacion BD <-> ORM:** ver `docs/REGLAS_ALINEACION_BD_ORM.md`.
@@ -35,6 +35,8 @@
 - **R22:** **Nuevas funcionalidades:** Módulo Finanzas del Chofer (resumen, gastos con Cloudinary, integración dual write). Módulo Perfil del Chofer (datos, documentos, reporte de actividad, cambio de contraseña). Gestión de Viajes del Chofer (publicación por radio 1-5km, aceptación, ciclo de vida completo). GPS en tiempo real desde la app del chofer vía WebSocket. Contratos editables con horarios flexibles y extensión.
 - **R23:** **Fix de mapas y coordenadas.** Corrección transversal de `ST_X`/`ST_Y` invertidos en 5 archivos del backend (`public_routes.py`, `routes.py`, `routes_dashboard.py`, `routes_historial.py`, `services.py`). Fix de sintaxis SQL en `SELECT` (comas sobrantes). Verificación exitosa de reconexión WebSocket (CloseCode 1006). Flujo Landing -> Chofer -> GPS verificado.
 - **R23.1:** **Fix de WebSocket, Viajes Huérfanos y UX.** Montaje global del hook `useWebSocket` en `App.tsx` para evitar desconexiones. Implementación del `ModalViajesHuerfanos` para cierre de turnos bloqueados. Envío de `distancia_metros` y `tiempo_estimado_segundos` reales desde la landing al WebSocket. Nuevo job en el scheduler que cancela viajes pendientes huérfanos a los 5 minutos con mensaje UX personalizado.
+
+- **R23.2:** **Banner dinámico y Finanzas con estimación.** El Banner del Home ahora muestra 3 slides dinámicos según la modalidad contractual (Porcentaje, Alquiler, Autogestión). El backend calcula el `banner_info` (título, subtítulo, color) en `chofer_turnos.py`. La pantalla de Finanzas ahora separa efectivo vs electrónico, muestra el desglose por canal y la tarjeta de "ESTIMACIÓN (Pendiente de Conciliación)" con el cálculo del motor de liquidación (`estimar()`). Se agregó la migración `m3_026` con `tratamiento_gastos` en `contrato_vehiculo`. Se eliminó el bucle de reconexión del WebSocket.
 
 ---
 
@@ -264,6 +266,15 @@ La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en ter
 - **`turno.mensaje_error_generico`** — Saldada. El backend ahora devuelve un mensaje claro indicando qué chofer tiene el vehículo ocupado y desde cuándo.
 
 ---
+---
+
+## DEUDAS SALDADAS EN R23.2
+
+- **`websocket.reconexion_bucle`** — Saldada. El hook `useWebSocket` ahora usa dos `useEffect`: uno para conectar y otro para desconectar solo al desmontar. Se eliminó el bucle de reconexión.
+- **`viaje.distancia_tiempo_websocket`** — Saldada. El backend envía `distancia_metros` y `tiempo_estimado_segundos` en el payload del WebSocket y los guarda en la DB. La landing los calcula con Google Maps y los envía.
+- **`turno.canon_diario`** — Saldada. Se implementó el cálculo del canon diario en el Banner (comparando recaudación del día con el canon del contrato).
+- **`estimacion_liquidacion`** — Saldada. El motor de liquidación tiene un método `estimar(turno_id)` que calcula sin persistir. La app chofer lo usa para mostrar la estimación en tiempo real.
+- **`banner.contrato`** — Saldada. El Banner ahora muestra el título y subtítulo dinámicos según el tipo de contrato (Porcentaje, Alquiler, Autogestión).
 
 ## DEUDAS NUEVAS (R24)
 
@@ -272,10 +283,15 @@ La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en ter
 **Acción futura:** Agregar un botón de "Finalizar viaje aquí" que calcule el precio hasta la ubicación actual o permita ingresar un monto manual.
 
 *(Las deudas `turno.huerfano_turno_anterior` y `dashboard.estado_inconsistente` ya fueron agregadas a MEDIA PRIORIDAD).*
+### estimacion.requiere_motor_actualizado
+**Síntoma:** El método `estimar()` depende de que `LiquidacionResultado` tenga los campos `es_estimacion`, `comision_pasarela` y `total_propietario`. Si se modifica el schema, hay que actualizar el método.
+**Acción futura:** Agregar tests unitarios para el método `estimar()` que validen que devuelve los campos correctos.
+
+### banner.info_acoplado_a_contrato
+**Síntoma:** El cálculo del `banner_info` está en `chofer_turnos.py` (acoplado al endpoint del resumen). Si se agrega una nueva modalidad contractual, hay que modificar ese archivo.
+**Acción futura:** Extraer la lógica del `banner_info` a un servicio (`banner_service.py`) para desacoplarla del router.
 
 ---
-
-## RECUENTO
 
 | Categoria | Cantidad |
 |---|---|
@@ -285,7 +301,6 @@ La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en ter
 | Tocar Frontend | 1 (G80) |
 | Expo-router / EAS | 0 |
 | **TOTAL PENDIENTES** | **~38 items** |
-
 ---
 
 ## REFERENCIAS
