@@ -1,9 +1,9 @@
 {
   "meta": {
-    "capturado_en": "2026-10-20T11:24:10.888716+00:00",
+    "capturado_en": "2026-11-01T23:09:36.369529+00:00",
     "postgres_version": "PostgreSQL 17.0 on x86_64-windows, compiled by msvc-19.41.34120, 64-bit",
     "postgis_version": "3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
-    "alembic_head": "m3_025",
+    "alembic_head": "m3_028",
     "schemas_incluidos": [
       "audit",
       "auth",
@@ -21,10 +21,10 @@
     "warnings": [],
     "stats": {
       "total_schemas": 12,
-      "total_tables": 91,
-      "total_columns": 1094,
-      "total_indexes": 288,
-      "total_constraints": 816
+      "total_tables": 93,
+      "total_columns": 1120,
+      "total_indexes": 292,
+      "total_constraints": 844
     }
   },
   "schemas": {
@@ -6695,6 +6695,506 @@
             }
           ]
         },
+        "conciliacion_diferencia": {
+          "comment": "Diferencias detectadas durante la conciliación de un turno",
+          "columns": {
+            "id": {
+              "ordinal": 1,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": false,
+              "default": "gen_random_uuid()",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "turno_id": {
+              "ordinal": 2,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "liquidacion_id": {
+              "ordinal": 3,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "tipo": {
+              "ordinal": 4,
+              "type": "character varying(30)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": 30,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": "DEUDA_CHOFER: el chofer debe al propietario. DEUDA_PROPIETARIO: el propietario debe al chofer. NEUTRA: saldada automáticamente"
+            },
+            "concepto": {
+              "ordinal": 5,
+              "type": "character varying(50)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": 50,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "monto": {
+              "ordinal": 6,
+              "type": "numeric",
+              "base_type": "numeric",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "descripcion": {
+              "ordinal": 7,
+              "type": "text",
+              "base_type": "text",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "estado": {
+              "ordinal": 8,
+              "type": "character varying(20)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": "'PENDIENTE'::character varying",
+              "character_maximum_length": 20,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "saldada_en": {
+              "ordinal": 9,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "saldada_por": {
+              "ordinal": 10,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "created_at": {
+              "ordinal": 11,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": false,
+              "default": "now()",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            }
+          },
+          "constraints": {
+            "primary_key": {
+              "name": "conciliacion_diferencia_pkey",
+              "columns": [
+                "id"
+              ]
+            },
+            "foreign_keys": [
+              {
+                "name": "fk_conciliacion_diferencia_liquidacion",
+                "columns": [
+                  "liquidacion_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "liquidacion",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
+                "on_update": "NO ACTION"
+              },
+              {
+                "name": "fk_conciliacion_diferencia_saldada_por_usuario",
+                "columns": [
+                  "saldada_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
+                "on_update": "NO ACTION"
+              },
+              {
+                "name": "fk_conciliacion_diferencia_turno_chofer",
+                "columns": [
+                  "turno_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "turno_chofer",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "unique": [],
+            "check": [
+              {
+                "name": "63668_263441_11_not_null",
+                "definition": "created_at IS NOT NULL"
+              },
+              {
+                "name": "63668_263441_1_not_null",
+                "definition": "id IS NOT NULL"
+              },
+              {
+                "name": "63668_263441_2_not_null",
+                "definition": "turno_id IS NOT NULL"
+              },
+              {
+                "name": "63668_263441_4_not_null",
+                "definition": "tipo IS NOT NULL"
+              },
+              {
+                "name": "63668_263441_5_not_null",
+                "definition": "concepto IS NOT NULL"
+              },
+              {
+                "name": "63668_263441_6_not_null",
+                "definition": "monto IS NOT NULL"
+              },
+              {
+                "name": "63668_263441_8_not_null",
+                "definition": "estado IS NOT NULL"
+              },
+              {
+                "name": "ck_conciliacion_diferencia_estado",
+                "definition": "((estado)::text = ANY ((ARRAY['PENDIENTE'::character varying, 'SALDADA'::character varying])::text[]))"
+              },
+              {
+                "name": "ck_conciliacion_diferencia_tipo",
+                "definition": "((tipo)::text = ANY ((ARRAY['DEUDA_CHOFER'::character varying, 'DEUDA_PROPIETARIO'::character varying, 'NEUTRA'::character varying])::text[]))"
+              }
+            ]
+          },
+          "indexes": [
+            {
+              "name": "conciliacion_diferencia_pkey",
+              "unique": true,
+              "primary": true,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX conciliacion_diferencia_pkey ON fleet.conciliacion_diferencia USING btree (id)",
+              "columns": [
+                "id"
+              ]
+            },
+            {
+              "name": "ix_conciliacion_diferencia_turno_estado",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_conciliacion_diferencia_turno_estado ON fleet.conciliacion_diferencia USING btree (turno_id, estado)",
+              "columns": [
+                "turno_id",
+                "estado"
+              ]
+            }
+          ]
+        },
+        "conciliacion_disputa": {
+          "comment": "Disputas abiertas por chofer o propietario sobre una conciliación",
+          "columns": {
+            "id": {
+              "ordinal": 1,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": false,
+              "default": "gen_random_uuid()",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "turno_id": {
+              "ordinal": 2,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "abierta_por": {
+              "ordinal": 3,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "motivo": {
+              "ordinal": 4,
+              "type": "text",
+              "base_type": "text",
+              "nullable": false,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "estado": {
+              "ordinal": 5,
+              "type": "character varying(30)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": "'ABIERTA'::character varying",
+              "character_maximum_length": 30,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "resolucion": {
+              "ordinal": 6,
+              "type": "text",
+              "base_type": "text",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "resuelta_por": {
+              "ordinal": 7,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "resuelta_en": {
+              "ordinal": 8,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "plazo_tenant": {
+              "ordinal": 9,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "plazo_plataforma": {
+              "ordinal": 10,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            },
+            "created_at": {
+              "ordinal": 11,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": false,
+              "default": "now()",
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": null
+            }
+          },
+          "constraints": {
+            "primary_key": {
+              "name": "conciliacion_disputa_pkey",
+              "columns": [
+                "id"
+              ]
+            },
+            "foreign_keys": [
+              {
+                "name": "fk_conciliacion_disputa_abierta_por_usuario",
+                "columns": [
+                  "abierta_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
+                "on_update": "NO ACTION"
+              },
+              {
+                "name": "fk_conciliacion_disputa_resuelta_por_usuario",
+                "columns": [
+                  "resuelta_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
+                "on_update": "NO ACTION"
+              },
+              {
+                "name": "fk_conciliacion_disputa_turno_chofer",
+                "columns": [
+                  "turno_id"
+                ],
+                "references": {
+                  "schema": "fleet",
+                  "table": "turno_chofer",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "unique": [],
+            "check": [
+              {
+                "name": "63668_263469_11_not_null",
+                "definition": "created_at IS NOT NULL"
+              },
+              {
+                "name": "63668_263469_1_not_null",
+                "definition": "id IS NOT NULL"
+              },
+              {
+                "name": "63668_263469_2_not_null",
+                "definition": "turno_id IS NOT NULL"
+              },
+              {
+                "name": "63668_263469_3_not_null",
+                "definition": "abierta_por IS NOT NULL"
+              },
+              {
+                "name": "63668_263469_4_not_null",
+                "definition": "motivo IS NOT NULL"
+              },
+              {
+                "name": "63668_263469_5_not_null",
+                "definition": "estado IS NOT NULL"
+              },
+              {
+                "name": "ck_conciliacion_disputa_estado",
+                "definition": "((estado)::text = ANY ((ARRAY['ABIERTA'::character varying, 'EN_TENANT'::character varying, 'EN_PLATAFORMA'::character varying, 'RESUELTA'::character varying, 'CERRADA_AUTOMATICA'::character varying])::text[]))"
+              }
+            ]
+          },
+          "indexes": [
+            {
+              "name": "conciliacion_disputa_pkey",
+              "unique": true,
+              "primary": true,
+              "method": "btree",
+              "definition": "CREATE UNIQUE INDEX conciliacion_disputa_pkey ON fleet.conciliacion_disputa USING btree (id)",
+              "columns": [
+                "id"
+              ]
+            },
+            {
+              "name": "ix_conciliacion_disputa_turno_estado",
+              "unique": false,
+              "primary": false,
+              "method": "btree",
+              "definition": "CREATE INDEX ix_conciliacion_disputa_turno_estado ON fleet.conciliacion_disputa USING btree (turno_id, estado)",
+              "columns": [
+                "turno_id",
+                "estado"
+              ]
+            }
+          ]
+        },
         "contrato_qr": {
           "comment": "QRs generados para pagos y trazabilidad de viajes",
           "columns": {
@@ -7233,6 +7733,18 @@
               "nullable": false,
               "default": "'DIARIA'::character varying",
               "character_maximum_length": 20,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": null
+            },
+            "tratamiento_gastos": {
+              "ordinal": 29,
+              "type": "character varying(50)",
+              "base_type": "varchar",
+              "nullable": true,
+              "default": "'DESPUES'::character varying",
+              "character_maximum_length": 50,
               "numeric_precision": null,
               "numeric_scale": null,
               "datetime_precision": null,
@@ -9887,6 +10399,42 @@
               "numeric_scale": 2,
               "datetime_precision": null,
               "comment": null
+            },
+            "conciliado_por": {
+              "ordinal": 35,
+              "type": "uuid",
+              "base_type": "uuid",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": "Usuario que concilió la liquidación (NULL si fue automático)"
+            },
+            "conciliado_en": {
+              "ordinal": 36,
+              "type": "timestamp without time zone",
+              "base_type": "timestamp",
+              "nullable": true,
+              "default": null,
+              "character_maximum_length": null,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": 6,
+              "comment": "Fecha y hora de la conciliación"
+            },
+            "tipo_conciliacion": {
+              "ordinal": 37,
+              "type": "character varying(20)",
+              "base_type": "varchar",
+              "nullable": false,
+              "default": "'MANUAL'::character varying",
+              "character_maximum_length": 20,
+              "numeric_precision": null,
+              "numeric_scale": null,
+              "datetime_precision": null,
+              "comment": "Tipo de conciliación: MANUAL o AUTOMATICA"
             }
           },
           "constraints": {
@@ -9925,6 +10473,21 @@
                   ]
                 },
                 "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              },
+              {
+                "name": "fk_liquidacion_conciliado_por_usuario",
+                "columns": [
+                  "conciliado_por"
+                ],
+                "references": {
+                  "schema": "auth",
+                  "table": "usuario",
+                  "columns": [
+                    "id"
+                  ]
+                },
+                "on_delete": "NO ACTION",
                 "on_update": "NO ACTION"
               },
               {
@@ -10108,6 +10671,10 @@
                 "definition": "saldo_propietario IS NOT NULL"
               },
               {
+                "name": "63668_171523_37_not_null",
+                "definition": "tipo_conciliacion IS NOT NULL"
+              },
+              {
                 "name": "63668_171523_3_not_null",
                 "definition": "turno_id IS NOT NULL"
               },
@@ -10134,6 +10701,10 @@
               {
                 "name": "63668_171523_9_not_null",
                 "definition": "periodo_desde IS NOT NULL"
+              },
+              {
+                "name": "ck_liquidacion_estado",
+                "definition": "((estado)::text = ANY ((ARRAY['BORRADOR'::character varying, 'CALCULADA'::character varying, 'CONCILIADA'::character varying, 'CONCILIADA_AUTOMATICA'::character varying, 'APROBADA'::character varying, 'RECHAZADA'::character varying, 'PAGADA'::character varying, 'OBSOLETA'::character varying])::text[]))"
               },
               {
                 "name": "ck_liquidacion_metodo_pago",
@@ -14371,6 +14942,10 @@
               {
                 "name": "63668_97105_8_not_null",
                 "definition": "combustible_inicial IS NOT NULL"
+              },
+              {
+                "name": "ck_turno_chofer_estado",
+                "definition": "((estado)::text = ANY ((ARRAY['ACTIVO'::character varying, 'PENDIENTE_CONFIRMACION'::character varying, 'CON_DIFERENCIAS_PENDIENTES'::character varying, 'EN_DISPUTA'::character varying, 'CONCILIADO'::character varying, 'CONCILIADO_AUTOMATICO'::character varying, 'LIQUIDADO'::character varying, 'CERRADO'::character varying, 'CANCELADO'::character varying])::text[]))"
               }
             ]
           },
