@@ -45,6 +45,13 @@ class TurnoChofer(Base):
     km_final = Column(Numeric, nullable=True)
     combustible_inicial = Column(String(20), nullable=False)
     combustible_final = Column(String(20), nullable=True)
+
+    # Efectivo declarado por el chofer al cerrar el turno
+    efectivo_declarado = Column(
+        Numeric,
+        nullable=True,
+        comment="Efectivo que el chofer declara haber entregado al propietario al cerrar el turno",
+    )
     
     # ============================================
     # ❌ ELIMINADOS - CAMPOS LEGACY DE RECAUDACIÓN
