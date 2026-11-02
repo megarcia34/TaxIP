@@ -58,7 +58,6 @@ from app.routers.chofer_splash import router as chofer_splash_router
 from app.database import get_db, AsyncSessionLocal
 from app.websocket.handlers import handle_websocket
 from app.dependencies import get_current_super_admin_user
-# junto a los demas imports de routers de chofer:
 from app.routers.chofer_finanzas import router as chofer_finanzas_router
 
 # Importar routers principales
@@ -86,6 +85,12 @@ from app.routers.admin.dashboard import router as admin_dashboard_router
 
 # NUEVOS ROUTERS
 from app.routers.empleado_turnos import router as empleado_turnos_router
+
+# Router de conciliaciones del propietario
+from app.routers.propietario import conciliaciones as propietario_conciliaciones
+
+# Router de disputas
+from app.routers import conciliaciones_disputas
 
 # ROUTER DE RESERVAS
 from app.routers import reservas
@@ -213,6 +218,12 @@ app.include_router(chofer_registro_progresivo_router)
 app.include_router(chofer_turnos_router)
 app.include_router(chofer_splash_router)
 
+# ✅ NUEVO: Conciliaciones del propietario
+app.include_router(propietario_conciliaciones.router)
+
+# ✅ NUEVO: Disputas de conciliación
+app.include_router(conciliaciones_disputas.router)
+
 # ============================================
 # ROUTERS DE SUPER ADMIN
 # ============================================
@@ -245,6 +256,8 @@ app.include_router(turnos.router)
 # ============================================
 app.include_router(rentabilidad.router)
 app.include_router(optimizacion.router)
+
+
 
 
 # ============================================
