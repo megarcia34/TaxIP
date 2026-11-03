@@ -162,6 +162,9 @@ async def listar_historial_conciliaciones(
     db: AsyncSession = Depends(get_db),
 ):
     """Lista el historial de conciliaciones cerradas del propietario."""
-    # TODO: implementar en el servicio
-    # Por ahora, devolvemos una lista vacia
-    return ConciliacionHistorialResponse(total=0, conciliaciones=[])
+    service = ConciliacionService(db)
+    items = await service.listar_historial(propietario_id, limit, offset)
+    return ConciliacionHistorialResponse(
+        total=len(items),
+        conciliaciones=[ConciliacionHistorialItem(**item) for item in items],
+    )

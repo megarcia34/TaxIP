@@ -41,6 +41,7 @@ export const turnoService = {
     kmInicial?: number;
     combustibleInicial?: string;
     contratoId?: string;
+    tipoContrato?: string;
     duracionMinutos?: number;
     duracionFormateada?: string;
   }> {
@@ -84,18 +85,30 @@ export const turnoService = {
    * Finaliza el turno.
    * POST /api/chofer/turno/check-out
    */
+    /**
+   * Finaliza el turno.
+   * POST /api/chofer/turno/check-out
+   */
   async checkOut(
     kmFinal: number,
     combustibleFinal: Combustible,
-    recaudacionTicketera: number
+    recaudacionTicketera: number,    
+    efectivoDeclarado?: number
   ): Promise<CheckOutResponse> {
+    const body: any = {
+      km_final: kmFinal,
+      combustible_final: combustibleFinal,
+      recaudacion_ticketera: recaudacionTicketera,
+    };
+    
+    // Solo enviamos el campo si tiene un valor definido (ej. contratos PORCENTAJE)
+    if (efectivoDeclarado !== undefined) {
+      body.efectivo_declarado = efectivoDeclarado;
+    }
+
     const response = await api.post<CheckOutResponse>(
       '/api/chofer/turno/check-out',
-      {
-        km_final: kmFinal,
-        combustible_final: combustibleFinal,
-        recaudacion_ticketera: recaudacionTicketera,
-      }
+      body
     );
     return response.data;
   },

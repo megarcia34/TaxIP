@@ -69,10 +69,13 @@ export default function TurnosScreen() {
 
   const [error, setError] = useState<string | null>(null);
   const [isLoadingLocal, setIsLoadingLocal] = useState(false);
+  
+  // NUEVO R24: Agregado efectivoDeclarado al estado pendiente
   const [pendingCheckOut, setPendingCheckOut] = useState<{
     kmFinal: number;
     combustibleFinal: Combustible;
     recaudacionTicketera: number;
+    efectivoDeclarado?: number;
   } | null>(null);
 
   const nombreCorto = user?.nombreCompleto?.split(' ')[0] || 'Chofer';
@@ -125,11 +128,28 @@ export default function TurnosScreen() {
   // ============================================
   // BOTÓN PRINCIPAL
   // ============================================
-  const handleBotonPress = () => {
+  const handleBotonPress = async () => {
     setError(null);
 
     if (turnoActivo) {
-      setModalCheckOutVisible(true);
+      setIsLoadingLocal(true);
+      try {
+        // Pedimos los datos frescos al backend antes de abrir el modal
+        const data = await turnoService.obtenerTurnoActivo();
+        
+        if (data.tieneTurnoActivo && data.tipoContrato) {
+          // Actualizamos el store local con el tipo de contrato fresco
+          useTurnoStore.getState().setTurnoActivo({
+            ...turnoActivo,
+            tipoContrato: data.tipoContrato,
+          });
+        }
+      } catch (e) {
+        console.warn("No se pudo refrescar el contrato", e);
+      } finally {
+        setIsLoadingLocal(false);
+        setModalCheckOutVisible(true);
+      }
       return;
     }
 
@@ -248,7 +268,8 @@ export default function TurnosScreen() {
   const handleCheckOut = async (
     kmFinal: number,
     combustibleFinal: Combustible,
-    recaudacionTicketera: number
+    recaudacionTicketera: number,
+    efectivoDeclarado?: number // NUEVO R24
   ) => {
     setError(null);
     setIsLoadingLocal(true);
@@ -256,7 +277,8 @@ export default function TurnosScreen() {
       await turnoService.checkOut(
         kmFinal,
         combustibleFinal,
-        recaudacionTicketera
+        recaudacionTicketera,
+        efectivoDeclarado // NUEVO R24
       );
 
       useTurnoStore.getState().setTurnoActivo(null);
@@ -278,6 +300,7 @@ export default function TurnosScreen() {
           kmFinal,
           combustibleFinal,
           recaudacionTicketera,
+          efectivoDeclarado, // NUEVO R24
         });
         setModalHuerfanosVisible(true);
         setModalCheckOutVisible(false);
@@ -429,7 +452,7 @@ export default function TurnosScreen() {
         patente={getPatenteModal()}
       />
 
-      <ModalCheckOut
+        <ModalCheckOut
         visible={modalCheckOutVisible}
         onClose={() => {
           setModalCheckOutVisible(false);
@@ -437,6 +460,7 @@ export default function TurnosScreen() {
         }}
         onFinalizar={handleCheckOut}
         kmInicial={turnoActivo?.kmInicial || 0}
+        tipoContrato={turnoActivo?.tipoContrato} // Limpio, sin "as any"
         isLoading={isLoadingLocal}
         error={error}
       />
@@ -456,7 +480,8 @@ export default function TurnosScreen() {
             await handleCheckOut(
               pendingCheckOut.kmFinal,
               pendingCheckOut.combustibleFinal,
-              pendingCheckOut.recaudacionTicketera
+              pendingCheckOut.recaudacionTicketera,
+              pendingCheckOut.efectivoDeclarado // NUEVO R24
             );
             setPendingCheckOut(null);
           }

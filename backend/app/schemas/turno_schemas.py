@@ -60,6 +60,8 @@ class CheckOutRequest(BaseModel):
         ..., pattern='^(RESERVA|1/4|1/2|3/4|LLENO)$'
     )
     recaudacion_ticketera: float = Field(0, ge=0)
+    # NUEVO R24: Efectivo recaudado (obligatorio en lógica para contratos PORCENTAJE)
+    efectivo_declarado: Optional[float] = Field(None, ge=0)
 
 
 class ValidarCodigoRequest(BaseModel):
@@ -187,6 +189,7 @@ class TurnoActivoResponse(CamelCaseModel):
     km_inicial: Optional[float] = None
     combustible_inicial: Optional[str] = None
     contrato_id: Optional[UUID] = None
+    tipo_contrato: Optional[str] = None
     duracion_minutos: Optional[int] = None
     duracion_formateada: Optional[str] = None
 

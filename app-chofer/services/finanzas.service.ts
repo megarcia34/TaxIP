@@ -8,6 +8,7 @@ export interface TurnoFinanzas {
   kmRecorridos: number | null;
   duracionMinutos: number;
   vehiculo: { patente: string; marca: string; modelo: string };
+  efectivoDeclarado?: number | null;
 }
 
 export interface ResumenFinanzasTotales {
@@ -19,7 +20,10 @@ export interface ResumenFinanzasTotales {
   comisionPropietario: number;
   comisionEstimada: boolean;
   utilidadNeta: number;
-  desglosePorOrigen?: Record<string, { viajes: number; recaudado: number }>;  // ✅ AGREGADO
+  desglosePorOrigen?: Record<string, { viajes: number; recaudado: number }>; 
+  recaudacion_efectivo: number;
+  recaudacion_electronico: number;
+  contrato: any | null;
 }
 
 export interface ViajeFinanzas {

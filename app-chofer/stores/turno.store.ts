@@ -39,8 +39,9 @@ interface TurnoState {
   checkOut: (
     kmFinal: number,
     combustibleFinal: Combustible,
-    recaudacionTicketera: number
-  ) => Promise<CheckOutResponse>;
+    recaudacionTicketera: number,
+    efectivoDeclarado?: number
+    ) => Promise<CheckOutResponse>;
   setEstadoLaboral: (estado: EstadoLaboral) => void;
   setTurnoActivo: (turno: TurnoActivo | null) => void;
   reset: () => void;
@@ -83,6 +84,7 @@ export const useTurnoStore = create<TurnoState>()(
       // ============================================
       // CARGAR TURNO ACTIVO
       // ============================================
+
       cargarTurnoActivo: async () => {
         try {
           const data = await turnoService.obtenerTurnoActivo();
@@ -104,6 +106,7 @@ export const useTurnoStore = create<TurnoState>()(
                   (data.combustibleInicial as Combustible) || 'LLENO',
                 duracionMinutos: data.duracionMinutos || 0,
                 duracionFormateada: data.duracionFormateada || '00:00:00',
+                tipoContrato: data.tipoContrato, // NUEVO R24
               },
               estadoLaboral: (data.estadoLaboral as EstadoLaboral) || 'libre',
             });
@@ -111,7 +114,6 @@ export const useTurnoStore = create<TurnoState>()(
             set({ turnoActivo: null, estadoLaboral: 'fuera_servicio' });
           }
         } catch (error: any) {
-          // Si no hay turno activo, no es un error crítico
           console.warn('Error al cargar turno activo:', error?.message);
         }
       },
@@ -201,16 +203,17 @@ export const useTurnoStore = create<TurnoState>()(
       checkOut: async (
         kmFinal: number,
         combustibleFinal: Combustible,
-        recaudacionTicketera: number
+        recaudacionTicketera: number,
+        efectivoDeclarado?: number // NUEVO R24
       ) => {
         try {
           const response = await turnoService.checkOut(
             kmFinal,
             combustibleFinal,
-            recaudacionTicketera
+            recaudacionTicketera,
+            efectivoDeclarado // NUEVO R24
           );
 
-          // Limpiar el turno activo
           set({
             turnoActivo: null,
             estadoLaboral: 'fuera_servicio',

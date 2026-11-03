@@ -217,6 +217,7 @@ export default function FinanzasScreen() {
         </View>
 
         {/* BLOQUE 1: LA CAJA (Split Efectivo vs Electronico) */}
+                {/* BLOQUE 1: LA CAJA (Split Efectivo vs Electronico) */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>CAJA DEL TURNO</Text>
           <View style={styles.rowBetween}>
@@ -229,9 +230,21 @@ export default function FinanzasScreen() {
           </View>
           <View style={styles.divider} />
           <View style={styles.rowBetween}>
-            <Text style={styles.labelBold}>Recaudacion Total</Text>
+            <Text style={styles.labelBold}>Recaudación Total</Text>
             <Text style={styles.valueBold}>{fmtMoney(resumen.recaudacionTotal)}</Text>
           </View>
+          
+          {/* NUEVO: Cálculo de lo que debe entregar */}
+          {turno.estado === 'PENDIENTE_CONFIRMACION' && (
+             <View style={[styles.rowBetween, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }]}>
+               <Text style={[styles.label, { color: COLORS.primary, fontWeight: 'bold' }]}>
+                 Efectivo a entregar (Declarado - Gastos)
+               </Text>
+               <Text style={styles.valueBold}>
+                 {fmtMoney(resumen.recaudacion_efectivo - resumen.gastosTotal)}
+               </Text>
+             </View>
+          )}
         </View>
 
         {/* BLOQUE 2: LISTA DE VIAJES */}

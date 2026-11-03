@@ -158,6 +158,7 @@ class ConciliacionHistorialItem(BaseModel):
     recaudacion_total: Decimal
     total_chofer: Decimal
     total_propietario: Decimal
+    deuda_pendiente: Decimal = 0 
     tipo_conciliacion: str  # "MANUAL", "AUTOMATICA"
     estado: str
 

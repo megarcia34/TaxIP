@@ -333,12 +333,14 @@ class TurnoService:
         chofer_id: uuid.UUID,
         km_final: float,
         combustible_final: str,
-        recaudacion_ticketera: float = 0
+        recaudacion_ticketera: float = 0,
+        efectivo_declarado: Optional[float] = None
     ) -> dict:
         """
         Cerrar turno (Check-out)
         SOLO registra hechos operativos, NO calcula liquidación.
         Los ingresos declarados (ticketera) se registran como IngresoTurno con estado PENDIENTE.
+        El efectivo_declarado se guarda para la posterior conciliación (R24).
         """
         combustibles_validos = ['RESERVA', '1/4', '1/2', '3/4', 'LLENO']
         if combustible_final not in combustibles_validos:
@@ -371,6 +373,37 @@ class TurnoService:
         turno.combustible_final = combustible_final
         turno.fin_turno = datetime.now()
         turno.estado = 'PENDIENTE_CONFIRMACION'
+        
+        # NUEVO R24: Guardar efectivo declarado (solo si viene)
+        if efectivo_declarado is not None:
+            turno.efectivo_declarado = efectivo_declarado
+
+        # ============================================================
+        # REGISTRAR INGRESO TICKETERA COMO INGRESO_TURNO PENDIENTE
+        # Los campos legacy (recaudacion_ticketera_calle) ya NO existen
+        # ============================================================
+        if recaudacion_ticketera > 0:
+            ingreso = IngresoTurno(
+                turno_id=turno.id,
+                tipo_ingreso="taximetro",
+                medio_pago="efectivo",
+                origen="taximetro",
+                monto=Decimal(str(recaudacion_ticketera)),
+                declarado_por=chofer_id,
+                estado="pendiente",
+                observaciones="Declaración de ticketera al cierre de turno"
+            )
+            db.add(ingreso)
+
+        await db.commit()
+        await db.refresh(turno)
+
+        return {
+            "turno_id": turno.id,
+            "estado": turno.estado,
+            "mensaje": "Turno cerrado correctamente. Pendiente de confirmación y liquidación.",
+            "ingresos_registrados": 1 if recaudacion_ticketera > 0 else 0
+        }
 
         # ============================================================
         # REGISTRAR INGRESO TICKETERA COMO INGRESO_TURNO PENDIENTE

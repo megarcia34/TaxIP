@@ -1,9 +1,9 @@
 # RESUMEN EJECUTIVO — TaxIP 2.0
 
-**Ultima actualizacion:** 2026-10-24 (post R21)
-**Alembic head:** m3_025
-**Version:** 2.3.0
-**Estado general:** Backend en producción. Frontend web en producción. App chofer (iOS/Android) funcionando y validada.
+**Ultima actualizacion:** 2026-11-02 (post R24)
+**Alembic head:** m3_031
+**Version:** 2.4.0
+**Estado general:** Backend en produccion. Frontend web en produccion. App chofer (iOS/Android) funcionando y validada.
 **Diff BD <-> ORM:** 1 item (deuda aceptada preexistente)
 
 ---
@@ -412,6 +412,18 @@ o `en_curso`) al intentar cerrar turno:
 - Puede cerrarlos uno por uno en `POST /api/chofer/turno/viajes-huerfanos/{id}/cerrar`.
 - Motivos: `pasajero_cancelo`, `pasajero_no_aparecio`, `pasajero_pidio_bajarse`, `pasajero_abandono`, `emergencia`, `chofer_cancelo`, `error_sistema`, `otro`.
 
+### 7.3.1. Conciliacion de turno (R24)
+
+1. Al cerrar el turno (Check-out), el chofer declara el efectivo que entrega (solo contratos PORCENTAJE).
+2. El turno pasa a `PENDIENTE_CONFIRMACION` y aparece en la bandeja de conciliaciones del propietario.
+3. El propietario revisa los gastos declarados: puede aprobarlos o rechazarlos.
+   - Gasto rechazado -> se genera una `DEUDA_CHOFER` automatica.
+4. Al cerrar la conciliacion:
+   - Si hay diferencia de efectivo, se genera automaticamente `DEUDA_CHOFER` o `DEUDA_PROPIETARIO`.
+   - Se invoca al `LiquidacionEngine` que calcula y persiste la liquidacion final.
+   - El turno pasa a `CONCILIADO`.
+5. El propietario puede ver el historial de conciliaciones cerradas con los montos finales de cada liquidacion.
+
 ### 7.4. Solicitud de viaje (todos los canales)
 
 - **Landing web** (`/pedir`) con seguimiento en tiempo real.
@@ -472,8 +484,18 @@ o `en_curso`) al intentar cerrar turno:
 | App Movil (Pasajero) | Reemplazada por landing web | No se hara |
 | Modulo de Cupones / Puntos | Estructura lista, endpoints pendientes | Tablas creadas, sin UI |
 | Facturacion PDF | Estructura lista, generacion pendiente | Endpoints de facturacion listos |
+| Conciliaciones (Propietario) | Produccion | Bandeja de pendientes + Historial. Aprobacion de gastos. Cierre con liquidacion automatica. |
 
 ---
+---
+
+## 9.1. NOVEDADES R24 (Conciliacion)
+
+- **Check-out con efectivo declarado:** La app chofer exige el monto de efectivo entregado para contratos PORCENTAJE.
+- **Conciliacion de turnos:** El propietario tiene una pantalla dedicada con bandeja de pendientes e historial.
+- **Liquidacion automatica:** Al cerrar la conciliacion, el motor de liquidacion calcula y persiste la liquidacion final.
+- **Deudas automaticas:** Las diferencias de efectivo y los gastos rechazados generan registros en `fleet.conciliacion_diferencia`.
+- **Blindaje anti-duplicados:** El sistema impide cerrar dos veces la misma conciliacion.
 
 ## 10. GUIA DE INSTALACION Y EJECUCION (NATIVA, SIN DOCKER)
 

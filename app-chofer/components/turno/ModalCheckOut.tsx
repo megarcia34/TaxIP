@@ -22,9 +22,11 @@ interface ModalCheckOutProps {
   onFinalizar: (
     kmFinal: number,
     combustibleFinal: Combustible,
-    ticketera: number
+    ticketera: number,
+    efectivoDeclarado?: number
   ) => Promise<void>;
   kmInicial: number;
+  tipoContrato?: string;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -34,6 +36,7 @@ export function ModalCheckOut({
   onClose,
   onFinalizar,
   kmInicial,
+  tipoContrato,
   isLoading = false,
   error = null,
 }: ModalCheckOutProps) {
@@ -44,12 +47,25 @@ export function ModalCheckOut({
   const kmFinalNum = parseFloat(kmFinal) || 0;
   const kmInicialNum = kmInicial || 0;
   const isKmValid = kmFinalNum > kmInicialNum;
+  
   const isFormValid = isKmValid && kmFinal.length > 0;
 
+  // NUEVO: Determinar el tipo de contrato
+  const esPorcentaje = tipoContrato === 'PORCENTAJE';
+  // Si es PORCENTAJE, el campo es obligatorio.
+  const isTicketeraValid = esPorcentaje ? ticketera.trim() !== '' : true;
+
   const handleFinalizar = async () => {
-    if (!isFormValid) return;
+    if (!isFormValid || !isTicketeraValid) return;
     Keyboard.dismiss();
-    await onFinalizar(kmFinalNum, combustible, parseFloat(ticketera) || 0);
+    
+    const ticketeraNum = parseFloat(ticketera) || 0;
+    
+    // Si es PORCENTAJE, enviamos el valor también como efectivo_declarado.
+    // Si no, mandamos undefined para que el backend use su lógica por defecto.
+    const efectivoNum = esPorcentaje ? ticketeraNum : undefined;
+    
+    await onFinalizar(kmFinalNum, combustible, ticketeraNum, efectivoNum);
   };
 
   const handleClose = () => {
@@ -134,22 +150,29 @@ export function ModalCheckOut({
               </View>
             </View>
 
-            {/* Ticketera */}
+            {/* Recaudación / Efectivo */}
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>
-                RECAUDACIÓN TICKETERA (OPCIONAL)
+                {esPorcentaje 
+                  ? 'INGRESAR TOTAL DE EFECTIVO RECAUDADO' 
+                  : 'RECAUDACIÓN TICKETERA (OPCIONAL)'}
               </Text>
               <TextInput
                 style={styles.input}
                 value={ticketera}
                 onChangeText={setTicketera}
-                placeholder="Ej: 4500"
+                placeholder={esPorcentaje ? "Obligatorio" : "Ej: 4500"}
                 placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 keyboardType="numeric"
                 editable={!isLoading}
                 returnKeyType="done"
                 onSubmitEditing={Keyboard.dismiss}
               />
+              {esPorcentaje && ticketera.trim() === '' && (
+                 <Text style={styles.inputError}>
+                   Campo obligatorio para contratos a porcentaje
+                 </Text>
+              )}
             </View>
 
             {error && (
@@ -171,10 +194,10 @@ export function ModalCheckOut({
                 style={[
                   styles.boton,
                   styles.botonFinalizar,
-                  (!isFormValid || isLoading) && styles.botonDisabled,
+                  (!isFormValid || !isTicketeraValid || isLoading) && styles.botonDisabled,
                 ]}
                 onPress={handleFinalizar}
-                disabled={!isFormValid || isLoading}
+                disabled={!isFormValid || !isTicketeraValid || isLoading}
               >
                 {isLoading ? (
                   <ActivityIndicator color={COLORS.textPrimary} size="small" />

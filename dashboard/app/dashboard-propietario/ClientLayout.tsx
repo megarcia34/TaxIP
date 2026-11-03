@@ -98,16 +98,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   // ============================================
   // MENÚ DEL PROPIETARIO (CORREGIDO)
   // ============================================
-  const menuItems = [
+    const menuItems = [
     { title: 'Mi perfil', href: '/dashboard-propietario/perfil', icon: User },
     { title: 'Dashboard', href: '/dashboard-propietario', icon: LayoutDashboard },
     { title: 'Vehículos', href: '/dashboard-propietario/vehiculos', icon: Car },
     { title: 'Vehículos en Tiempo Real', href: '/dashboard-propietario/vehiculos-tiempo-real', icon: MapPin },
-    { title: 'Viajes', href: '/dashboard-propietario/viajes', icon: CalendarClock }, // ✅ AGREGADO
+    { title: 'Viajes', href: '/dashboard-propietario/viajes', icon: CalendarClock },
     { title: 'Documentos', href: '/dashboard-propietario/documentos', icon: FileText, badge: totalUrgentes },
     { title: 'Neumáticos', href: '/dashboard-propietario/neumaticos', icon: CircleDot },
     { title: 'Contratos', href: '/dashboard-propietario/contratos', icon: Briefcase },
     { title: 'Ingresos', href: '/dashboard-propietario/ingresos', icon: DollarSign },
+    { title: 'Conciliaciones', href: '/dashboard-propietario/conciliaciones', icon: ClipboardList }, // ✅ NUEVO
     { title: 'Gastos', href: '/dashboard-propietario/gastos', icon: CreditCard },
     { title: 'Mantenimientos', href: '/dashboard-propietario/mantenimientos', icon: Wrench },
     { title: 'Rentabilidad', href: '/dashboard-propietario/rentabilidad', icon: BarChart3 },

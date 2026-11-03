@@ -11,9 +11,10 @@ Logica de negocio:
 - Abrir/resolver disputas.
 
 Reglas de negocio confirmadas (R24):
-- Recaudacion declarada = recaudacion manual + recaudacion electronica.
-- Efectivo en mano = suma de viajes finalizados con metodo_pago = 'efectivo'.
-- Diferencia de efectivo = efectivo declarado - efectivo calculado de viajes.
+- Recaudacion declarada = recaudacion de viajes + recaudacion manual (taximetro).
+- Efectivo calculado = viajes con metodo_pago = 'efectivo' + ingresos con medio_pago = 'efectivo'.
+- Efectivo declarado = campo efectivo_declarado en turno_chofer.
+- Diferencia = efectivo declarado - efectivo calculado.
 - Al cerrar turno se esta en condiciones de conciliar.
 - Gasto rechazado -> DEUDA_CHOFER (impase hasta saldar).
 - Conciliacion automatica (7 dias): aprobar gastos, generar liquidacion,
@@ -87,25 +88,52 @@ class ConciliacionService:
                 v.patente AS vehiculo_patente,
                 COALESCE(p.nombre || ' ' || p.apellido, u.email) AS chofer_nombre,
                 c.tipo_contrato,
+                -- Recaudacion total (viajes finalizados)
                 COALESCE((
                     SELECT SUM(vs.precio_final)
                     FROM trip.viaje_solicitado vs
                     WHERE vs.turno_id = t.id
                       AND vs.estado = 'finalizado'
+                      AND vs.metodo_pago IS NOT NULL
                 ), 0) AS recaudacion_viajes,
+                -- Recaudacion manual (ingreso_turno con tipo_ingreso = 'taximetro')
                 COALESCE((
                     SELECT SUM(it.monto)
                     FROM fleet.ingreso_turno it
                     WHERE it.turno_id = t.id
-                      AND LOWER(COALESCE(it.origen, '')) = 'manual'
+                      AND it.tipo_ingreso = 'taximetro'
                 ), 0) AS recaudacion_manual,
-                COALESCE(t.recaudacion_ticketera, 0) AS efectivo_declarado,
+                -- Efectivo calculado (viajes + ingresos)
+                COALESCE((
+                    SELECT SUM(vs.precio_final)
+                    FROM trip.viaje_solicitado vs
+                    WHERE vs.turno_id = t.id
+                      AND vs.estado = 'finalizado'
+                      AND vs.metodo_pago = 'efectivo'
+                ), 0) + COALESCE((
+                    SELECT SUM(it.monto)
+                    FROM fleet.ingreso_turno it
+                    WHERE it.turno_id = t.id
+                      AND it.medio_pago = 'efectivo'
+                ), 0) AS efectivo_calculado,
+                -- Efectivo declarado por el chofer
+                COALESCE(t.efectivo_declarado, 0) AS efectivo_declarado,
+                -- Gastos declarados
                 COALESCE((
                     SELECT SUM(gt.monto)
                     FROM fleet.gasto_turno gt
                     WHERE gt.turno_id = t.id
                 ), 0) AS gastos_declarados,
-                EXTRACT(EPOCH FROM (NOW() - t.fin_turno)) / 86400 AS dias_transcurridos
+                -- Dias transcurridos
+                EXTRACT(EPOCH FROM (NOW() - t.fin_turno)) / 86400 AS dias_transcurridos,
+                -- Diferencia calculada directo en SQL (Fix NULL -> 0)
+                CASE 
+                    WHEN t.efectivo_declarado IS NULL THEN 0 
+                    ELSE (t.efectivo_declarado - (
+                        COALESCE((SELECT SUM(precio_final) FROM trip.viaje_solicitado WHERE turno_id = t.id AND estado = 'finalizado' AND metodo_pago = 'efectivo'), 0) +
+                        COALESCE((SELECT SUM(monto) FROM fleet.ingreso_turno WHERE turno_id = t.id AND medio_pago = 'efectivo'), 0)
+                    ))
+                END AS diferencia
             FROM fleet.turno_chofer t
             JOIN fleet.vehiculo v ON v.id = t.vehiculo_id
             JOIN fleet.contrato_vehiculo c ON c.id = t.contrato_id
@@ -129,15 +157,13 @@ class ConciliacionService:
         for row in rows:
             recaudacion_viajes = float(row[6] or 0)
             recaudacion_manual = float(row[7] or 0)
-            efectivo_declarado = float(row[8] or 0)
-            gastos_declarados = float(row[9] or 0)
-            dias_transcurridos = float(row[10] or 0)
+            efectivo_calculado = float(row[8] or 0)
+            efectivo_declarado = float(row[9] or 0)
+            gastos_declarados = float(row[10] or 0)
+            dias_transcurridos = float(row[11] or 0)
+            diferencia = float(row[12] or 0)
 
-            # Calcular diferencia: efectivo declarado - efectivo calculado de viajes
-            # (Por ahora, usamos recaudacion_viajes como proxy. El detalle exacto
-            # se calcula en obtener_detalle).
-            diferencia = efectivo_declarado - recaudacion_viajes
-
+            recaudacion_total = recaudacion_viajes + recaudacion_manual
             dias_restantes = max(0, DIAS_PLAZO_CONCILIACION - int(dias_transcurridos))
 
             items.append(ConciliacionPendienteItem(
@@ -146,8 +172,8 @@ class ConciliacionService:
                 vehiculo_patente=row[3],
                 chofer_nombre=row[4] or "Sin chofer",
                 tipo_contrato=row[5],
-                recaudacion_declarada=Decimal(str(recaudacion_viajes + recaudacion_manual)),
-                efectivo_en_mano=Decimal(str(efectivo_declarado)),
+                recaudacion_declarada=Decimal(str(recaudacion_total)),
+                efectivo_en_mano=Decimal(str(efectivo_calculado)),
                 gastos_declarados=Decimal(str(gastos_declarados)),
                 diferencia=Decimal(str(diferencia)),
                 dias_restantes=dias_restantes,
@@ -178,7 +204,7 @@ class ConciliacionService:
             SELECT
                 t.id AS turno_id,
                 t.fin_turno,
-                t.recaudacion_ticketera,
+                t.efectivo_declarado,
                 t.estado,
                 v.patente AS vehiculo_patente,
                 COALESCE(p.nombre || ' ' || p.apellido, u.email) AS chofer_nombre,
@@ -206,7 +232,7 @@ class ConciliacionService:
             raise ValueError(f"Turno {turno_id} no encontrado o no pertenece al propietario")
 
         (
-            turno_id_val, fin_turno, recaudacion_ticketera, estado_turno,
+            turno_id_val, fin_turno, efectivo_declarado, estado_turno,
             vehiculo_patente, chofer_nombre, tipo_contrato, porcentaje_chofer,
             canon_diario, tratamiento_gastos,
         ) = row
@@ -220,6 +246,7 @@ class ConciliacionService:
             FROM trip.viaje_solicitado
             WHERE turno_id = :turno_id
               AND estado = 'finalizado'
+              AND metodo_pago IS NOT NULL
         """)
         result = await self.db.execute(query_viajes, {"turno_id": turno_id})
         row_viajes = result.first()
@@ -227,25 +254,50 @@ class ConciliacionService:
         recaudacion_efectivo = float(row_viajes[1] or 0)
         recaudacion_electronico = float(row_viajes[2] or 0)
 
-        # 3. Recaudacion manual (ingresos manuales del turno)
+        # 3. Recaudacion manual (ingreso_turno con tipo_ingreso = 'taximetro')
         query_manual = text("""
             SELECT COALESCE(SUM(monto), 0)
             FROM fleet.ingreso_turno
             WHERE turno_id = :turno_id
-              AND LOWER(COALESCE(origen, '')) = 'manual'
+              AND tipo_ingreso = 'taximetro'
         """)
         result = await self.db.execute(query_manual, {"turno_id": turno_id})
         recaudacion_manual = float(result.scalar() or 0)
 
-        # 4. Gastos del turno
+        # 4. Efectivo calculado (viajes + ingresos)
+        query_efectivo = text("""
+            SELECT 
+                COALESCE((
+                    SELECT SUM(precio_final)
+                    FROM trip.viaje_solicitado
+                    WHERE turno_id = :turno_id
+                      AND estado = 'finalizado'
+                      AND metodo_pago = 'efectivo'
+                ), 0) AS efectivo_viajes,
+                COALESCE((
+                    SELECT SUM(monto)
+                    FROM fleet.ingreso_turno
+                    WHERE turno_id = :turno_id
+                      AND medio_pago = 'efectivo'
+                ), 0) AS efectivo_manual
+        """)
+        result = await self.db.execute(query_efectivo, {"turno_id": turno_id})
+        row_efectivo = result.first()
+        efectivo_viajes = float(row_efectivo[0] or 0)
+        efectivo_manual = float(row_efectivo[1] or 0)
+        efectivo_calculado = efectivo_viajes + efectivo_manual
+
+        # 5. Gastos del turno (CON ESTADO Y DESCRIPCION)
         query_gastos = text("""
             SELECT
                 id,
                 tipo_gasto,
                 monto,
-                COALESCE(descripcion, '') AS descripcion,
+                km_registro,
                 url_comprobante,
-                created_at
+                created_at,
+                estado_aprobacion,
+                descripcion
             FROM fleet.gasto_turno
             WHERE turno_id = :turno_id
             ORDER BY created_at ASC
@@ -262,13 +314,13 @@ class ConciliacionService:
                 id=g[0],
                 tipo_gasto=g[1],
                 monto=Decimal(str(monto)),
-                descripcion=g[3] or None,
+                descripcion=g[7],
                 url_comprobante=g[4],
                 created_at=g[5],
-                estado_aprobacion="pendiente",  # TODO: leer de conciliacion_diferencia
+                estado_aprobacion=g[6] or "pendiente",
             ))
 
-        # 5. Diferencias registradas
+        # 6. Diferencias registradas
         query_diferencias = text("""
             SELECT
                 id,
@@ -298,14 +350,23 @@ class ConciliacionService:
                 estado=d[5],
             ))
 
-        # 6. Calcular diferencia de efectivo
-        efectivo_declarado = float(recaudacion_ticketera or 0)
-        diferencia_efectivo = efectivo_declarado - recaudacion_efectivo
+        # 7. Calcular diferencia de efectivo (Fix NULL -> 0)
+        if efectivo_declarado is None:
+            diferencia_efectivo = 0.0
+        else:
+            diferencia_efectivo = float(efectivo_declarado) - efectivo_calculado
 
-        # 7. Determinar si puede cerrar
+        # 8. Determinar si puede cerrar
+        # Solo bloquea si hay gastos pendientes de aprobacion.
+        query_pendientes = text("""
+            SELECT COUNT(*) FROM fleet.gasto_turno
+            WHERE turno_id = :turno_id AND estado_aprobacion = 'pendiente'
+        """)
+        res_pend = await self.db.execute(query_pendientes, {"turno_id": turno_id})
+        gastos_pendientes = res_pend.scalar() or 0
+
         puede_cerrar = (
-            diferencia_efectivo == 0
-            and diferencias_total == 0
+            gastos_pendientes == 0
             and estado_turno == "PENDIENTE_CONFIRMACION"
         )
 
@@ -321,7 +382,7 @@ class ConciliacionService:
             recaudacion_viajes=Decimal(str(recaudacion_viajes)),
             recaudacion_manual=Decimal(str(recaudacion_manual)),
             recaudacion_total=Decimal(str(recaudacion_viajes + recaudacion_manual)),
-            efectivo_en_mano=Decimal(str(efectivo_declarado)),
+            efectivo_en_mano=Decimal(str(efectivo_calculado)),
             recaudacion_electronico=Decimal(str(recaudacion_electronico)),
             diferencia_efectivo=Decimal(str(diferencia_efectivo)),
             gastos=gastos_list,
@@ -354,8 +415,15 @@ class ConciliacionService:
         if not result.first():
             raise ValueError(f"Turno {turno_id} no encontrado o no pertenece al propietario")
 
-        # TODO: agregar campo estado_aprobacion a fleet.gasto_turno
-        # Por ahora, no hacemos nada (el gasto se considera aprobado por defecto)
+        await self.db.execute(
+            text("""
+                UPDATE fleet.gasto_turno
+                SET estado_aprobacion = 'aprobado'
+                WHERE id = :gasto_id
+            """),
+            {"gasto_id": gasto_id},
+        )
+        await self.db.commit()
         logger.info(f"Gasto {gasto_id} aprobado para turno {turno_id}")
 
     async def rechazar_gasto(
@@ -393,6 +461,16 @@ class ConciliacionService:
         monto = Decimal(str(row[0]))
         tipo_gasto = row[1]
 
+        # Actualizar estado del gasto
+        await self.db.execute(
+            text("""
+                UPDATE fleet.gasto_turno
+                SET estado_aprobacion = 'rechazado', descripcion = :motivo
+                WHERE id = :gasto_id
+            """),
+            {"gasto_id": gasto_id, "motivo": motivo},
+        )
+
         # Crear diferencia DEUDA_CHOFER
         diferencia = ConciliacionDiferencia(
             turno_id=turno_id,
@@ -428,35 +506,95 @@ class ConciliacionService:
         Cierra la conciliacion de un turno.
 
         Requisitos:
-        - No debe haber diferencias pendientes.
+        - No debe haber gastos pendientes de aprobacion.
         - El turno debe estar en PENDIENTE_CONFIRMACION.
 
         Efectos:
-        - Genera la liquidacion.
+        - Si hay diferencia de efectivo, registra la deuda automaticamente.
+        - Genera la liquidacion con el Motor de Liquidacion.
         - Cambia estado del turno a CONCILIADO.
-        - Registra quien concilio y cuando.
         """
-        # Obtener detalle para validar
         detalle = await self.obtener_detalle(turno_id, propietario_id)
+
+        # NUEVO: Verificar si ya existe una liquidacion (evita duplicados por reintento)
+        query_liq = text("""
+            SELECT id FROM fleet.liquidacion
+            WHERE turno_id = :turno_id AND estado != 'OBSOLETA'
+        """)
+        result = await self.db.execute(query_liq, {"turno_id": turno_id})
+        if result.first():
+            raise ValueError(
+                "Este turno ya tiene una liquidacion generada. "
+                "No se puede cerrar la conciliacion dos veces."
+            )
+        
+        # Tambien verificar que no exista ya una diferencia de efectivo
+        query_dif = text("""
+            SELECT id FROM fleet.conciliacion_diferencia
+            WHERE turno_id = :turno_id AND concepto = 'DIFERENCIA_EFECTIVO'
+        """)
+        result = await self.db.execute(query_dif, {"turno_id": turno_id})
+        if result.first():
+            raise ValueError(
+                "Este turno ya tiene una diferencia de efectivo registrada."
+            )
+
 
         if not detalle.puede_cerrar:
             raise ValueError(
                 f"No se puede cerrar la conciliacion. "
-                f"Diferencias pendientes: {detalle.diferencias_total}"
+                f"Existen gastos pendientes de aprobacion o el turno no esta en estado valido."
             )
 
-        # Cambiar estado del turno
+        # 1. Registrar deuda si hay diferencia de efectivo
+        if detalle.diferencia_efectivo != 0:
+            tipo_deuda = "DEUDA_CHOFER" if detalle.diferencia_efectivo < 0 else "DEUDA_PROPIETARIO"
+            concepto = "DIFERENCIA_EFECTIVO"
+            monto = abs(detalle.diferencia_efectivo)
+            
+            diferencia = ConciliacionDiferencia(
+                turno_id=turno_id,
+                tipo=tipo_deuda,
+                concepto=concepto,
+                monto=monto,
+                descripcion=f"Diferencia detectada al cerrar conciliacion. Calculado: {detalle.efectivo_en_mano}",
+                estado="PENDIENTE",
+            )
+            self.db.add(diferencia)
+
+        # 2. Generar Liquidacion Final con el Motor
+        try:
+            from app.services.liquidacion_engine import LiquidacionEngine
+            engine = LiquidacionEngine(self.db)
+            
+            # Aprobar todos los gastos pendientes automáticamente antes de liquidar
+            # (El propietario ya tuvo la chance de rechazarlos, si llego hasta aca es porque los dejo pasar)
+            await self.db.execute(
+                text("UPDATE fleet.gasto_turno SET estado_aprobacion = 'aprobado' WHERE turno_id = :turno_id AND estado_aprobacion = 'pendiente'"),
+                {"turno_id": turno_id}
+            )
+            
+            liquidacion_id = await engine.calcular(turno_id)
+            logger.info(f"Liquidacion generada: {liquidacion_id} para turno {turno_id}")
+            
+            # Asociar la liquidacion a las diferencias creadas
+            await self.db.execute(
+                text("UPDATE fleet.conciliacion_diferencia SET liquidacion_id = :liq_id WHERE turno_id = :turno_id AND liquidacion_id IS NULL"),
+                {"liq_id": liquidacion_id, "turno_id": turno_id}
+            )
+        except Exception as e:
+            logger.error(f"Error al generar liquidacion para turno {turno_id}: {e}")
+            raise ValueError(f"No se pudo generar la liquidacion final: {str(e)}")
+
+        # 3. Cambiar estado del turno
         await self.db.execute(
             text("""
                 UPDATE fleet.turno_chofer
-                SET estado = 'CONCILIADO', updated_at = NOW()
+                SET estado = 'CONCILIADO', conciliado_por = :prop, conciliado_en = NOW(), updated_at = NOW()
                 WHERE id = :turno_id
             """),
-            {"turno_id": turno_id},
+            {"turno_id": turno_id, "prop": propietario_id},
         )
-
-        # TODO: generar liquidacion con LiquidacionEngine
-        # (se implementa en el siguiente paso)
 
         await self.db.commit()
         logger.info(f"Conciliacion cerrada para turno {turno_id} por propietario {propietario_id}")
@@ -468,12 +606,7 @@ class ConciliacionService:
     async def saldar_diferencia(
         self, diferencia_id: UUID, propietario_id: UUID
     ) -> None:
-        """
-        Marca una diferencia como saldada.
-
-        Solo el propietario puede saldar diferencias.
-        """
-        # Verificar que la diferencia existe y pertenece al propietario
+        """Marca una diferencia como saldada."""
         query = text("""
             SELECT d.id, d.turno_id
             FROM fleet.conciliacion_diferencia d
@@ -493,7 +626,6 @@ class ConciliacionService:
 
         turno_id = row[1]
 
-        # Marcar diferencia como saldada
         await self.db.execute(
             text("""
                 UPDATE fleet.conciliacion_diferencia
@@ -505,7 +637,6 @@ class ConciliacionService:
             {"diferencia_id": diferencia_id, "propietario_id": propietario_id},
         )
 
-        # Verificar si quedan diferencias pendientes en el turno
         query_pendientes = text("""
             SELECT COUNT(*) FROM fleet.conciliacion_diferencia
             WHERE turno_id = :turno_id AND estado = 'PENDIENTE'
@@ -513,7 +644,6 @@ class ConciliacionService:
         result = await self.db.execute(query_pendientes, {"turno_id": turno_id})
         pendientes = result.scalar() or 0
 
-        # Si no quedan pendientes, cambiar estado del turno a PENDIENTE_CONFIRMACION
         if pendientes == 0:
             await self.db.execute(
                 text("""
@@ -534,12 +664,7 @@ class ConciliacionService:
     async def abrir_disputa(
         self, turno_id: UUID, usuario_id: UUID, motivo: str
     ) -> DisputaResponse:
-        """
-        Abre una disputa sobre una conciliacion.
-
-        Puede abrirla el chofer o el propietario.
-        """
-        # Verificar que no exista una disputa abierta
+        """Abre una disputa sobre una conciliacion."""
         query_existente = text("""
             SELECT id FROM fleet.conciliacion_disputa
             WHERE turno_id = :turno_id
@@ -550,12 +675,10 @@ class ConciliacionService:
         if result.first():
             raise ValueError(f"Ya existe una disputa abierta para el turno {turno_id}")
 
-        # Calcular plazos
         ahora = datetime.now()
         plazo_tenant = ahora + timedelta(days=DIAS_PLAZO_TENANT)
         plazo_plataforma = plazo_tenant + timedelta(days=DIAS_PLAZO_PLATAFORMA)
 
-        # Crear disputa
         disputa = ConciliacionDisputa(
             turno_id=turno_id,
             abierta_por=usuario_id,
@@ -566,7 +689,6 @@ class ConciliacionService:
         )
         self.db.add(disputa)
 
-        # Cambiar estado del turno a EN_DISPUTA
         await self.db.execute(
             text("""
                 UPDATE fleet.turno_chofer
@@ -595,15 +717,7 @@ class ConciliacionService:
     async def resolver_disputa(
         self, disputa_id: UUID, usuario_id: UUID, resolucion: str, a_favor_de: str
     ) -> None:
-        """
-        Resuelve una disputa.
-
-        Solo el tenant o la plataforma pueden resolverla.
-        """
-        # TODO: validar que el usuario tiene permiso (tenant o plataforma)
-        # Por ahora, se asume que el usuario tiene permiso
-
-        # Obtener disputa
+        """Resuelve una disputa."""
         query = text("""
             SELECT id, turno_id FROM fleet.conciliacion_disputa
             WHERE id = :disputa_id
@@ -615,7 +729,6 @@ class ConciliacionService:
 
         turno_id = row[1]
 
-        # Marcar disputa como resuelta
         await self.db.execute(
             text("""
                 UPDATE fleet.conciliacion_disputa
@@ -632,7 +745,6 @@ class ConciliacionService:
             },
         )
 
-        # Cambiar estado del turno según resolución
         nuevo_estado = "PENDIENTE_CONFIRMACION" if a_favor_de == "chofer" else "CON_DIFERENCIAS_PENDIENTES"
         await self.db.execute(
             text("""
@@ -645,3 +757,77 @@ class ConciliacionService:
 
         await self.db.commit()
         logger.info(f"Disputa {disputa_id} resuelta a favor de {a_favor_de}")
+            # ============================================================
+    # HISTORIAL DE CONCILIACIONES CERRADAS
+    # ============================================================
+    async def listar_historial(
+        self, propietario_id: UUID, limit: int = 50, offset: int = 0
+    ) -> list[dict]:
+        """
+        Lista las conciliaciones ya cerradas del propietario.
+        Incluye los montos de la liquidacion final.
+        """
+        query = text("""
+            SELECT
+                t.id AS turno_id,
+                t.fin_turno,
+                t.conciliado_en,
+                t.tipo_conciliacion,
+                t.estado,
+                v.patente AS vehiculo_patente,
+                COALESCE(p.nombre || ' ' || p.apellido, u.email) AS chofer_nombre,
+                -- Subqueries para traer la liquidacion (evita duplicados)
+                COALESCE((
+                    SELECT l.monto_bruto FROM fleet.liquidacion l
+                    WHERE l.turno_id = t.id AND l.estado != 'OBSOLETA'
+                    ORDER BY l.created_at DESC LIMIT 1
+                ), 0) AS recaudacion_total,
+                COALESCE((
+                    SELECT l.total_chofer FROM fleet.liquidacion l
+                    WHERE l.turno_id = t.id AND l.estado != 'OBSOLETA'
+                    ORDER BY l.created_at DESC LIMIT 1
+                ), 0) AS total_chofer,
+                COALESCE((
+                    SELECT l.total_propietario FROM fleet.liquidacion l
+                    WHERE l.turno_id = t.id AND l.estado != 'OBSOLETA'
+                    ORDER BY l.created_at DESC LIMIT 1
+                ), 0) AS total_propietario,
+                -- Subquery para deudas pendientes
+                COALESCE((
+                    SELECT SUM(d.monto) FROM fleet.conciliacion_diferencia d
+                    WHERE d.turno_id = t.id AND d.estado = 'PENDIENTE'
+                ), 0) AS deuda_pendiente
+            FROM fleet.turno_chofer t
+            JOIN fleet.vehiculo v ON v.id = t.vehiculo_id
+            JOIN auth.usuario u ON u.id = t.chofer_id
+            LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
+            JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
+            WHERE pv.propietario_id = :propietario_id
+              AND pv.activo = true
+              AND t.estado = 'CONCILIADO'
+            ORDER BY t.conciliado_en DESC
+            LIMIT :limit OFFSET :offset
+        """)
+        result = await self.db.execute(query, {
+            "propietario_id": propietario_id,
+            "limit": limit,
+            "offset": offset,
+        })
+        rows = result.fetchall()
+
+        return [
+            {
+                "turno_id": row[0],
+                "fin_turno": row[1],
+                "conciliado_en": row[2],
+                "tipo_conciliacion": row[3],
+                "estado": row[4],
+                "vehiculo_patente": row[5],
+                "chofer_nombre": row[6] or "Sin chofer",
+                "recaudacion_total": Decimal(str(row[7])),
+                "total_chofer": Decimal(str(row[8])),
+                "total_propietario": Decimal(str(row[9])),
+                "deuda_pendiente": Decimal(str(row[10])),
+            }
+            for row in rows
+        ]

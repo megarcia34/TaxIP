@@ -33,6 +33,7 @@ export interface TurnoActivo {
   combustibleInicial: Combustible;
   duracionMinutos?: number;
   duracionFormateada?: string;
+  tipoContrato?: string;
 }
 
 // ============================================

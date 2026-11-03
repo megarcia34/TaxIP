@@ -168,6 +168,20 @@ async def obtener_resumen_finanzas(
     caja_row = res_caja.first()
     recaudacion_efectivo = float(caja_row[0] or 0)
     recaudacion_electronico = float(caja_row[1] or 0)
+
+    # NUEVO: Sumar ingresos manuales (ticketera) al efectivo
+    res_manual = await db.execute(
+        text("""
+            SELECT COALESCE(SUM(monto), 0) 
+            FROM fleet.ingreso_turno 
+            WHERE turno_id = :turno_id AND medio_pago = 'efectivo'
+        """),
+        {"turno_id": turno_id}
+    )
+    ingresos_efectivo_manual = float(res_manual.scalar() or 0)
+    
+    # El efectivo total que entró a la caja (viajes + ticketera)
+    recaudacion_efectivo += ingresos_efectivo_manual
     recaudacion_total = recaudacion_efectivo + recaudacion_electronico
 
     # ------------------------------------------

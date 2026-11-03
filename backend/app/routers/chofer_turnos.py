@@ -223,7 +223,7 @@ async def obtener_turno_activo(
 
     query = text("""
         SELECT
-            t.id,
+            t.id AS turno_id,
             t.estado,
             t.inicio_turno,
             t.vehiculo_id,
@@ -234,10 +234,12 @@ async def obtener_turno_activo(
             v.modelo,
             v.anio,
             COALESCE(cv.estado_laboral, 'libre') as estado_laboral,
-            t.contrato_id
+            t.contrato_id,
+            c.tipo_contrato -- NUEVO R24
         FROM fleet.turno_chofer t
         JOIN fleet.vehiculo v ON v.id = t.vehiculo_id
         LEFT JOIN fleet.chofer_vehiculo cv ON cv.usuario_id = t.chofer_id
+        JOIN fleet.contrato_vehiculo c ON c.id = t.contrato_id -- NUEVO R24
         WHERE t.chofer_id = :user_id AND t.estado = 'ACTIVO'
         LIMIT 1
     """)
@@ -247,22 +249,26 @@ async def obtener_turno_activo(
     if not row:
         return TurnoActivoResponse(tiene_turno_activo=False)
 
-    duracion_minutos, duracion_formateada = calcular_duracion(row[2])
+    # ACCESO SEGURO POR NOMBRE DE COLUMNA (Evita el IndexError)
+    r = row._mapping
+    
+    duracion_minutos, duracion_formateada = calcular_duracion(r["inicio_turno"])
 
     return TurnoActivoResponse(
         tiene_turno_activo=True,
-        turno_id=row[0],
-        estado=row[1],
-        inicio_turno=row[2],
-        vehiculo_id=row[3],
-        km_inicial=float(row[4]) if row[4] else None,
-        combustible_inicial=row[5],
-        patente=row[6],
-        marca=row[7],
-        modelo=row[8],
-        anio=row[9],
-        estado_laboral=row[10],
-        contrato_id=row[11],
+        turno_id=r["turno_id"],
+        estado=r["estado"],
+        inicio_turno=r["inicio_turno"],
+        vehiculo_id=r["vehiculo_id"],
+        km_inicial=float(r["km_inicial"]) if r["km_inicial"] else None,
+        combustible_inicial=r["combustible_inicial"],
+        patente=r["patente"],
+        marca=r["marca"],
+        modelo=r["modelo"],
+        anio=r["anio"],
+        estado_laboral=r["estado_laboral"],
+        contrato_id=r["contrato_id"],
+        tipo_contrato=r["tipo_contrato"], # NUEVO R24
         duracion_minutos=duracion_minutos,
         duracion_formateada=duracion_formateada,
     )
@@ -834,7 +840,8 @@ async def check_out_turno(
             chofer_id=user_id,
             km_final=request.km_final,
             combustible_final=request.combustible_final,
-            recaudacion_ticketera=request.recaudacion_ticketera
+            recaudacion_ticketera=request.recaudacion_ticketera,
+            efectivo_declarado=request.efectivo_declarado # NUEVO R24
         )
 
         # 6. J16: resetear estado_laboral del chofer a 'fuera_servicio'.
@@ -845,7 +852,7 @@ async def check_out_turno(
             SET estado_laboral = 'fuera_servicio',
                 updated_at = NOW()
             WHERE usuario_id = :user_id
-              AND control_base_id = :control_base_id
+             AND control_base_id = :control_base_id
         """), {
             "user_id": user_id,
             "control_base_id": control_base_id,

@@ -1,9 +1,9 @@
 # CONTEXTO TAXIP 2.0 — Estado y Deuda Pendiente
 
-**Ultima actualizacion:** 2026-10-29 (post R23.1)
-**Alembic head:** m3_025
+**Ultima actualizacion:** 2026-11-02 (post R24)
+**Alembic head:** m3_031
 **Diff BD <-> ORM:** 1 item (indice preexistente en payment.py — deuda aceptada)
-**Tag activo:** ronda23.2-banner-finanzas
+**Tag activo:** ronda24-conciliacion
 **Repo:** github.com/megarcia34/TaxIP (main)
 
 **Reglas de alineacion BD <-> ORM:** ver `docs/REGLAS_ALINEACION_BD_ORM.md`.
@@ -38,7 +38,7 @@
 
 - **R23.2:** **Banner dinámico y Finanzas con estimación.** El Banner del Home ahora muestra 3 slides dinámicos según la modalidad contractual (Porcentaje, Alquiler, Autogestión). El backend calcula el `banner_info` (título, subtítulo, color) en `chofer_turnos.py`. La pantalla de Finanzas ahora separa efectivo vs electrónico, muestra el desglose por canal y la tarjeta de "ESTIMACIÓN (Pendiente de Conciliación)" con el cálculo del motor de liquidación (`estimar()`). Se agregó la migración `m3_026` con `tratamiento_gastos` en `contrato_vehiculo`. Se eliminó el bucle de reconexión del WebSocket.
 
----
+- **R24:** **Modelo de Conciliacion y Liquidacion Automatica.** Implementación completa del flujo de conciliación de turnos. Backend: check-out exige `efectivo_declarado` para contratos PORCENTAJE (P1); motor de conciliación (`ConciliacionService`) que aprueba/rechaza gastos, calcula diferencias de efectivo y genera deudas (`ConciliacionDiferencia`); cierre de conciliación que invoca al `LiquidacionEngine` y persiste la liquidación final; blindaje anti-duplicados. App Chofer: modal de Check-out con input condicional para efectivo. Frontend Propietario: pantalla de Conciliaciones con bandeja de pendientes e historial, detalle con aprobación de gastos y botón de cierre. Migraciones `m3_030` (estado_aprobacion y descripcion en gasto_turno) y `m3_031` (conciliado_por, conciliado_en, tipo_conciliacion en turno_chofer). Fix del bug de diferencia negativa en turnos viejos (NULL -> 0).
 
 ## ALTA PRIORIDAD
 
@@ -168,6 +168,24 @@ Cuando se cambia el tipo o nullable de una columna, `diff.py` puede reportarla c
 **Síntoma:** El dashboard del propietario muestra contratos "Finalizados" pero los turnos en `fleet.turno_chofer` siguen `ACTIVO`, dejando vehículos bloqueados.
 **Acción futura:** Sincronizar el cierre de contratos con el cierre de turnos en el backend.
 
+### conciliacion.scheduler_automatico
+**Titulo:** Jobs de conciliacion automatica (7 dias).
+**Estado:** Deuda abierta. Detectada en R24.
+**Contexto:** Los turnos en `PENDIENTE_CONFIRMACION` deben conciliarse automaticamente a los 7 dias. El servicio ya tiene la logica (`cerrar_conciliacion`), pero falta el job del scheduler que lo dispare.
+**Accion futura:** Implementar `procesar_conciliaciones_vencidas` en el scheduler diario.
+
+### conciliacion.escalado_disputas
+**Titulo:** Escalado automatico de disputas (5+5 dias).
+**Estado:** Deuda abierta. Detectada en R24.
+**Contexto:** Las disputas tienen plazos (`plazo_tenant` 5 dias, `plazo_plataforma` 5 dias) pero no hay job que las escale o cierre automaticamente al vencer.
+**Accion futura:** Implementar el job de escalado y cierre automatico a favor del propietario.
+
+### conciliacion.eliminar_gastos_huerfanos
+**Titulo:** Riesgo de doble liquidacion por rollback fallido.
+**Estado:** Deuda abierta. Detectada en R24.
+**Contexto:** Si `cerrar_conciliacion` falla despues de crear la liquidacion (pero antes del commit final), el rollback no siempre limpia la liquidacion. El blindaje anti-duplicados mitiga el problema, pero no lo elimina al 100%.
+**Accion futura:** Envolver toda la operacion en una transaccion atomica con savepoints.
+
 ---
 
 ## BAJA PRIORIDAD
@@ -292,15 +310,14 @@ La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en ter
 **Acción futura:** Extraer la lógica del `banner_info` a un servicio (`banner_service.py`) para desacoplarla del router.
 
 ---
-
 | Categoria | Cantidad |
 |---|---|
 | Alta prioridad | 0 |
-| Media prioridad | ~16 |
+| Media prioridad | ~19 |
 | Baja prioridad | ~21 |
 | Tocar Frontend | 1 (G80) |
 | Expo-router / EAS | 0 |
-| **TOTAL PENDIENTES** | **~38 items** |
+| **TOTAL PENDIENTES** | **~41 items** |
 ---
 
 ## REFERENCIAS

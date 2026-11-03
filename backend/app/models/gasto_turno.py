@@ -1,17 +1,13 @@
-# app/models/gasto_turno.py
-"""
-Modelo de Gastos Operativos durante el Turno
-Coincide con fleet.gasto_turno
-"""
-
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Numeric, Text, CheckConstraint, Index
+from sqlalchemy import (
+    Column, String, DateTime, ForeignKey, Numeric, Text, 
+    CheckConstraint, Index, text # <-- text es necesario para server_default
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 from app.database import Base
-
 
 class GastoTurno(Base):
     __tablename__ = "gasto_turno"
@@ -25,7 +21,6 @@ class GastoTurno(Base):
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     turno_id = Column(PGUUID(as_uuid=True), ForeignKey("fleet.turno_chofer.id"), nullable=False)
 
-    # NUEVOS CAMPOS (Fase 5.1) - coinciden con la BD
     categoria_id = Column(
         PGUUID(as_uuid=True),
         ForeignKey("fleet.categoria_gasto.id", ondelete="SET NULL"),
@@ -33,13 +28,20 @@ class GastoTurno(Base):
     )
     subcategoria = Column(String(50), nullable=True)
 
-    # Campos existentes
-    tipo_gasto = Column(String(30), nullable=False)  # Legacy
+    tipo_gasto = Column(String(30), nullable=False)
     monto = Column(Numeric, nullable=False)
     km_registro = Column(Numeric, nullable=True)
     url_comprobante = Column(String(500), nullable=True)
-
     created_at = Column(DateTime, default=datetime.now)
+
+    # NUEVOS R24 (Alineados a la migracion m3_030)
+    estado_aprobacion = Column(
+        String(20), 
+        nullable=True, 
+        server_default=text("'pendiente'"),
+        comment="Estado de aprobacion del gasto por parte del propietario: pendiente, aprobado, rechazado"
+    )
+    descripcion = Column(Text, nullable=True)
 
     # Relationships
     turno = relationship(
