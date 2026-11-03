@@ -154,7 +154,7 @@ export default function CardChofer({ chofer }: Props) {
         open={showDocs}
         onOpenChange={setShowDocs}
         titulo={`Documentos de ${nombreCompleto}`}
-        documentos={chofer.documentos}
+        documentos={chofer.documentos} 
         tiposRequeridos={TIPOS_DOCS_CHOFER}
       />
     </>

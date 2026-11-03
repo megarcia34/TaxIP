@@ -1,4 +1,3 @@
-// D:\aTaxip\dashboard\components\admin\solicitudes\ModalVerDocumentos.tsx
 'use client';
 
 import {
@@ -11,19 +10,15 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { ModalImagen } from '@/components/propietario/ModalImagen';
-import { getDocumentoUrl } from '@/lib/api/solicitudesTenant';
-
-interface Documento {
-  url_archivo: string | null;
-  numero: string | null;
-  fecha_vencimiento: string | null;
-}
+// 👇 1. Importamos los tipos reales desde tu archivo de API
+import { getDocumentoUrl, DocumentoChofer, DocumentoVehiculo } from '@/lib/api/solicitudesTenant';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   titulo: string;
-  documentos: Record<string, Documento>;
+  // 👇 2. Usamos los tipos reales en lugar de la interfaz local antigua
+  documentos: Record<string, DocumentoChofer | DocumentoVehiculo>;
   tiposRequeridos: { tipo: string; label: string }[];
 }
 
@@ -50,7 +45,8 @@ export default function ModalVerDocumentos({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             {tiposRequeridos.map(({ tipo, label }) => {
               const doc = documentos[tipo];
-              const urlCompleta = doc ? getDocumentoUrl(doc.url_archivo) : null; 
+              // 👇 3. Cambiamos doc.url_archivo por doc.url (que es como se llama en solicitudesTenant.ts)
+              const urlCompleta = doc ? getDocumentoUrl(doc.url) : null; 
               const presente = !!urlCompleta;
 
               return (

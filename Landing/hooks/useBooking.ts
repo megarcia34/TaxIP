@@ -152,7 +152,6 @@ export function useBooking() {
 
       console.log('📍 Origen geocodificado:', origenCoords);
       console.log('📍 Destino geocodificado:', destinoCoords);
-
       const response = await viajesService.solicitarViajePublico({
         direccion_origen: formData.origen,
         origen_lat: origenCoords.lat,
@@ -164,11 +163,10 @@ export function useBooking() {
         precio_estimado: precioEstimado || undefined,
         nombre_pasajero: formData.nombre,
         telefono_pasajero: formData.telefono,
-        // ✅ AGREGADO: distancia y tiempo reales
+        // ✅ CORREGIDO: pasamos los valores reales de extras
         distancia_metros: extras?.distancia_metros,
         tiempo_estimado_segundos: extras?.tiempo_estimado_segundos,
       });
-
       console.log('✅ Viaje solicitado:', response);
       return response.viaje_id;
 

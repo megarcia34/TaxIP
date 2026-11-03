@@ -1,7 +1,10 @@
 # app/routers/propietario/reportes.py
 """
 Reportes y finanzas para propietarios - D9 (Refactorizado con liquidacion)
-Todos los reportes consumen la tabla liquidacion
+Todos los reportes consumen la tabla liquidacion.
+
+R24: se incluye el estado CALCULADA en las queries para que las liquidaciones
+recien generadas por el motor de conciliacion aparezcan en los reportes.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -267,6 +270,7 @@ async def resumen_ejecutivo(
     if not row_vehiculo:
         raise HTTPException(status_code=404, detail="Vehículo no encontrado")
     
+    # R24: incluir CALCULADA
     query_liquidaciones = text("""
         SELECT 
             COALESCE(COUNT(l.id), 0) AS total_liquidaciones,
@@ -278,7 +282,7 @@ async def resumen_ejecutivo(
             COALESCE(SUM(l.canon), 0) AS canon_total
         FROM fleet.liquidacion l
         WHERE l.vehiculo_id = :vehiculo_id
-          AND l.estado IN ('APROBADA', 'PAGADA')
+          AND l.estado IN ('CALCULADA', 'APROBADA', 'PAGADA')
           AND l.calculada_en::date BETWEEN :desde AND :hasta
     """)
     result = await db.execute(query_liquidaciones, {
@@ -306,6 +310,7 @@ async def resumen_ejecutivo(
     })
     row_gastos = result.first()
     
+    # R24: incluir CALCULADA
     query_benchmarking = text("""
         WITH flota_stats AS (
             SELECT 
@@ -314,7 +319,7 @@ async def resumen_ejecutivo(
                 COALESCE(SUM(l.total_propietario), 0) AS utilidad_neta
             FROM fleet.vehiculo v
             LEFT JOIN fleet.liquidacion l ON v.id = l.vehiculo_id 
-                AND l.estado IN ('APROBADA', 'PAGADA')
+                AND l.estado IN ('CALCULADA', 'APROBADA', 'PAGADA')
                 AND l.calculada_en::date BETWEEN :desde AND :hasta
             INNER JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
             WHERE pv.propietario_id = :propietario_id AND v.activo = true
@@ -522,6 +527,7 @@ async def resumen_financiero_reportes(
         else:
             fecha_desde = fecha_hasta.replace(month=1, day=1)
     
+    # R24: incluir CALCULADA
     query_resumen = text("""
         SELECT 
             COALESCE(SUM(l.monto_bruto), 0) as ingresos_brutos,
@@ -536,7 +542,7 @@ async def resumen_financiero_reportes(
         JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = l.vehiculo_id
         WHERE pv.propietario_id = :propietario_id
           AND pv.activo = true
-          AND l.estado IN ('APROBADA', 'PAGADA')
+          AND l.estado IN ('CALCULADA', 'APROBADA', 'PAGADA')
           AND l.calculada_en BETWEEN :fecha_desde AND :fecha_hasta
     """)
     result = await db.execute(query_resumen, {
@@ -546,6 +552,7 @@ async def resumen_financiero_reportes(
     })
     row = result.first()
     
+    # R24: incluir CALCULADA
     query_ultimas = text("""
         SELECT 
             l.id,
@@ -559,7 +566,7 @@ async def resumen_financiero_reportes(
         JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
         WHERE pv.propietario_id = :propietario_id
           AND pv.activo = true
-          AND l.estado IN ('APROBADA', 'PAGADA')
+          AND l.estado IN ('CALCULADA', 'APROBADA', 'PAGADA')
         ORDER BY l.calculada_en DESC
         LIMIT 5
     """)
@@ -609,6 +616,7 @@ async def reporte_anual(
     fecha_inicio = datetime(anio, 1, 1)
     fecha_fin = datetime(anio, 12, 31, 23, 59, 59)
     
+    # R24: incluir CALCULADA
     query_resumen = text("""
         SELECT 
             COALESCE(SUM(l.monto_bruto), 0) as ingresos_brutos,
@@ -622,7 +630,7 @@ async def reporte_anual(
         JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = l.vehiculo_id
         WHERE pv.propietario_id = :propietario_id
           AND pv.activo = true
-          AND l.estado IN ('APROBADA', 'PAGADA')
+          AND l.estado IN ('CALCULADA', 'APROBADA', 'PAGADA')
           AND l.calculada_en BETWEEN :fecha_inicio AND :fecha_fin
     """)
     result = await db.execute(query_resumen, {
@@ -632,6 +640,7 @@ async def reporte_anual(
     })
     row = result.first()
     
+    # R24: incluir CALCULADA
     query_mensual = text("""
         SELECT 
             DATE_TRUNC('month', l.calculada_en) as mes,
@@ -643,7 +652,7 @@ async def reporte_anual(
         JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = l.vehiculo_id
         WHERE pv.propietario_id = :propietario_id
           AND pv.activo = true
-          AND l.estado IN ('APROBADA', 'PAGADA')
+          AND l.estado IN ('CALCULADA', 'APROBADA', 'PAGADA')
           AND l.calculada_en BETWEEN :fecha_inicio AND :fecha_fin
         GROUP BY DATE_TRUNC('month', l.calculada_en)
         ORDER BY mes ASC
@@ -666,6 +675,7 @@ async def reporte_anual(
         for r in mensual_rows
     ]
     
+    # R24: incluir CALCULADA
     query_top = text("""
         SELECT 
             v.patente,
@@ -677,7 +687,7 @@ async def reporte_anual(
         JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
         WHERE pv.propietario_id = :propietario_id
           AND pv.activo = true
-          AND l.estado IN ('APROBADA', 'PAGADA')
+          AND l.estado IN ('CALCULADA', 'APROBADA', 'PAGADA')
           AND l.calculada_en BETWEEN :fecha_inicio AND :fecha_fin
         GROUP BY v.patente
         ORDER BY utilidad DESC
@@ -737,6 +747,7 @@ async def comparativo_vehiculos(
     if not fecha_desde:
         fecha_desde = fecha_hasta - timedelta(days=30)
     
+    # R24: incluir CALCULADA
     query = text("""
         SELECT 
             v.id,
@@ -752,7 +763,7 @@ async def comparativo_vehiculos(
         FROM fleet.vehiculo v
         JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
         LEFT JOIN fleet.liquidacion l ON l.vehiculo_id = v.id 
-            AND l.estado IN ('APROBADA', 'PAGADA')
+            AND l.estado IN ('CALCULADA', 'APROBADA', 'PAGADA')
             AND l.calculada_en BETWEEN :fecha_desde AND :fecha_hasta
         WHERE pv.propietario_id = :propietario_id AND pv.activo = true
         GROUP BY v.id, v.patente, v.marca, v.modelo

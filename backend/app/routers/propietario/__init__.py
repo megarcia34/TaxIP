@@ -17,8 +17,10 @@ from .medios_pago import router as medios_pago_router
 from .perfil import router as perfil_router  # <--- NUEVO
 from .cuentas_cobro import router as cuentas_cobro_router
 from .metricas import router as metricas_router
+from .rentabilidad import router as rentabilidad_router
 
 router = APIRouter(prefix="/propietario", tags=["Propietario"])
+
 
 router.include_router(contratos_router)
 router.include_router(documentos_router)
@@ -38,3 +40,4 @@ router.include_router(medios_pago_router)
 router.include_router(perfil_router)  # <--- NUEVO
 router.include_router(cuentas_cobro_router)
 router.include_router(metricas_router)
+router.include_router(rentabilidad_router)  # NUEVO: rentabilidad

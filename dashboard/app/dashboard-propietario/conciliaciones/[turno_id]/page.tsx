@@ -175,12 +175,20 @@ export default function ConciliacionDetallePage() {
                       <td className="py-3 text-muted-foreground">{g.descripcion || '-'}</td>
                       <td className="py-3 text-right font-semibold">${g.monto.toLocaleString()}</td>
                       <td className="py-3 text-center">
-                        <Badge variant={
-                          g.estado_aprobacion === 'aprobado' ? 'success' :
-                          g.estado_aprobacion === 'rechazado' ? 'destructive' : 'secondary'
-                        }>
+                        <Badge
+                          variant={
+                            g.estado_aprobacion === 'rechazado' ? 'destructive' : 'outline'
+                          }
+                          className={
+                            g.estado_aprobacion === 'aprobado'
+                            ? 'bg-green-100 text-green-700 border-green-300'
+                            : g.estado_aprobacion === 'pendiente'
+                            ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                            : ''
+                          }
+                        >
                           {g.estado_aprobacion}
-                        </Badge>
+                          </Badge>
                       </td>
                       <td className="py-3 text-right">
                         {g.estado_aprobacion === 'pendiente' && (
@@ -230,7 +238,14 @@ export default function ConciliacionDetallePage() {
                     <td className="py-3">{d.concepto}</td>
                     <td className="py-3 text-right font-semibold">${d.monto.toLocaleString()}</td>
                     <td className="py-3 text-center">
-                      <Badge variant={d.estado === 'SALDADA' ? 'success' : 'secondary'}>
+                      <Badge
+                        variant="outline"
+                        className={
+                          d.estado === 'SALDADA'
+                          ? 'bg-green-100 text-green-700 border-green-300'
+                          : 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                        }
+                      >
                         {d.estado}
                       </Badge>
                     </td>

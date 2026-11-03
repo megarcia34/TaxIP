@@ -208,6 +208,7 @@ export const viajesService = {
   },
 
   // Solicitar viaje (público - sin autenticación)
+    // Solicitar viaje (público - sin autenticación)
   solicitarViajePublico: async (data: {
     direccion_origen: string;
     origen_lat: number;
@@ -219,6 +220,9 @@ export const viajesService = {
     precio_estimado?: number;
     nombre_pasajero?: string;
     telefono_pasajero?: string;
+    // NUEVO R23.1 (alineado con el backend):
+    distancia_metros?: number;
+    tiempo_estimado_segundos?: number;
   }): Promise<{
     success: boolean;
     viaje_id: string;
