@@ -70,6 +70,7 @@ async def list_tenants(
             longitud=float(row[6]) if row[6] else None,
             ciudad_id=row[7],
             ciudad_nombre=row[8],
+            codigo_postal=None,
             activo=row[9],
             fecha_suspension=row[10],
             motivo_suspension=row[11],
@@ -135,6 +136,7 @@ async def get_tenant(
         longitud=float(row[6]) if row[6] else None,
         ciudad_id=row[7],
         ciudad_nombre=row[8],
+        codigo_postal=None,
         activo=row[9],
         fecha_suspension=row[10],
         motivo_suspension=row[11],
@@ -145,7 +147,7 @@ async def get_tenant(
 
 
 # ============================================================
-# CREAR TENANT (con ciudad)
+# CREAR TENANT (con geocodificación automática)
 # ============================================================
 
 @router.post("/", response_model=TenantCreateResponse, status_code=status.HTTP_201_CREATED)
@@ -156,9 +158,7 @@ async def create_tenant(
 ):
     """
     Crear un nuevo tenant (empresa de taxis) con ciudad asociada.
-    
-    Si la ciudad no existe, se crea automáticamente en geo.ciudad.
-    También se crea un usuario admin_tenant asociado al tenant.
+    El Super Admin define la contraseña inicial del administrador del tenant.
     """
     
     super_admin_id = current_user[0]
@@ -189,7 +189,6 @@ async def create_tenant(
     # 2. VALIDAR O CREAR CIUDAD
     # ============================================================
     
-    # Buscar ciudad por nombre (insensible a mayúsculas)
     ciudad_query = text("""
         WITH ciudad AS (
             SELECT id, nombre, codigo_postal 
@@ -222,13 +221,28 @@ async def create_tenant(
     
     ciudad_id = ciudad_row[0]
     ciudad_nombre = ciudad_row[1]
-    ciudad_codigo_postal = ciudad_row[2]
     
     # ============================================================
-    # 3. CREAR TENANT
+    # 3. CREAR TENANT (con geocodificación automática)
     # ============================================================
     
     tenant_id = uuid_lib.uuid4()
+    
+    latitud_final = request.latitud
+    longitud_final = request.longitud
+    
+    if latitud_final is None or longitud_final is None:
+        from app.services.geocoding_service import forward_geocode
+        address_query = f"{request.ciudad_nombre}, {request.codigo_postal or ''}, Argentina"
+        coords = await forward_geocode(address_query)
+        if coords:
+            latitud_final = coords["lat"]
+            longitud_final = coords["lng"]
+            print(f"✅ Coordenadas obtenidas para '{request.ciudad_nombre}': {latitud_final}, {longitud_final}")
+        else:
+            print(f"⚠️ No se pudieron obtener coordenadas para '{request.ciudad_nombre}'")
+            latitud_final = None
+            longitud_final = None
     
     insert_tenant = text("""
         INSERT INTO tenant.control_base (
@@ -249,43 +263,36 @@ async def create_tenant(
         "email": request.email,
         "telefono": request.telefono,
         "direccion": request.direccion,
-        "latitud": request.latitud,
-        "longitud": request.longitud,
+        "latitud": latitud_final,
+        "longitud": longitud_final,
         "ciudad_id": ciudad_id
     })
     
     # ============================================================
-    # 4. CREAR USUARIO ADMIN_TENANT
+    # 4. CREAR USUARIO ADMIN_TENANT (con contraseña definida)
     # ============================================================
     
-    # Obtener ID del tipo "admin_tenant"
-    tipo_query = text("SELECT id FROM auth.tipo_usuario WHERE nombre = 'admin_tenant'")
+    tipo_query = text("SELECT id FROM auth.tipo_usuario WHERE nombre = 'admin'")
     result = await db.execute(tipo_query)
     tipo_row = result.first()
     
     if not tipo_row:
-        # Si no existe el tipo, crear uno
         insert_tipo = text("""
             INSERT INTO auth.tipo_usuario (id, nombre)
-            VALUES (gen_random_uuid(), 'admin_tenant')
+            VALUES (gen_random_uuid(), 'admin')
             ON CONFLICT (nombre) DO NOTHING
             RETURNING id
         """)
         result = await db.execute(insert_tipo)
         tipo_row = result.first()
         if not tipo_row:
-            # Si aún no hay, obtener el id de admin_tenant (recién creado)
-            result = await db.execute(text("SELECT id FROM auth.tipo_usuario WHERE nombre = 'admin_tenant'"))
+            result = await db.execute(text("SELECT id FROM auth.tipo_usuario WHERE nombre = 'admin'"))
             tipo_row = result.first()
     
-    tipo_admin_tenant_id = tipo_row[0]
+    tipo_admin_id = tipo_row[0]
     
-    # Generar contraseña temporal
-    import secrets
-    import string
-    alphabet = string.ascii_letters + string.digits
-    temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
-    password_hash = get_password_hash(temp_password)
+    # Hashear la contraseña definida por el Super Admin
+    password_hash = get_password_hash(request.admin_password)
     
     usuario_id = uuid_lib.uuid4()
     
@@ -297,7 +304,7 @@ async def create_tenant(
     await db.execute(insert_user, {
         "id": usuario_id,
         "control_base_id": tenant_id,
-        "tipo_usuario_id": tipo_admin_tenant_id,
+        "tipo_usuario_id": tipo_admin_id,
         "email": request.email,
         "password_hash": password_hash
     })
@@ -326,12 +333,16 @@ async def create_tenant(
             habilitar_fidelizacion, habilitar_pagos_online, created_at
         )
         VALUES (
-            gen_random_uuid(), :control_base_id, 'ARS', 'America/Argentina/Tucuman', 'es',
+            gen_random_uuid(), :control_base_id, :moneda, :timezone, 'es',
             false, true, NOW()
         )
     """)
     
-    await db.execute(insert_config, {"control_base_id": tenant_id})
+    await db.execute(insert_config, {
+        "control_base_id": tenant_id,
+        "moneda": request.moneda_default,
+        "timezone": request.timezone
+    })
     
     await db.commit()
     
@@ -346,6 +357,5 @@ async def create_tenant(
         ciudad_id=ciudad_id,
         ciudad_nombre=ciudad_nombre,
         admin_email=request.email,
-        temp_password=temp_password,
-        message="Tenant creado exitosamente. El admin del tenant puede iniciar sesión con las credenciales generadas."
+        message="Tenant creado exitosamente. El administrador puede iniciar sesión con la contraseña definida."
     )

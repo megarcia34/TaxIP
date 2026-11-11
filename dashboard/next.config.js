@@ -11,135 +11,71 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   
+  // ✅ NUEVO: Inyectar la API Key de Google Maps en el bundle del cliente
+  env: {
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+  },
+  
   async rewrites() {
+    // ✅ USAR LA URL INTERNA DEL BACKEND EN DOCKER
+    const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://backend:8000'
+    
     return [
-      // --- EMPRESA (excepto /mi-empresa y /ubicacion que van directo) ---
-      {
-        source: '/api/empresa/lista',
-        destination: 'http://localhost:8000/api/empresa/lista',
-      },
-      {
-        source: '/api/empresa/registro',
-        destination: 'http://localhost:8000/api/empresa/registro',
-      },
-      {
-        source: '/api/empresa/public/:path*',
-        destination: 'http://localhost:8000/api/empresa/public/:path*',
-      },
-      {
-        source: '/api/empresa/:empresa_id',
-        destination: 'http://localhost:8000/api/empresa/:empresa_id',
-      },
-      {
-        source: '/api/empresa/:empresa_id/empleados',
-        destination: 'http://localhost:8000/api/empresa/:empresa_id/empleados',
-      },
-      {
-        source: '/api/empresa/:empresa_id/viajes',
-        destination: 'http://localhost:8000/api/empresa/:empresa_id/viajes',
-      },
-      {
-        source: '/api/empresa/:empresa_id/estadisticas',
-        destination: 'http://localhost:8000/api/empresa/:empresa_id/estadisticas',
-      },
-      {
-        source: '/api/empresa/:empresa_id/facturas',
-        destination: 'http://localhost:8000/api/empresa/:empresa_id/facturas',
-      },
+      // ✅ NUEVO: RUTAS DEL ADMIN TENANT (Dashboard del municipio)
+      { source: '/admin/tenant/:path*', destination: `${BACKEND_URL}/api/admin/tenant/:path*` },
+      
+      // --- EMPRESA ---
+      { source: '/api/empresa/lista', destination: `${BACKEND_URL}/api/empresa/lista` },
+      { source: '/api/empresa/registro', destination: `${BACKEND_URL}/api/empresa/registro` },
+      { source: '/api/empresa/public/:path*', destination: `${BACKEND_URL}/api/empresa/public/:path*` },
+      { source: '/api/empresa/:empresa_id', destination: `${BACKEND_URL}/api/empresa/:empresa_id` },
+      { source: '/api/empresa/:empresa_id/empleados', destination: `${BACKEND_URL}/api/empresa/:empresa_id/empleados` },
+      { source: '/api/empresa/:empresa_id/viajes', destination: `${BACKEND_URL}/api/empresa/:empresa_id/viajes` },
+      { source: '/api/empresa/:empresa_id/estadisticas', destination: `${BACKEND_URL}/api/empresa/:empresa_id/estadisticas` },
+      { source: '/api/empresa/:empresa_id/facturas', destination: `${BACKEND_URL}/api/empresa/:empresa_id/facturas` },
       
       // --- EMPRESA DASHBOARD ---
-      {
-        source: '/api/empresa/dashboard/:path*',
-        destination: 'http://localhost:8000/api/empresa/dashboard/:path*',
-      },
+      { source: '/api/empresa/dashboard/:path*', destination: `${BACKEND_URL}/api/empresa/dashboard/:path*` },
       
       // --- TURNOS ---
-      {
-        source: '/api/turnos/:path*',
-        destination: 'http://localhost:8000/api/turnos/:path*',
-      },
+      { source: '/api/turnos/:path*', destination: `${BACKEND_URL}/api/turnos/:path*` },
       
       // --- RESERVAS ---
-      {
-        source: '/api/reservas/:path*',
-        destination: 'http://localhost:8000/api/reservas/:path*',
-      },
+      { source: '/api/reservas/:path*', destination: `${BACKEND_URL}/api/reservas/:path*` },
       
       // --- CHOFERES ---
-      {
-        source: '/api/choferes/:path*',
-        destination: 'http://localhost:8000/api/choferes/:path*',
-      },
+      { source: '/api/choferes/:path*', destination: `${BACKEND_URL}/api/choferes/:path*` },
       
       // --- VEHÍCULOS ---
-      {
-        source: '/api/vehiculos/:path*',
-        destination: 'http://localhost:8000/api/vehiculos/:path*',
-      },
-      {
-        source: '/api/vehiculo/:path*',
-        destination: 'http://localhost:8000/api/vehiculo/:path*',
-      },
+      { source: '/api/vehiculos/:path*', destination: `${BACKEND_URL}/api/vehiculos/:path*` },
+      { source: '/api/vehiculo/:path*', destination: `${BACKEND_URL}/api/vehiculo/:path*` },
       
       // --- VIAJES ---
-      {
-        source: '/api/viajes/:path*',
-        destination: 'http://localhost:8000/api/viajes/:path*',
-      },
+      { source: '/api/viajes/:path*', destination: `${BACKEND_URL}/api/viajes/:path*` },
       
       // --- USUARIOS ---
-      {
-        source: '/api/usuarios/:path*',
-        destination: 'http://localhost:8000/api/usuarios/:path*',
-      },
+      { source: '/api/usuarios/:path*', destination: `${BACKEND_URL}/api/usuarios/:path*` },
       
       // --- PAGOS ---
-      {
-        source: '/api/pagos/:path*',
-        destination: 'http://localhost:8000/api/pagos/:path*',
-      },
+      { source: '/api/pagos/:path*', destination: `${BACKEND_URL}/api/pagos/:path*` },
       
       // --- PROPIETARIO ---
-      {
-        source: '/api/propietario/:path*',
-        destination: 'http://localhost:8000/api/propietario/:path*',
-      },
+      { source: '/api/propietario/:path*', destination: `${BACKEND_URL}/api/propietario/:path*` },
       
       // --- ADMIN ---
-      {
-        source: '/api/admin/:path*',
-        destination: 'http://localhost:8000/api/admin/:path*',
-      },
+      { source: '/api/admin/:path*', destination: `${BACKEND_URL}/api/admin/:path*` },
       
       // --- CONTROL BASE ---
-      {
-        source: '/api/control-base/:path*',
-        destination: 'http://localhost:8000/api/control-base/:path*',
-      },
+      { source: '/api/control-base/:path*', destination: `${BACKEND_URL}/api/control-base/:path*` },
       
       // --- AUTH (solo endpoints del backend, NO NextAuth) ---
-      {
-        source: '/api/auth/login',
-        destination: 'http://localhost:8000/api/auth/login',
-      },
-      {
-        source: '/api/auth/registro',
-        destination: 'http://localhost:8000/api/auth/registro',
-      },
-      {
-        source: '/api/auth/me',
-        destination: 'http://localhost:8000/api/auth/me',
-      },
-      {
-        source: '/api/auth/refresh',
-        destination: 'http://localhost:8000/api/auth/refresh',
-      },
+      { source: '/api/auth/login', destination: `${BACKEND_URL}/api/auth/login` },
+      { source: '/api/auth/registro', destination: `${BACKEND_URL}/api/auth/registro` },
+      { source: '/api/auth/me', destination: `${BACKEND_URL}/api/auth/me` },
+      { source: '/api/auth/refresh', destination: `${BACKEND_URL}/api/auth/refresh` },
       
-      // ✅ NUEVO: GEO (ciudades operativas)
-      {
-        source: '/api/geo/:path*',
-        destination: 'http://localhost:8000/api/geo/:path*',
-      },
+      // --- GEO ---
+      { source: '/api/geo/:path*', destination: `${BACKEND_URL}/api/geo/:path*` },
     ]
   },
 }

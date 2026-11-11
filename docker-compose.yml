@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:17-3.6
+    container_name: taxip_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: taxip_backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/uploads:/app/uploads
+
+  dashboard:
+    build: 
+      context: ./dashboard
+      args:
+        NEXT_PUBLIC_API_URL: http://147.93.4.216:8000
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: AIzaSyBI3_ZcSKrsbz9xKUWJGNGazgIQwshVz6o
+        # NUEVAS VARIABLES PARA CLOUDINARY (Build)
+        NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: sfy4qupi
+        NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: documentos_preset
+    container_name: taxip_dashboard
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://147.93.4.216:8000
+      - NEXTAUTH_URL=http://147.93.4.216:3000
+      - NEXTAUTH_SECRET=TaxipNextAuthSecretSuperSeguro2026
+      - AUTH_TRUST_HOST=true
+      - BACKEND_INTERNAL_URL=http://backend:8000
+      - DATABASE_URL=postgresql://taxip_admin:TaxipProd2026SecurePass@db:5432/taxip_db?sslmode=disable 
+      - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBI3_ZcSKrsbz9xKUWJGNGazgIQwshVz6o
+      # NUEVAS VARIABLES PARA CLOUDINARY (Runtime)
+      - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=sfy4qupi
+      - NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=documentos_preset
+    depends_on:
+      - backend
+
+  landing:
+    build: 
+      context: ./landing
+      args:
+        NEXT_PUBLIC_API_URL: http://147.93.4.216:8000
+        NEXT_PUBLIC_DASHBOARD_URL: http://147.93.4.216:3000
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: AIzaSyBI3_ZcSKrsbz9xKUWJGNGazgIQwshVz6o
+    container_name: taxip_landing
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://147.93.4.216:8000
+      - NEXT_PUBLIC_DASHBOARD_URL=http://147.93.4.216:3000 
+      - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBI3_ZcSKrsbz9xKUWJGNGazgIQwshVz6o
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

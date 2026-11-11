@@ -34,7 +34,7 @@ class DocumentoResponse(BaseModel):
 
 
 class EstadoAprobacionResponse(BaseModel):
-    estado_aprobacion: str  # pendiente, en_revision, aprobado, rechazado
+    estado_aprobacion: Optional[str] = None
     mensaje: Optional[str] = None
     documentos_subidos: int
     documentos_requeridos: int = 5
@@ -45,13 +45,7 @@ class EstadoAprobacionResponse(BaseModel):
 # Constantes
 # ============================================
 
-# Tipos de documento que requieren fecha de vencimiento obligatoria
-# (dni no vence en el sistema actual)
 DOCS_CON_VENCIMIENTO = ["licencia", "sanidad", "buena_conducta", "antecedentes"]
-
-# Tipos de documento que requieren numero obligatorio
-# - dni: se toma automaticamente del perfil (no se pide)
-# - sanidad: numero opcional
 DOCS_CON_NUMERO_OBLIGATORIO = ["licencia", "buena_conducta", "antecedentes"]
 
 
@@ -62,41 +56,24 @@ DOCS_CON_NUMERO_OBLIGATORIO = ["licencia", "buena_conducta", "antecedentes"]
 @router.post("/subir-documento", response_model=DocumentoResponse)
 async def subir_documento(
     tipo_documento: str = Query(..., description="dni, licencia, buena_conducta, antecedentes, sanidad"),
-    fecha_vencimiento: Optional[date] = Query(None, description="Fecha de vencimiento (obligatoria para licencia, sanidad, buena_conducta, antecedentes)"),
-    numero: Optional[str] = Query(None, description="Numero del documento. Obligatorio para licencia, buena_conducta, antecedentes. Opcional para sanidad. Para DNI se toma del perfil."),
+    fecha_vencimiento: Optional[date] = Query(None, description="Fecha de vencimiento"),
+    numero: Optional[str] = Query(None, description="Numero del documento"),
     file: UploadFile = File(...),
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Upload a driver document.
-
-    - tipo_documento: 'dni', 'licencia', 'buena_conducta', 'antecedentes', 'sanidad'
-    - fecha_vencimiento: obligatoria para documentos que vencen (no dni)
-    - numero:
-        - dni: se toma automaticamente del perfil.documento
-        - licencia, buena_conducta, antecedentes: obligatorio
-        - sanidad: opcional
-    - The JWT token from registration is required in Authorization header
-    - Documents are stored in Cloudinary (folder: choferes/{usuario_id}/{tipo_documento}/)
-    """
+    """Upload a driver document."""
     user_id = current_user[0]
 
-    # Validar tipo de documento
-    tipos_validos = [
-        "dni",
-        "licencia",
-        "buena_conducta",
-        "antecedentes",
-        "sanidad",
-    ]
+    # 1. Validar tipo de documento
+    tipos_validos = ["dni", "licencia", "buena_conducta", "antecedentes", "sanidad"]
     if tipo_documento not in tipos_validos:
         raise HTTPException(
             status_code=400,
             detail=f"Tipo de documento invalido. Permitidos: {tipos_validos}"
         )
 
-    # Validar fecha de vencimiento para documentos que vencen
+    # 2. Validar fecha de vencimiento para documentos que vencen
     if tipo_documento in DOCS_CON_VENCIMIENTO:
         if not fecha_vencimiento:
             raise HTTPException(
@@ -109,9 +86,8 @@ async def subir_documento(
                 detail="El documento esta vencido y no puede ser aceptado"
             )
 
-    # Validar numero segun tipo
+    # 3. Validar numero segun tipo
     if tipo_documento == "dni":
-        # DNI: si no viene numero, buscar el del perfil
         if not numero:
             perfil_query = text("""
                 SELECT documento FROM auth.perfil_general
@@ -124,52 +100,85 @@ async def subir_documento(
                 logger.info(f"DNI: numero tomado del perfil: {numero}")
             else:
                 logger.warning(f"DNI: perfil sin documento para usuario {user_id}, numero queda null")
-
     elif tipo_documento in DOCS_CON_NUMERO_OBLIGATORIO:
-        # Licencia, buena_conducta, antecedentes: obligatorio
         if not numero:
             raise HTTPException(
                 status_code=400,
                 detail=f"Numero obligatorio para {tipo_documento}"
             )
-
-    # Sanidad: numero opcional (no validar)
-
-    # Verificar que el usuario es chofer y no esta ya aprobado
+    # 4. Verificar/crear postulación del usuario
     check_query = text("""
         SELECT cv.id, cv.estado_aprobacion
         FROM fleet.chofer_vehiculo cv
         WHERE cv.usuario_id = :user_id
     """)
-
     result = await db.execute(check_query, {"user_id": user_id})
     row = result.first()
 
-    if not row:
-        raise HTTPException(status_code=404, detail="Chofer no encontrado")
+    if row:
+        estado_actual = row[1]
+        if estado_actual == "aprobado":
+            raise HTTPException(
+                status_code=400,
+                detail="El chofer ya esta aprobado. No se pueden subir mas documentos."
+            )
+    else:
+        # Si no existe la postulación, la creamos automáticamente
+        logger.info(f"Creando postulación automática para el usuario {user_id}")
+        try:
+            # 1. Obtener el control_base_id del perfil del usuario
+            perfil_query = text("""
+                SELECT control_base_id FROM auth.usuario
+                WHERE id = :user_id
+            """)
+            perfil_result = await db.execute(perfil_query, {"user_id": user_id})
+            perfil_row = perfil_result.first()
+            
+            if perfil_row and perfil_row[0]:
+                control_base_id = perfil_row[0]
+            else:
+                # Si no tiene perfil, buscamos una control_base activa por defecto
+                default_cb = text("SELECT id FROM auth.control_base LIMIT 1")
+                cb_result = await db.execute(default_cb)
+                cb_row = cb_result.first()
+                if not cb_row:
+                    raise Exception("No hay control_base registrada en el sistema")
+                control_base_id = cb_row[0]
 
-    estado_actual = row[1]
-    if estado_actual == "aprobado":
-        raise HTTPException(
-            status_code=400,
-            detail="El chofer ya esta aprobado. No se pueden subir mas documentos."
-        )
+            # 2. Insertar la postulación con el control_base_id
+            insert_postulacion = text("""
+                INSERT INTO fleet.chofer_vehiculo 
+                    (id, usuario_id, control_base_id, estado_aprobacion, estado_laboral, activo, created_at)
+                VALUES 
+                    (gen_random_uuid(), :user_id, :control_base_id, 'pendiente', 'inactivo', true, NOW())
+            """)
+            await db.execute(insert_postulacion, {
+                "user_id": user_id,
+                "control_base_id": control_base_id
+            })
+            await db.commit()
+            
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error al crear postulación automática: {str(e)}")
+            # Lanzamos un error con el mensaje real para debug
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error interno al crear la postulación: {str(e)}"
+            )
 
-    # Validar tamano del archivo (maximo 10MB)
+    # 5. Validar tamano del archivo (maximo 10MB)
     content = await file.read()
     file_size = len(content)
-    if file_size > 10 * 1024 * 1024:  # 10MB
+    if file_size > 10 * 1024 * 1024:
         raise HTTPException(
             status_code=400,
             detail="El archivo no puede superar los 10MB"
         )
 
-    # CRITICO: resetear el cursor del archivo.
-    # UploadFile.read() consume el stream. Si no reseteamos,
-    # el storage recibe un archivo vacio en la segunda lectura.
     await file.seek(0)
 
-    # Guardar el archivo en Cloudinary
+    # 6. Guardar el archivo en Cloudinary
     try:
         url = await cloudinary_storage.upload_documento_chofer(
             file=file,
@@ -185,19 +194,20 @@ async def subir_documento(
             detail=f"Error al guardar documento: {str(e)}"
         )
 
-    # Registrar en la base de datos
+    # 7. Registrar en la base de datos
     insert_doc = text("""
         INSERT INTO fleet.documentos_chofer
-            (id, usuario_id, tipo_documento, url, numero, fecha_vencimiento, subido_en, activo)
+            (id, usuario_id, tipo_documento, url, numero, fecha_vencimiento, subido_en, activo, notificar_dias)
         VALUES
-            (gen_random_uuid(), :user_id, :tipo_documento, :url, :numero, :fecha_vencimiento, NOW(), true)
+            (gen_random_uuid(), :user_id, :tipo_documento, :url, :numero, :fecha_vencimiento, NOW(), true, :notificar_dias)
         ON CONFLICT (usuario_id, tipo_documento)
         DO UPDATE SET
             url = :url,
             numero = :numero,
             fecha_vencimiento = :fecha_vencimiento,
             subido_en = NOW(),
-            activo = true
+            activo = true,
+            notificar_dias = :notificar_dias
     """)
 
     await db.execute(insert_doc, {
@@ -205,7 +215,8 @@ async def subir_documento(
         "tipo_documento": tipo_documento,
         "url": url,
         "numero": numero,
-        "fecha_vencimiento": fecha_vencimiento
+        "fecha_vencimiento": fecha_vencimiento,
+        "notificar_dias": 30
     })
 
     await db.commit()
@@ -241,7 +252,13 @@ async def obtener_estado_aprobacion(
     row = result.first()
 
     if not row:
-        raise HTTPException(status_code=404, detail="Chofer no encontrado")
+        return EstadoAprobacionResponse(
+            estado_aprobacion=None,
+            mensaje="No tenés una postulación activa como chofer. Hacé clic en 'Solicitar ser chofer' para empezar.",
+            documentos_subidos=0,
+            documentos_requeridos=5,
+            puede_manejar=False
+        )
 
     estado = row[0]
     documentos_subidos = row[1] or 0

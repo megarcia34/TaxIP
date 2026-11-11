@@ -1,4 +1,3 @@
-// D:\ataxip\dashboard\components\propietario\perfil\PerfilDatosPersonales.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -20,7 +19,10 @@ import { useAuth } from '@/hooks/useAuth';
 export default function PerfilDatosPersonales() {
   const { user } = useAuth();
   const { data: perfil, isLoading } = usePerfil();
-  const { data: ciudades = [] } = useCiudadesOperativas();
+  
+  // ✅ CORRECCIÓN: Obtener isLoading también
+  const { data: ciudades = [], isLoading: loadingCiudades } = useCiudadesOperativas();
+  
   const updateMutation = useUpdatePerfil();
 
   const [form, setForm] = useState({
@@ -35,18 +37,7 @@ export default function PerfilDatosPersonales() {
     fecha_nacimiento: '',
   });
 
-  // Precarga 1: datos que ya conocemos desde useAuth
-  useEffect(() => {
-    if (user) {
-      setForm((prev) => ({
-        ...prev,
-        nombre: prev.nombre || (user as any).nombre || '',
-        email: prev.email || user.email || '',
-      }));
-    }
-  }, [user]);
-
-  // Precarga 2: cuando llega el perfil completo, sobreescribe
+  // Precarga desde el perfil (fuente de verdad)
   useEffect(() => {
     if (perfil) {
       setForm({
@@ -167,25 +158,34 @@ export default function PerfilDatosPersonales() {
                 onChange={(e) => setForm({ ...form, codigo_postal: e.target.value })}
               />
             </div>
+            
+            {/* ✅ CORRECCIÓN: El Select espera a que las ciudades carguen */}
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="ciudad">Ciudad</Label>
-              <Select
-                value={form.ciudad_id || 'sin-seleccionar'}
-                onValueChange={(v) => setForm({ ...form, ciudad_id: v === 'sin-seleccionar' ? '' : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar ciudad" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sin-seleccionar">Sin seleccionar</SelectItem>
-                  {ciudades.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nombre}
-                      {c.provincia ? ` - ${c.provincia}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {loadingCiudades ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando ciudades...
+                </div>
+              ) : (
+                <Select
+                  value={form.ciudad_id || 'sin-seleccionar'}
+                  onValueChange={(v) => setForm({ ...form, ciudad_id: v === 'sin-seleccionar' ? '' : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar ciudad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sin-seleccionar">Sin seleccionar</SelectItem>
+                    {ciudades.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nombre}
+                        {c.provincia ? ` - ${c.provincia}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 

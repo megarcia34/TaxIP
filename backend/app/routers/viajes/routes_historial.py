@@ -187,7 +187,7 @@ async def obtener_historial_viajes(
             ST_Y(vs.origen::geometry) as origen_lat,
             ST_X(vs.origen::geometry) as origen_lng,
             ST_Y(vs.destino::geometry) as destino_lat,
-            ST_X(vs.destino::geometry) as destino_lng,
+            ST_X(vs.destino::geometry) as destino_lng
 
         FROM trip.viaje_solicitado vs
 

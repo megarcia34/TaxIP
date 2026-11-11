@@ -210,22 +210,41 @@ async def registrar_propietario(
     logger.info("✅ [PASO 2] Tenant asociado: %s (ID: %s)", tenant_nombre, tenant_id)
 
     # 3. Obtener ID del tipo 'propietario'
-    logger.info("📌 [PASO 3] Obteniendo tipo de usuario 'propietario'...")
+        # 3. Obtener o crear el tipo 'propietario'
+    logger.info("📌 [PASO 3] Verificando/creando tipo de usuario 'propietario'...")
+    
+    # Intentar crear el rol (si no existe)
+    await db.execute(
+        text("""
+            INSERT INTO auth.tipo_usuario (id, nombre) 
+            VALUES (gen_random_uuid(), 'propietario') 
+            ON CONFLICT (nombre) DO NOTHING
+        """)
+    )
+    
+    # Buscar el ID
     tipo_query = text("SELECT id FROM auth.tipo_usuario WHERE nombre = 'propietario'")
     result = await db.execute(tipo_query)
     tipo_row = result.first()
 
     if not tipo_row:
-        logger.error("❌ [PASO 3] Tipo 'propietario' no encontrado")
+        logger.error("❌ [PASO 3] Error crítico: no se pudo obtener el ID del rol propietario")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tipo de usuario 'propietario' no encontrado"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno: no se pudo obtener el rol propietario"
         )
 
     tipo_propietario_id = tipo_row[0]
-    logger.info("✅ [PASO 3] Tipo propietario encontrado (ID: %s)", tipo_propietario_id)
+    logger.info("✅ [PASO 3] Tipo propietario listo (ID: %s)", tipo_propietario_id)
 
-    # 3b. Obtener ID del tipo 'chofer' (para capacidad adicional)
+        # 3b. Obtener o crear el tipo 'chofer'
+    await db.execute(
+        text("""
+            INSERT INTO auth.tipo_usuario (id, nombre) 
+            VALUES (gen_random_uuid(), 'chofer') 
+            ON CONFLICT (nombre) DO NOTHING
+        """)
+    )
     tipo_chofer_query = text("SELECT id FROM auth.tipo_usuario WHERE nombre = 'chofer'")
     result = await db.execute(tipo_chofer_query)
     tipo_chofer_row = result.first()

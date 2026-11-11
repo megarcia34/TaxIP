@@ -20,8 +20,10 @@ export default function ConfiguracionTarifasPage() {
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<ConfiguracionTarifa | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [esNueva, setEsNueva] = useState(false);
 
   const [formData, setFormData] = useState({
+    nombre: 'Tarifa Base',           // ✅ NUEVO
     modo_calculo: 'por_km',
     tarifa_base: 0,
     precio_por_km: 0,
@@ -30,6 +32,7 @@ export default function ConfiguracionTarifasPage() {
     precio_por_ficha: 0,
     precio_por_minuto_espera: 0,
     recargo_nocturno: 1.2,
+    recargo_feriado: 1.0,            // ✅ NUEVO
     recargo_domingo: 1.0,
     hora_inicio_nocturno: '22:00',
     hora_fin_nocturno: '06:00',
@@ -53,7 +56,9 @@ export default function ConfiguracionTarifasPage() {
           setLoading(true);
           const data = await tarifaService.getMiTenant();
           setConfig(data);
+          setEsNueva(false);
           setFormData({
+            nombre: data.nombre || 'Tarifa Base',
             modo_calculo: data.modo_calculo || 'por_km',
             tarifa_base: data.tarifa_base || 0,
             precio_por_km: data.precio_por_km || 0,
@@ -62,6 +67,7 @@ export default function ConfiguracionTarifasPage() {
             precio_por_ficha: data.precio_por_ficha || 0,
             precio_por_minuto_espera: data.precio_por_minuto_espera || 0,
             recargo_nocturno: data.recargo_nocturno || 1.2,
+            recargo_feriado: data.recargo_feriado || 1.0,
             recargo_domingo: data.recargo_domingo || 1.0,
             hora_inicio_nocturno: data.hora_inicio_nocturno || '22:00',
             hora_fin_nocturno: data.hora_fin_nocturno || '06:00',
@@ -69,9 +75,16 @@ export default function ConfiguracionTarifasPage() {
             descripcion: data.descripcion || '',
             activo: data.activo !== undefined ? data.activo : true,
           });
-        } catch (error) {
-          console.error('Error cargando configuración:', error);
-          toast.error('No se pudo cargar la configuración de tarifas');
+        } catch (error: any) {
+          if (error?.response?.status === 404) {
+            console.log('ℹ️ No hay tarifa configurada. Se creará una nueva.');
+            setEsNueva(true);
+            setConfig({ id: '' } as ConfiguracionTarifa);
+            toast.info('No hay tarifa configurada. Completá los datos para crearla.');
+          } else {
+            console.error('Error cargando configuración:', error);
+            toast.error('No se pudo cargar la configuración de tarifas');
+          }
         } finally {
           setLoading(false);
         }
@@ -84,18 +97,18 @@ export default function ConfiguracionTarifasPage() {
     loadConfig();
   }, [user, authLoading, router]);
 
-  // ✅ FUNCIÓN CORREGIDA: Envía solo HH:MM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!config) return;
 
     setSaving(true);
     try {
-      // ✅ Recortar segundos: "22:00:00" → "22:00"
       const horaInicio = formData.hora_inicio_nocturno?.slice(0, 5) || '22:00';
       const horaFin = formData.hora_fin_nocturno?.slice(0, 5) || '06:00';
 
       const updateData = {
+        control_base_id: user?.control_base_id || '',  // ✅ NUEVO
+        nombre: formData.nombre || 'Tarifa Base',      // ✅ NUEVO
         modo_calculo: formData.modo_calculo,
         tarifa_base: formData.tarifa_base,
         precio_por_km: formData.precio_por_km,
@@ -104,24 +117,32 @@ export default function ConfiguracionTarifasPage() {
         precio_por_ficha: formData.precio_por_ficha,
         precio_por_minuto_espera: formData.precio_por_minuto_espera,
         recargo_nocturno: formData.recargo_nocturno,
+        recargo_feriado: formData.recargo_feriado,      // ✅ NUEVO
         recargo_domingo: formData.recargo_domingo,
-        hora_inicio_nocturno: horaInicio, // ✅ Solo HH:MM
-        hora_fin_nocturno: horaFin,       // ✅ Solo HH:MM
+        hora_inicio_nocturno: horaInicio,
+        hora_fin_nocturno: horaFin,
         moneda: formData.moneda,
         descripcion: formData.descripcion,
         activo: formData.activo,
       };
 
-      console.log('📤 Enviando update:', updateData);
+      console.log('📤 Enviando:', updateData);
 
-      await tarifaService.update(config.id, updateData);
-      toast.success('Configuración actualizada correctamente');
+      if (esNueva) {
+        await tarifaService.create(updateData);
+        toast.success('Tarifa creada correctamente');
+      } else {
+        await tarifaService.update(config.id, updateData);
+        toast.success('Configuración actualizada correctamente');
+      }
+      
       const data = await tarifaService.getMiTenant();
       setConfig(data);
+      setEsNueva(false);
     } catch (error: any) {
-      console.error('❌ Error actualizando:', error);
+      console.error('❌ Error:', error);
       console.error('❌ Response:', error.response?.data);
-      toast.error(`Error: ${error.response?.data?.detail || 'Error al actualizar'}`);
+      toast.error(`Error: ${error.response?.data?.detail || 'Error al guardar'}`);
     } finally {
       setSaving(false);
     }
@@ -161,12 +182,14 @@ export default function ConfiguracionTarifasPage() {
         <div>
           <h1 className="text-2xl font-bold">Configuración de Tarifas</h1>
           <p className="text-sm text-muted-foreground">
-            Gestiona las tarifas para {config?.tenant_nombre || 'tu municipio'}
+            {esNueva 
+              ? 'Crea la configuración inicial de tarifas para tu municipio' 
+              : `Gestiona las tarifas para ${config?.tenant_nombre || 'tu municipio'}`}
           </p>
         </div>
         <div className="text-sm">
-          <span className={config?.activo ? 'text-green-600' : 'text-red-600'}>
-            {config?.activo ? '✅ Activo' : '❌ Inactivo'}
+          <span className={config?.activo || esNueva ? 'text-green-600' : 'text-red-600'}>
+            {esNueva ? '🆕 Nueva Configuración' : (config?.activo ? '✅ Activo' : '❌ Inactivo')}
           </span>
         </div>
       </div>
@@ -181,6 +204,17 @@ export default function ConfiguracionTarifasPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Nombre de la tarifa */}
+              <div className="space-y-2 md:col-span-2">
+                <Label>Nombre de la Tarifa</Label>
+                <Input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => handleChange('nombre', e.target.value)}
+                  placeholder="Ej: Tarifa Base 2026"
+                />
+              </div>
+
               {/* Modo de cálculo */}
               <div className="space-y-2">
                 <Label>Modo de Cálculo</Label>
@@ -296,6 +330,19 @@ export default function ConfiguracionTarifasPage() {
                 <p className="text-xs text-muted-foreground">Ej: 1.2 = 20% de recargo</p>
               </div>
 
+              {/* ✅ NUEVO: Recargo Feriado */}
+              <div className="space-y-2">
+                <Label>Recargo Feriado (factor)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  value={formData.recargo_feriado}
+                  onChange={(e) => handleChange('recargo_feriado', parseFloat(e.target.value) || 1.0)}
+                />
+                <p className="text-xs text-muted-foreground">Ej: 1.5 = 50% de recargo</p>
+              </div>
+
               <div className="space-y-2">
                 <Label>Recargo Domingo (factor)</Label>
                 <Input
@@ -359,7 +406,7 @@ export default function ConfiguracionTarifasPage() {
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Guardar Configuración
+                {esNueva ? 'Crear Tarifa' : 'Guardar Configuración'}
               </>
             )}
           </Button>
@@ -367,4 +414,4 @@ export default function ConfiguracionTarifasPage() {
       </form>
     </div>
   );
-}
+}// BUILD 1794086645

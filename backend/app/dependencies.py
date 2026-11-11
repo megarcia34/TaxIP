@@ -97,20 +97,20 @@ async def get_super_admin_user(
     current_user: Tuple[UUID, UUID, str, str] = Depends(get_current_user)
 ) -> Tuple[UUID, UUID, str, str]:
     """
-    Verificar que el usuario es SUPER ADMIN (admin sin control_base_id).
+    Verificar que el usuario es SUPER ADMIN MAESTRO (super_admin) 
+    o SUPER ADMIN (admin sin tenant).
     """
     user_id, control_base_id, email, tipo = current_user
     
-    if tipo.lower() != "admin":
+    es_super_admin = (
+        tipo.lower() in ["super_admin", "superadmin"] or
+        (tipo.lower() == "admin" and control_base_id is None)
+    )
+    
+    if not es_super_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Super Admin access required"
-        )
-    
-    if control_base_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Super Admin access required (control_base_id must be NULL)"
         )
     
     return current_user
@@ -957,11 +957,17 @@ async def get_current_super_admin_user(
     current_user: Tuple[UUID, UUID, str, str] = Depends(get_current_user)
 ) -> Tuple[UUID, UUID, str, str]:
     """
-    Verifica que el usuario sea Super Admin
+    Verifica que el usuario sea Super Admin.
+    Acepta 'super_admin' o 'admin' sin control_base_id.
     """
     user_id, control_base_id, email, tipo_usuario = current_user
     
-    if tipo_usuario.lower() not in ["super_admin", "superadmin"]:
+    es_super_admin = (
+        tipo_usuario.lower() in ["super_admin", "superadmin"] or
+        (tipo_usuario.lower() == "admin" and control_base_id is None)
+    )
+    
+    if not es_super_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso solo para Super Admin"

@@ -44,25 +44,41 @@ apiClient.interceptors.request.use(
 // ============================================
 // RESPONSE INTERCEPTOR
 // ============================================
-// Si el backend devuelve 401 o 403 (token vencido
-// o invalido), redirigimos a /login.
+// Si el backend devuelve 401 (token vencido) redirigimos a login.
+// Si devuelve 403, solo redirigimos si es un error de token, NO si es un
+// error de negocio (ej: "no tienes vehículos", "no eres propietario").
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      console.warn(
-        '[apiClient] Error de autenticacion (' +
-          error.response.status +
-          '), redirigiendo a login...'
-      );
-      if (
-        typeof window !== 'undefined' &&
-        !window.location.pathname.includes('/login')
-      ) {
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+
+    if (status === 401) {
+      console.warn('[apiClient] Token inválido/expirado, redirigiendo a login...');
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
+    } 
+    else if (status === 403) {
+      // ✅ NUEVO: No redirigir si es un error de negocio (ej: perfil sin vehículos)
+      const esErrorDeNegocio = 
+        url.includes('/propietario/perfil') || 
+        url.includes('/pagos/medios') ||
+        url.includes('/propietario/cuentas-cobro') ||  // ✅ NUEVO
+        url.includes('/propietario/documentos') ||      // ✅ NUEVO (por si acaso)
+        url.includes('/propietario/postulacion');        // ✅ NUEVO
+      
+      if (!esErrorDeNegocio) {
+        console.warn('[apiClient] Error de autenticación (403), redirigiendo a login...');
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+      } else {
+        console.log('[apiClient] Error de negocio (403), no se redirige:', url);
+      }
     }
+
     return Promise.reject(error);
   }
 );

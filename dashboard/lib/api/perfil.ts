@@ -62,9 +62,36 @@ export interface CiudadOperativa {
 // ============================================================
 
 export const perfilAPI = {
+  // ✅ NUEVO: Manejar el 403 devolviendo un perfil vacío
   get: async (): Promise<PerfilPropietario> => {
-    const response = await apiClient.get('/propietario/perfil');
-    return response.data;
+    try {
+      const response = await apiClient.get('/propietario/perfil');
+      return response.data;
+    } catch (error: any) {
+      // Si es 403 (sin vehículos) o 404 (sin perfil), devolver un perfil vacío
+      if (error.response?.status === 403 || error.response?.status === 404) {
+        console.log('ℹ️ Perfil no encontrado o sin permisos. Devolviendo perfil vacío.')
+        return {
+          id: '',
+          email: '',
+          nombre: '',
+          apellido: '',
+          telefono: null,
+          documento: null,
+          direccion: null,
+          ciudad_id: null,
+          ciudad_nombre: null,
+          foto_perfil_url: null,
+          codigo_postal: null,
+          fecha_nacimiento: null,
+          cuit_cuil: null,
+          condicion_impositiva: null,
+          tenant: null,
+        };
+      }
+      // Para otros errores, lanzar el error
+      throw error;
+    }
   },
 
   update: async (data: PerfilUpdate): Promise<PerfilPropietario> => {

@@ -109,10 +109,45 @@ export default function LoginPage() {
         console.log('🔄 [Login] Admin Empresa → /dashboard-empresa')
       } 
       // ✅ PROPIETARIO
-      else if (tipoUsuario === 'propietario' || tipoUsuario === 'admin_propietario') {
+else if (tipoUsuario === 'propietario' || tipoUsuario === 'admin_propietario') {
+  // ✅ NUEVO: Verificar si el propietario tiene vehículos
+  console.log('🔍 [Login] Verificando vehículos del propietario...')
+  
+  try {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const token = session?.user?.accessToken
+    
+    const vehiculosRes = await fetch(`${API_URL}/api/propietario/vehiculos`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    if (vehiculosRes.ok) {
+      const vehiculos = await vehiculosRes.json()
+      
+      if (!vehiculos || vehiculos.length === 0) {
+        // ✅ No tiene vehículos → redirigir a Perfil
+        redirectPath = '/dashboard-propietario/perfil'
+        console.log('🔄 [Login] Propietario sin vehículos → /dashboard-propietario/perfil')
+      } else {
+        // ✅ Tiene vehículos → redirigir a Dashboard
         redirectPath = '/dashboard-propietario'
-        console.log('🔄 [Login] Propietario → /dashboard-propietario')
-      } 
+        console.log('🔄 [Login] Propietario con vehículos → /dashboard-propietario')
+      }
+    } else {
+      // Si falla la verificación (403, etc.), asumir que no tiene vehículos
+      redirectPath = '/dashboard-propietario/perfil'
+      console.log('⚠️ [Login] Error verificando vehículos → /dashboard-propietario/perfil')
+    }
+  } catch (error) {
+    console.error('❌ [Login] Error verificando vehículos:', error)
+    // En caso de error, redirigir a Perfil (más seguro)
+    redirectPath = '/dashboard-propietario/perfil'
+  }
+}
+
       // ✅ EMPLEADO / CHOFER
       else if (tipoUsuario === 'empleado' || tipoUsuario === 'chofer' || tipoUsuario === 'conductor') {
         redirectPath = '/operativo'

@@ -1,4 +1,3 @@
-// D:\ataxip\dashboard\app\dashboard-propietario\perfil\page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -19,8 +18,6 @@ export default function PerfilPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       setPropietarioId(params.get('propietario_id'));
-
-      // Permite abrir directo una tab: /perfil?tab=cuentas
       const tabParam = params.get('tab');
       if (tabParam) setTab(tabParam);
     }
@@ -85,12 +82,6 @@ export default function PerfilPage() {
         </TabsContent>
 
         <TabsContent value="chofer" className="mt-6">
-          {/* TODO: Fase C */}
-          <div className="border rounded-lg p-12 text-center text-muted-foreground">
-            <Car className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Postulacion como chofer</p>
-            <p className="text-sm">Proximamente (Fase C)</p>
-          </div>
           <PerfilQuieroSerChofer />
         </TabsContent>
       </Tabs>

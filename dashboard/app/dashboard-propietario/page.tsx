@@ -13,11 +13,13 @@ import {
 } from 'lucide-react'
 import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 // COMPONENTES DEL DASHBOARD
 import { KPICard } from '@/components/propietario/dashboard/KPICard'
 import { PaymentChart } from '@/components/propietario/dashboard/PaymentChart'
 import { FlotaStatusWidget } from '@/components/propietario/dashboard/FlotaStatusWidget'
+
 
 // ============================================================
 // INTERFACES
@@ -81,6 +83,9 @@ interface Vehiculo {
 // ============================================================
 
 export default function PropietarioDashboardPage() {
+  // ✅ CORRECTO: useRouter dentro del componente, al principio
+  const router = useRouter()
+  
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [alertas, setAlertas] = useState<any[]>([])
@@ -92,92 +97,145 @@ export default function PropietarioDashboardPage() {
     return `$${value.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
   }
 
-  // ============================================================
-  // CARGAR DATOS DEL DASHBOARD
-  // ============================================================
+const cargarDashboard = async () => {
+  setLoading(true)
+  try {
+    // ✅ 1. Verificar si tiene vehículos
+    const vehiculosRes = await apiClient.get('/api/propietario/vehiculos')
+    const vehiculosData = vehiculosRes.data || []
 
-  const cargarDashboard = async () => {
-    setLoading(true)
-    try {
-      const [
-        flotaRes, 
-        rentabilidadRes, 
-        gastosRes, 
-        graficoRes, 
-        mantenimientosRes,
-        vehiculosRes,
-        pagosRes
-      ] = await Promise.all([
-        apiClient.get('/api/propietario/resumen-flota'),
-        apiClient.get('/api/propietario/rentabilidad-widget?periodo=mes'),
-        apiClient.get('/api/propietario/gastos-widget'),
-        apiClient.get('/api/propietario/grafico-ingresos-gastos?meses=6'),
-        apiClient.get('/api/propietario/proximos-mantenimientos?limit=5'),
-        apiClient.get('/api/propietario/vehiculos'),
-        apiClient.get('/api/propietario/pagos/medios').catch(() => ({ data: null })),
-      ])
-
-      const flota = flotaRes.data || {}
-      const rentabilidad = rentabilidadRes.data || {}
-      const gastos = gastosRes.data || {}
-      const grafico = graficoRes.data || { labels: [], ingresos: [], gastos: [], utilidad: [] }
-      const mantenimientos = mantenimientosRes.data || []
-      const vehiculosData = vehiculosRes.data || []
-      const pagos = pagosRes.data || null
-
-      // Últimos viajes
-      const viajesRes = await apiClient.get('/api/propietario/ultimos-viajes?limit=5').catch(() => ({ data: [] }))
-      const ultimosViajes = viajesRes.data || []
-
-      setVehiculos(vehiculosData)
-
-      if (pagos && Array.isArray(pagos)) {
-        setPagosData(pagos)
-      }
-
+    // ✅ 2. Si no tiene vehículos, mostrar estado vacío (SIN redirigir)
+    if (vehiculosData.length === 0) {
+      console.log('ℹ️ Propietario sin vehículos. Mostrando estado vacío (sin redirección).')
+      setVehiculos([])
       setData({
         kpis: {
-          total_vehiculos: flota.total_vehiculos || vehiculosData.length || 0,
-          total_choferes_activos: flota.total_choferes_activos || 0,
-          choferes_conectados: flota.choferes_conectados || 0,
-          choferes_disponibles: flota.choferes_disponibles || 0,
-          choferes_ocupados: flota.choferes_ocupados || 0,
-          ingresos_mes: rentabilidad.ingresos || 0,
-          gastos_mes: gastos.total_gastos || 0,
-          ganancia_mes: rentabilidad.utilidad || 0,
-          viajes_mes: rentabilidad.total_viajes || 0
+          total_vehiculos: 0,
+          total_choferes_activos: 0,
+          choferes_conectados: 0,
+          choferes_disponibles: 0,
+          choferes_ocupados: 0,
+          ingresos_mes: 0,
+          gastos_mes: 0,
+          ganancia_mes: 0,
+          viajes_mes: 0
         },
-        ultimos_viajes: ultimosViajes.map((v: any) => ({
-          id: v.id,
-          direccion_origen: v.origen || 'Viaje',
-          direccion_destino: v.destino || 'Viaje',
-          precio_final: v.monto || 0,
-          created_at: v.fecha || new Date().toISOString(),
-          patente: v.patente || 'N/A',
-          chofer_nombre: v.chofer || 'N/A'
-        })),
-        grafico_ingresos_gastos: grafico,
-        grafico_gastos_categoria: {
-          labels: ['Combustible', 'Mantenimiento', 'Seguro', 'Impuestos', 'Otros'],
-          values: [
-            gastos.desglose?.combustible || 0,
-            gastos.desglose?.mantenimiento || 0,
-            gastos.desglose?.seguro || 0,
-            0,
-            gastos.desglose?.otros || 0
-          ],
-          colors: ['#F59E0B', '#3B82F6', '#10B981', '#EF4444', '#6B7280']
-        },
-        proximos_mantenimientos: mantenimientos
+        ultimos_viajes: [],
+        grafico_ingresos_gastos: { labels: [], ingresos: [], gastos: [], utilidad: [] },
+        grafico_gastos_categoria: { labels: [], values: [], colors: [] },
+        proximos_mantenimientos: []
       })
-
-    } catch (error) {
-      console.error('Error cargando dashboard:', error)
-      toast.error('Error al cargar el dashboard')
-    } finally {
       setLoading(false)
+      return
     }
+
+    // ✅ 3. Si tiene vehículos, cargar el resto de datos
+    setVehiculos(vehiculosData)
+
+    const [
+      flotaRes, 
+      rentabilidadRes, 
+      gastosRes, 
+      graficoRes, 
+      mantenimientosRes,
+      pagosRes
+    ] = await Promise.all([
+      apiClient.get('/api/propietario/resumen-flota').catch(() => ({ data: {} })),
+      apiClient.get('/api/propietario/rentabilidad-widget?periodo=mes').catch(() => ({ data: {} })),
+      apiClient.get('/api/propietario/gastos-widget').catch(() => ({ data: {} })),
+      apiClient.get('/api/propietario/grafico-ingresos-gastos?meses=6').catch(() => ({ data: { labels: [], ingresos: [], gastos: [], utilidad: [] } })),
+      apiClient.get('/api/propietario/proximos-mantenimientos?limit=5').catch(() => ({ data: [] })),
+      apiClient.get('/api/propietario/pagos/medios').catch((err) => {
+        if (err.response?.status === 403) {
+          console.log('⚠️ Sin permisos para pagos (probablemente sin vehículos).')
+        }
+        return { data: null }
+      }),
+    ])
+
+    const flota = flotaRes.data || {}
+    const rentabilidad = rentabilidadRes.data || {}
+    const gastos = gastosRes.data || {}
+    const grafico = graficoRes.data || { labels: [], ingresos: [], gastos: [], utilidad: [] }
+    const mantenimientos = mantenimientosRes.data || []
+    const pagos = pagosRes.data || null
+
+    const viajesRes = await apiClient.get('/api/propietario/ultimos-viajes?limit=5').catch(() => ({ data: [] }))
+    const ultimosViajes = viajesRes.data || []
+
+    if (pagos && Array.isArray(pagos)) {
+      setPagosData(pagos)
+    }
+
+    setData({
+      kpis: {
+        total_vehiculos: flota.total_vehiculos || vehiculosData.length || 0,
+        total_choferes_activos: flota.total_choferes_activos || 0,
+        choferes_conectados: flota.choferes_conectados || 0,
+        choferes_disponibles: flota.choferes_disponibles || 0,
+        choferes_ocupados: flota.choferes_ocupados || 0,
+        ingresos_mes: rentabilidad.ingresos || 0,
+        gastos_mes: gastos.total_gastos || 0,
+        ganancia_mes: rentabilidad.utilidad || 0,
+        viajes_mes: rentabilidad.total_viajes || 0
+      },
+      ultimos_viajes: ultimosViajes.map((v: any) => ({
+        id: v.id,
+        direccion_origen: v.origen || 'Viaje',
+        direccion_destino: v.destino || 'Viaje',
+        precio_final: v.monto || 0,
+        created_at: v.fecha || new Date().toISOString(),
+        patente: v.patente || 'N/A',
+        chofer_nombre: v.chofer || 'N/A'
+      })),
+      grafico_ingresos_gastos: grafico,
+      grafico_gastos_categoria: {
+        labels: ['Combustible', 'Mantenimiento', 'Seguro', 'Impuestos', 'Otros'],
+        values: [
+          gastos.desglose?.combustible || 0,
+          gastos.desglose?.mantenimiento || 0,
+          gastos.desglose?.seguro || 0,
+          0,
+          gastos.desglose?.otros || 0
+        ],
+        colors: ['#F59E0B', '#3B82F6', '#10B981', '#EF4444', '#6B7280']
+      },
+      proximos_mantenimientos: mantenimientos
+    })
+
+  } catch (error: any) {
+    console.error('Error cargando dashboard:', error)
+
+    // ✅ 4. Si hay error 403, mostrar estado vacío (SIN redirigir)
+    if (error.response?.status === 403) {
+      console.log('ℹ️ Error 403 detectado. Mostrando estado vacío (sin redirección).')
+      setVehiculos([])
+      setData({
+        kpis: {
+          total_vehiculos: 0,
+          total_choferes_activos: 0,
+          choferes_conectados: 0,
+          choferes_disponibles: 0,
+          choferes_ocupados: 0,
+          ingresos_mes: 0,
+          gastos_mes: 0,
+          ganancia_mes: 0,
+          viajes_mes: 0
+        },
+        ultimos_viajes: [],
+        grafico_ingresos_gastos: { labels: [], ingresos: [], gastos: [], utilidad: [] },
+        grafico_gastos_categoria: { labels: [], values: [], colors: [] },
+        proximos_mantenimientos: []
+      })
+      setLoading(false)
+      return
+    }
+
+    toast.error('Error al cargar el dashboard')
+  } finally {
+    setLoading(false)
   }
+}
 
   // ============================================================
   // CARGAR ALERTAS DE VENCIMIENTO

@@ -22,14 +22,10 @@ async def get_perfil(
     """
     user_id, control_base_id, email, tipo = current_user
 
-    # Verificar que es propietario
-    query_verify = text("""
-        SELECT id FROM fleet.propietario_vehiculo
-        WHERE propietario_id = :user_id AND activo = true
-        LIMIT 1
-    """)
-    result = await db.execute(query_verify, {"user_id": user_id})
-    if not result.first():
+    
+    # ✅ CORRECTO: Verificar que el usuario tiene el rol 'propietario'
+    # (no que tenga vehículos, porque un propietario nuevo aún no tiene)
+    if tipo.lower() not in ['propietario', 'admin_propietario']:
         raise HTTPException(status_code=403, detail="No eres propietario")
 
     # Obtener datos del perfil
@@ -96,14 +92,9 @@ async def update_perfil(
     """
     user_id, control_base_id, email, tipo = current_user
 
-    # Verificar que es propietario
-    query_verify = text("""
-        SELECT id FROM fleet.propietario_vehiculo
-        WHERE propietario_id = :user_id AND activo = true
-        LIMIT 1
-    """)
-    result = await db.execute(query_verify, {"user_id": user_id})
-    if not result.first():
+    # ✅ CORRECTO: Verificar que el usuario tiene el rol 'propietario'
+    # (no que tenga vehículos, porque un propietario nuevo aún no tiene)
+    if tipo.lower() not in ['propietario', 'admin_propietario']:
         raise HTTPException(status_code=403, detail="No eres propietario")
 
     # Construir UPDATE dinamico con los campos que vienen

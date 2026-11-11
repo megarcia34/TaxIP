@@ -111,29 +111,27 @@ async def listar_objetos_olvidados(
     where_clause = " AND ".join(filters)
 
     query = text(f"""
-        SELECT 
+        SELECT
             oo.id,
             oo.viaje_id,
             oo.descripcion,
             oo.estado,
             oo.created_at as fecha_reporte,
-            oo.updated_at as fecha_entrega,
             oo.foto_url,
             COALESCE(p.nombre || ' ' || p.apellido, u.email) as pasajero_nombre,
             u.email as pasajero_email,
             COALESCE(p2.nombre || ' ' || p2.apellido, u2.email) as chofer_nombre,
             vs.direccion_origen as origen,
-            vs.direccion_destino as destino,
-            oo.observaciones
+            vs.direccion_destino as destino
         FROM trip.objeto_olvidado oo
         JOIN auth.usuario u ON u.id = oo.pasajero_id
         LEFT JOIN auth.perfil_general p ON p.usuario_id = u.id
         JOIN auth.usuario u2 ON u2.id = oo.chofer_id
         LEFT JOIN auth.perfil_general p2 ON p2.usuario_id = u2.id
         JOIN trip.viaje_solicitado vs ON vs.id = oo.viaje_id
-        WHERE {where_clause}
+        WHERE u.control_base_id = $1
         ORDER BY oo.created_at DESC
-        LIMIT :limit OFFSET :offset
+        LIMIT $2 OFFSET $3
     """)
 
     result = await db.execute(query, params)

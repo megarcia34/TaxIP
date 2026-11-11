@@ -155,6 +155,59 @@ class GeocodingService:
             logger.error("Error en Geocoding API: %s", e)
             return self._fallback(lat, lng)
 
+    async def forward_geocode(
+        self,
+        address: str,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Geocoding directo: de una dirección a coordenadas.
+        Útil para crear tenants (obtener lat/lng de la ciudad).
+        Devuelve None si no encuentra la dirección.
+        """
+        if not self.api_key:
+            logger.warning("Sin GOOGLE_MAPS_API_KEY para forward_geocode")
+            return None
+
+        try:
+            url = (
+                f"{self.base_url}"
+                f"?address={address}"
+                f"&language=es"
+                f"&region=ar"
+                f"&key={self.api_key}"
+            )
+
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                data = response.json()
+
+            if data.get("status") != "OK":
+                logger.warning(
+                    "Forward Geocoding API status=%s (address=%s)",
+                    data.get("status"), address
+                )
+                return None
+
+            resultados = data.get("results") or []
+            if not resultados:
+                logger.warning("Forward Geocoding sin resultados para: %s", address)
+                return None
+
+            location = resultados[0]["geometry"]["location"]
+            return {
+                "lat": location["lat"],
+                "lng": location["lng"],
+                "formatted_address": resultados[0].get("formatted_address", address),
+            }
+
+        except httpx.TimeoutException:
+            logger.warning("Timeout en Forward Geocoding (address=%s)", address)
+            return None
+        except Exception as e:
+            logger.error("Error en Forward Geocoding: %s", e)
+            return None
+
     def _construir_direccion(self, resultado: Dict[str, Any]) -> Optional[str]:
         """
         Extrae route + street_number + locality del primer resultado.
@@ -224,6 +277,12 @@ geocoding_service = GeocodingService()
 # ============================================================
 # HELPER DE MÓDULO (para uso directo)
 # ============================================================
+
+async def forward_geocode(address: str) -> Optional[Dict[str, Any]]:
+    """
+    Atajo para llamar al servicio. Útil para imports directos en routes.
+    """
+    return await geocoding_service.forward_geocode(address)
 
 async def reverse_geocode(lat: float, lng: float) -> Dict[str, Any]:
     """

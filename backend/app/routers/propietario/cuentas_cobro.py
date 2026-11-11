@@ -20,14 +20,13 @@ router = APIRouter(prefix="/cuentas-cobro", tags=["Cuentas de Cobro"])
 MAX_CUENTAS = 5
 
 
-async def _validar_propietario(db: AsyncSession, user_id: UUID) -> None:
-    query = text("""
-        SELECT id FROM fleet.propietario_vehiculo
-        WHERE propietario_id = :user_id AND activo = true
-        LIMIT 1
-    """)
-    result = await db.execute(query, {"user_id": user_id})
-    if not result.first():
+async def _validar_propietario(current_user: tuple) -> None:
+    """
+    Valida que el usuario tenga el rol 'propietario'.
+    No valida vehículos, porque un propietario nuevo aún no tiene.
+    """
+    user_id, control_base_id, email, tipo = current_user
+    if tipo.lower() not in ['propietario', 'admin_propietario']:
         raise HTTPException(status_code=403, detail="No eres propietario")
 
 
@@ -40,7 +39,7 @@ async def listar_cuentas(
     Lista las cuentas de cobro activas del propietario.
     """
     user_id = current_user[0]
-    await _validar_propietario(db, user_id)
+    await _validar_propietario(current_user)
 
     query = text("""
         SELECT id, usuario_id, tipo, numero, alias, banco, titular,
@@ -73,7 +72,7 @@ async def crear_cuenta(
     Crea una cuenta de cobro. Si es la primera, se marca como predeterminada.
     """
     user_id = current_user[0]
-    await _validar_propietario(db, user_id)
+    await _validar_propietario(current_user)
 
     # Contar cuentas activas
     query_count = text("""
@@ -150,7 +149,7 @@ async def actualizar_cuenta(
     Actualiza una cuenta de cobro.
     """
     user_id = current_user[0]
-    await _validar_propietario(db, user_id)
+    await _validar_propietario(current_user)
 
     # Verificar que existe y pertenece al usuario
     query_verify = text("""
@@ -225,7 +224,7 @@ async def eliminar_cuenta(
     Si era predeterminada, marca la mas antigua como predeterminada.
     """
     user_id = current_user[0]
-    await _validar_propietario(db, user_id)
+    await _validar_propietario(current_user)
 
     # Verificar que existe
     query_verify = text("""
@@ -282,7 +281,7 @@ async def marcar_predeterminada(
     Desmarca cualquier otra predeterminada.
     """
     user_id = current_user[0]
-    await _validar_propietario(db, user_id)
+    await _validar_propietario(current_user)
 
     # Verificar que existe
     query_verify = text("""
