@@ -7,6 +7,7 @@ import { apiClient } from './client'
 
 export interface ConciliacionPendienteItem {
   turno_id: string
+  inicio_turno: string | null
   fin_turno: string | null
   vehiculo_patente: string
   chofer_nombre: string

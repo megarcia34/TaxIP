@@ -62,7 +62,28 @@ class ConfiguracionTarifaBase(BaseModel):
 
 class ConfiguracionTarifaCreate(ConfiguracionTarifaBase):
     """Schema para crear configuración"""
-    pass
+
+    @field_validator('hora_inicio_nocturno', 'hora_fin_nocturno', mode='before')
+    @classmethod
+    def convertir_a_time(cls, v):
+        """Convierte string HH:MM a time object"""
+        if v is None:
+            return time(22, 0)
+        if isinstance(v, time):
+            return v
+        if isinstance(v, str):
+            if len(v) > 5 and ':' in v:
+                v = v[:5]
+            parts = v.split(':')
+            if len(parts) >= 2:
+                try:
+                    hora = int(parts[0])
+                    minuto = int(parts[1])
+                    if 0 <= hora <= 23 and 0 <= minuto <= 59:
+                        return time(hora, minuto)
+                except ValueError:
+                    pass
+        return time(22, 0)
 
 
 class ConfiguracionTarifaUpdate(BaseModel):

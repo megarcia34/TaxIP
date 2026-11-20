@@ -18,6 +18,7 @@ from decimal import Decimal
 class ConciliacionPendienteItem(BaseModel):
     """Item de la bandeja de conciliaciones pendientes."""
     turno_id: UUID
+    inicio_turno: Optional[datetime]
     fin_turno: Optional[datetime]
     vehiculo_patente: str
     chofer_nombre: str
@@ -61,6 +62,14 @@ class DiferenciaItem(BaseModel):
     estado: str  # "PENDIENTE", "SALDADA"
 
 
+# ✅ NUEVO: Desglose de viajes por canal y metodo de pago
+class DesgloseViajeItem(BaseModel):
+    origen_tipo: str
+    metodo_pago: str
+    cantidad: int
+    total: Decimal
+
+
 class ConciliacionDetalleResponse(BaseModel):
     """Detalle completo de un turno para conciliar."""
     turno_id: UUID
@@ -88,6 +97,9 @@ class ConciliacionDetalleResponse(BaseModel):
     diferencias: List[DiferenciaItem]
     diferencias_total: Decimal
     puede_cerrar: bool
+
+    # ✅ NUEVO: Desglose de viajes
+    desglose_viajes: List[DesgloseViajeItem] = []
 
 
 # ============================================================

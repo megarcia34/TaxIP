@@ -256,6 +256,18 @@ async def create_tarifa(
                 detail=f"El tenant ya tiene una configuración activa (ID: {existing.id})"
             )
     
+    # ✅ CONVERSIÓN DE STRING A TIME (definida DENTRO de la función)
+    def _parse_time(val, default_str):
+        """Convierte un string 'HH:MM' a un objeto time, o devuelve el default."""
+        if isinstance(val, str):
+            try:
+                return datetime.strptime(val, "%H:%M").time()
+            except ValueError:
+                return datetime.strptime(default_str, "%H:%M").time()
+        if val is None:
+            return datetime.strptime(default_str, "%H:%M").time()
+        return val
+    
     config = ConfiguracionTarifa(
         control_base_id=data.control_base_id,
         nombre=data.nombre,
@@ -269,8 +281,8 @@ async def create_tarifa(
         recargo_nocturno=data.recargo_nocturno or 1.0,
         recargo_feriado=data.recargo_feriado or 1.0,
         recargo_domingo=data.recargo_domingo or 1.0,
-        hora_inicio_nocturno=data.hora_inicio_nocturno or "22:00",
-        hora_fin_nocturno=data.hora_fin_nocturno or "06:00",
+        hora_inicio_nocturno=_parse_time(data.hora_inicio_nocturno, "22:00"),
+        hora_fin_nocturno=_parse_time(data.hora_fin_nocturno, "06:00"),
         moneda=data.moneda or "ARS",
         descripcion=data.descripcion,
         activo=data.activo if data.activo is not None else True

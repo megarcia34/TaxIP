@@ -509,11 +509,7 @@ class TurnoService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="El viaje no pertenece a este chofer",
             )
-        if v_turno_id != turno_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="El viaje no pertenece a este turno",
-            )
+        
         if estado_previo not in ("aceptado", "en_curso"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

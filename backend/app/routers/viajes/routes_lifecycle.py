@@ -438,10 +438,9 @@ async def rechazar_viaje(
                     UPDATE trip.viaje_solicitado
                     SET estado = 'cancelado',
                         cancelado_en = NOW(),
-                        cancelado_por = 'sistema',
-                        motivo_cancelacion = 'sin_moviles_disponibles',
-                        updated_at = NOW()
-                    WHERE id = :viaje_id
+                        motivo_cancelacion = :motivo,
+                        precio_final = 0
+                    WHERE id = :viaje_id AND estado IN ('pendiente','publicado','aceptado','en_curso')
                 """),
                 {"viaje_id": viaje_id},
             )
@@ -845,12 +844,13 @@ async def cancelar_viaje(
     # 3. Guardar motivo
     if request.motivo:
         await db.execute(
-            text("""
-                UPDATE trip.viaje_solicitado
-                SET motivo_cancelacion = :motivo
-                WHERE id = :viaje_id
-            """),
-            {"viaje_id": viaje_id, "motivo": request.motivo},
+        text("""
+            UPDATE trip.viaje_solicitado
+            SET motivo_cancelacion = COALESCE(:motivo, motivo_cancelacion),
+                precio_final = 0
+            WHERE id = :viaje_id
+        """),
+        {"viaje_id": viaje_id, "motivo": request.motivo},
         )
 
     # 4. Liberar al chofer solo si el viaje estaba activo con chofer asignado

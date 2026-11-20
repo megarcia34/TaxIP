@@ -569,12 +569,12 @@ async def finalizar_contrato(
     ctx: dict = Depends(get_propietario_context),
     db: AsyncSession = Depends(get_db)
 ):
-    """Finaliza un contrato activo."""
+    """Finaliza un contrato activo y cierra turnos asociados."""
     propietario_id = UUID(ctx["propietario_id"])
     control_base_id = UUID(ctx["control_base_id"])
     
     query_contrato = text("""
-        SELECT chofer_id FROM fleet.contrato_vehiculo
+        SELECT chofer_id, vehiculo_id FROM fleet.contrato_vehiculo
         WHERE id = :contrato_id 
           AND propietario_id = :propietario_id 
           AND control_base_id = :control_base_id
@@ -590,8 +590,20 @@ async def finalizar_contrato(
     if not row:
         raise HTTPException(status_code=404, detail="Contrato activo no encontrado")
     
-    chofer_id = row[0]
+    chofer_id, vehiculo_id = row
     
+    # 1. Cerrar turno activo (si existe) para este contrato/chofer
+    update_turno = text("""
+        UPDATE fleet.turno_chofer
+        SET estado = 'CERRADO',
+            fin_turno = NOW(),
+            updated_at = NOW()
+        WHERE contrato_id = :contrato_id
+          AND estado = 'ACTIVO'
+    """)
+    await db.execute(update_turno, {"contrato_id": contrato_id})
+    
+    # 2. Actualizar contrato a FINALIZADO
     update_contrato = text("""
         UPDATE fleet.contrato_vehiculo
         SET activo = false, 
@@ -602,6 +614,7 @@ async def finalizar_contrato(
     """)
     await db.execute(update_contrato, {"contrato_id": contrato_id})
     
+    # 3. Verificar si el chofer tiene otros contratos activos
     query_otros = text("""
         SELECT id FROM fleet.contrato_vehiculo
         WHERE chofer_id = :chofer_id
@@ -614,9 +627,12 @@ async def finalizar_contrato(
     })
     
     if not result.first():
+        # Si no tiene otros contratos, desasignar vehículo
         update_cv = text("""
             UPDATE fleet.chofer_vehiculo
-            SET vehiculo_id = NULL, updated_at = NOW()
+            SET vehiculo_id = NULL, 
+                estado_laboral = 'fuera_servicio',
+                updated_at = NOW()
             WHERE usuario_id = :chofer_id AND control_base_id = :control_base_id
         """)
         await db.execute(update_cv, {
@@ -627,7 +643,6 @@ async def finalizar_contrato(
     await db.commit()
     
     return {"message": "Contrato finalizado correctamente"}
-
 
 # ============================================
 # 6. CHOFERES DISPONIBLES

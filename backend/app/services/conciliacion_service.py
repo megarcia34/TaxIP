@@ -38,6 +38,7 @@ from app.schemas.conciliacion import (
     GastoConciliacionItem,
     DiferenciaItem,
     DisputaResponse,
+    DesgloseViajeItem,
 )
 
 
@@ -83,6 +84,7 @@ class ConciliacionService:
         query = text("""
             SELECT
                 t.id AS turno_id,
+                t.inicio_turno,
                 t.fin_turno,
                 t.estado,
                 v.patente AS vehiculo_patente,
@@ -155,29 +157,30 @@ class ConciliacionService:
 
         items = []
         for row in rows:
-            recaudacion_viajes = float(row[6] or 0)
-            recaudacion_manual = float(row[7] or 0)
-            efectivo_calculado = float(row[8] or 0)
-            efectivo_declarado = float(row[9] or 0)
-            gastos_declarados = float(row[10] or 0)
-            dias_transcurridos = float(row[11] or 0)
-            diferencia = float(row[12] or 0)
+            recaudacion_viajes = float(row[7] or 0)
+            recaudacion_manual = float(row[8] or 0)
+            efectivo_calculado = float(row[9] or 0)
+            efectivo_declarado = float(row[10] or 0)
+            gastos_declarados = float(row[11] or 0)
+            dias_transcurridos = float(row[12] or 0)
+            diferencia = float(row[13] or 0)
 
             recaudacion_total = recaudacion_viajes + recaudacion_manual
             dias_restantes = max(0, DIAS_PLAZO_CONCILIACION - int(dias_transcurridos))
 
             items.append(ConciliacionPendienteItem(
                 turno_id=row[0],
-                fin_turno=row[1],
-                vehiculo_patente=row[3],
-                chofer_nombre=row[4] or "Sin chofer",
-                tipo_contrato=row[5],
+                inicio_turno=row[1],
+                fin_turno=row[2],
+                vehiculo_patente=row[4],
+                chofer_nombre=row[5] or "Sin chofer",
+                tipo_contrato=row[6],
                 recaudacion_declarada=Decimal(str(recaudacion_total)),
                 efectivo_en_mano=Decimal(str(efectivo_calculado)),
                 gastos_declarados=Decimal(str(gastos_declarados)),
                 diferencia=Decimal(str(diferencia)),
                 dias_restantes=dias_restantes,
-                estado=row[2],
+                estado=row[3],
             ))
 
         return ConciliacionPendienteResponse(total=len(items), turnos=items)
@@ -253,6 +256,32 @@ class ConciliacionService:
         recaudacion_viajes = float(row_viajes[0] or 0)
         recaudacion_efectivo = float(row_viajes[1] or 0)
         recaudacion_electronico = float(row_viajes[2] or 0)
+
+        # ✅ NUEVO: Desglose de viajes por canal y metodo de pago
+        query_desglose = text("""
+            SELECT 
+                COALESCE(origen_tipo, 'via_publica') AS origen_tipo,
+                COALESCE(metodo_pago, 'efectivo') AS metodo_pago,
+                COUNT(*) AS cantidad,
+                SUM(precio_final) AS total
+            FROM trip.viaje_solicitado
+            WHERE turno_id = :turno_id
+              AND estado = 'finalizado'
+            GROUP BY origen_tipo, metodo_pago
+            ORDER BY origen_tipo, metodo_pago
+        """)
+        result = await self.db.execute(query_desglose, {"turno_id": turno_id})
+        rows_desglose = result.fetchall()
+
+        desglose_list = []
+        for d in rows_desglose:
+            desglose_list.append(DesgloseViajeItem(
+                origen_tipo=d[0],
+                metodo_pago=d[1],
+                cantidad=int(d[2]),
+                total=Decimal(str(d[3])),
+            ))
+        # ✅ FIN NUEVO
 
         # 3. Recaudacion manual (ingreso_turno con tipo_ingreso = 'taximetro')
         query_manual = text("""
@@ -390,6 +419,7 @@ class ConciliacionService:
             diferencias=diferencias_list,
             diferencias_total=Decimal(str(diferencias_total)),
             puede_cerrar=puede_cerrar,
+            desglose_viajes=desglose_list,
         )
 
     # ============================================================
@@ -590,7 +620,7 @@ class ConciliacionService:
         await self.db.execute(
             text("""
                 UPDATE fleet.turno_chofer
-                SET estado = 'CONCILIADO', conciliado_por = :prop, conciliado_en = NOW(), updated_at = NOW()
+                SET estado = 'CONCILIADO', conciliado_por = :prop, conciliado_en = NOW(), tipo_conciliacion = 'MANUAL', updated_at = NOW()
                 WHERE id = :turno_id
             """),
             {"turno_id": turno_id, "prop": propietario_id},
@@ -757,7 +787,8 @@ class ConciliacionService:
 
         await self.db.commit()
         logger.info(f"Disputa {disputa_id} resuelta a favor de {a_favor_de}")
-            # ============================================================
+
+    # ============================================================
     # HISTORIAL DE CONCILIACIONES CERRADAS
     # ============================================================
     async def listar_historial(
@@ -770,6 +801,7 @@ class ConciliacionService:
         query = text("""
             SELECT
                 t.id AS turno_id,
+                t.inicio_turno,
                 t.fin_turno,
                 t.conciliado_en,
                 t.tipo_conciliacion,
@@ -818,16 +850,17 @@ class ConciliacionService:
         return [
             {
                 "turno_id": row[0],
-                "fin_turno": row[1],
-                "conciliado_en": row[2],
-                "tipo_conciliacion": row[3],
-                "estado": row[4],
-                "vehiculo_patente": row[5],
-                "chofer_nombre": row[6] or "Sin chofer",
-                "recaudacion_total": Decimal(str(row[7])),
-                "total_chofer": Decimal(str(row[8])),
-                "total_propietario": Decimal(str(row[9])),
-                "deuda_pendiente": Decimal(str(row[10])),
+                "inicio_turno": row[1],
+                "fin_turno": row[2],
+                "conciliado_en": row[3],
+                "tipo_conciliacion": row[4],
+                "estado": row[5],
+                "vehiculo_patente": row[6],
+                "chofer_nombre": row[7] or "Sin chofer",
+                "recaudacion_total": Decimal(str(row[8])),
+                "total_chofer": Decimal(str(row[9])),
+                "total_propietario": Decimal(str(row[10])),
+                "deuda_pendiente": Decimal(str(row[11])),
             }
             for row in rows
         ]

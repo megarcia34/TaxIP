@@ -62,6 +62,8 @@ interface ViajePropietario {
   distancia_metros?: number;
   tiempo_estimado_segundos?: number;
   metodo_pago?: string;
+  motivo_cancelacion?: string; // ✅ AGREGADO
+  codigo_correlativo?: string;
   turno_id?: string;
   facturado?: boolean;
   transaccion_id?: string;
@@ -111,6 +113,10 @@ export function TripsDataTable({
     pasajero: true,
     origen: true,
     destino: true,
+    duracion: true, // ✅ NUEVO
+    distancia: true, // ✅ NUEVO
+    metodo_pago: true, // ✅ NUEVO
+    motivo_cancelacion: true, // ✅ NUEVO
     monto: true,
     estado: true,
     fuente: true,
@@ -189,7 +195,9 @@ export function TripsDataTable({
                     setColumnVisibility((prev) => ({ ...prev, [key]: !!checked }))
                   }
                 >
-                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                  {key === 'metodo_pago' ? 'Método de Pago' : 
+                   key === 'motivo_cancelacion' ? 'Motivo Cancelación' :
+                   key.charAt(0).toUpperCase() + key.slice(1)}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>
@@ -209,6 +217,10 @@ export function TripsDataTable({
               {columnVisibility.pasajero && <TableHead className="min-w-[100px]">Pasajero</TableHead>}
               {columnVisibility.origen && <TableHead className="min-w-[150px]">Origen</TableHead>}
               {columnVisibility.destino && <TableHead className="min-w-[150px]">Destino</TableHead>}
+              {columnVisibility.duracion && <TableHead className="min-w-[80px]">Duración</TableHead>}
+              {columnVisibility.distancia && <TableHead className="min-w-[80px]">Distancia</TableHead>}
+              {columnVisibility.metodo_pago && <TableHead className="min-w-[100px]">Pago</TableHead>}
+              {columnVisibility.motivo_cancelacion && <TableHead className="min-w-[120px]">Motivo</TableHead>}
               {columnVisibility.monto && <TableHead className="min-w-[80px] text-right">Monto</TableHead>}
               {columnVisibility.estado && <TableHead className="min-w-[100px]">Estado</TableHead>}
               {columnVisibility.fuente && <TableHead className="min-w-[80px]">Fuente</TableHead>}
@@ -218,9 +230,13 @@ export function TripsDataTable({
           <TableBody>
             {data.map((trip) => (
               <TableRow key={trip.id}>
+
                 {columnVisibility.id && (
-                  <TableCell className="font-mono text-xs">{trip.id.slice(0, 8)}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {(trip as any).codigo_correlativo || trip.id.slice(0, 8)}
+                  </TableCell>
                 )}
+
                 {columnVisibility.fecha && (
                   <TableCell className="text-xs">
                     {format(new Date(trip.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
@@ -249,6 +265,30 @@ export function TripsDataTable({
                 {columnVisibility.destino && (
                   <TableCell className="text-sm max-w-[150px] truncate" title={trip.direccion_destino}>
                     {trip.direccion_destino}
+                  </TableCell>
+                )}
+                {columnVisibility.duracion && (
+                  <TableCell className="text-xs">
+                    {trip.iniciado_en && trip.finalizado_en
+                      ? `${Math.round((new Date(trip.finalizado_en).getTime() - new Date(trip.iniciado_en).getTime()) / 60000)} min`
+                      : '-'}
+                  </TableCell>
+                )}
+                {columnVisibility.distancia && (
+                  <TableCell className="text-xs">
+                    {trip.distancia_metros
+                      ? `${(trip.distancia_metros / 1000).toFixed(1)} km`
+                      : '-'}
+                  </TableCell>
+                )}
+                {columnVisibility.metodo_pago && (
+                  <TableCell className="text-xs capitalize">
+                    {trip.metodo_pago || '-'}
+                  </TableCell>
+                )}
+                {columnVisibility.motivo_cancelacion && (
+                  <TableCell className="text-xs max-w-[120px] truncate" title={trip.motivo_cancelacion || ''}>
+                    {trip.motivo_cancelacion || '-'}
                   </TableCell>
                 )}
                 {columnVisibility.monto && (

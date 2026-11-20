@@ -135,6 +135,7 @@ export default function ConciliacionesPage() {
                       <th className="text-left py-3">Vehículo</th>
                       <th className="text-left py-3">Chofer</th>
                       <th className="text-left py-3">Contrato</th>
+                      <th className="text-left py-3">Período</th>
                       <th className="text-right py-3">Recaudación</th>
                       <th className="text-right py-3">Gastos</th>
                       <th className="text-right py-3">Diferencia</th>
@@ -148,6 +149,11 @@ export default function ConciliacionesPage() {
                         <td className="py-3 font-medium">{t.vehiculo_patente}</td>
                         <td className="py-3">{t.chofer_nombre}</td>
                         <td className="py-3"><Badge variant="outline">{t.tipo_contrato}</Badge></td>
+                        <td className="py-3 text-xs text-muted-foreground">
+                          {t.inicio_turno ? new Date(t.inicio_turno).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                          <br />
+                          {t.fin_turno ? new Date(t.fin_turno).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                        </td>
                         <td className="py-3 text-right font-semibold">${t.recaudacion_declarada.toLocaleString()}</td>
                         <td className="py-3 text-right text-red-500">-${t.gastos_declarados.toLocaleString()}</td>
                         <td className={`py-3 text-right font-semibold ${t.diferencia < 0 ? 'text-red-600' : t.diferencia > 0 ? 'text-orange-600' : 'text-green-600'}`}>

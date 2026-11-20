@@ -452,6 +452,75 @@ async def procesar_pendientes_vencidos():
 
 
 # ============================================================
+# JOB 8: CONCILIACION AUTOMATICA (cada 24h)
+# ============================================================
+
+async def procesar_conciliaciones_vencidas():
+    """
+    Conciliaciones automaticas a los 7 dias.
+
+    Busca turnos en estado PENDIENTE_CONFIRMACION con fin_turno > 7 dias.
+    Llama al ConciliacionService.cerrar_conciliacion con observaciones automaticas.
+    """
+    from app.services.conciliacion_service import ConciliacionService
+    
+    async with AsyncSessionLocal() as db:
+        try:
+            # Buscar turnos vencidos
+            query = text("""
+                SELECT t.id, t.chofer_id, t.vehiculo_id, t.fin_turno,
+                       pv.propietario_id
+                FROM fleet.turno_chofer t
+                JOIN fleet.vehiculo v ON v.id = t.vehiculo_id
+                JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
+                WHERE t.estado = 'PENDIENTE_CONFIRMACION'
+                  AND t.fin_turno < NOW() - INTERVAL '7 days'
+                  AND pv.activo = true
+                ORDER BY t.fin_turno ASC
+            """)
+            result = await db.execute(query)
+            turnos = result.fetchall()
+
+            if not turnos:
+                return
+
+            logger.info(f"Procesando {len(turnos)} conciliaciones vencidas (7+ dias)")
+
+            service = ConciliacionService(db)
+            conciliados = 0
+            errores = 0
+
+            for turno in turnos:
+                turno_id = turno[0]
+                chofer_id = turno[1]
+                vehiculo_id = turno[2]
+                fin_turno = turno[3]
+                propietario_id = turno[4]
+
+                try:
+                    await service.cerrar_conciliacion(
+                        turno_id=turno_id,
+                        propietario_id=propietario_id,
+                        observaciones="Conciliacion automatica: 7 dias sin confirmacion del propietario.",
+                    )
+                    conciliados += 1
+                    logger.info(f"Turno {turno_id} conciliado automaticamente")
+
+                except Exception as e:
+                    errores += 1
+                    logger.error(f"Error conciliando turno {turno_id}: {e}")
+
+            logger.info(
+                f"Conciliacion automatica completada: "
+                f"{conciliados} exitosos, {errores} errores"
+            )
+
+        except Exception as e:
+            logger.error(f"Error en procesar_conciliaciones_vencidas: {e}")
+            await db.rollback()
+
+
+# ============================================================
 # LOOP PRINCIPAL DEL SCHEDULER
 # ============================================================
 
@@ -501,6 +570,11 @@ async def scheduler_loop():
             if seconds_counter % 21600 == 0 and seconds_counter > 0:
                 if 6 <= datetime.now().hour <= 22:
                     await procesar_notificaciones_vencimiento()
+
+            # Cada 86400s (24h): conciliaciones vencidas (7 dias)
+            if seconds_counter % 86400 == 0 and seconds_counter > 0:
+                if 3 <= datetime.now().hour <= 4:  # Ejecutar a las 3-4 AM
+                    await procesar_conciliaciones_vencidas()
 
             seconds_counter += 5
 

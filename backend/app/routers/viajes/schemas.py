@@ -174,17 +174,15 @@ class HistorialViajeResponse(BaseModel):
     empresa: Optional[str] = None
     patente: Optional[str] = None
     propietario: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
-class HistorialViajesResponse(BaseModel):
-    """Respuesta paginada del historial"""
-    total: int
-    limit: int
-    offset: int
-    viajes: List[HistorialViajeResponse]
+    
+    # CAMPOS CALCULADOS EN BACKEND (Regla de Oro)
+    codigo_correlativo: Optional[str] = None
+    origen_tipo: Optional[str] = None
+    fuente_label: Optional[str] = None
+    estado_label: Optional[str] = None
+    duracion_minutos: Optional[int] = None
+    motivo_cancelacion: Optional[str] = None
+    metodo_pago_label: Optional[str] = None
 
     class Config:
         from_attributes = True

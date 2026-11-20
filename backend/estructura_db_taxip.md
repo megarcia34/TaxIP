@@ -1,0 +1,1823 @@
+# 🗄️ Estructura de Base de Datos — TaxiP
+
+> **Base:** `taxip_db` · **Motor:** PostgreSQL 17 + PostGIS 3.6 · **Generado:** 2026-11-18
+
+**Resumen:** 12 schemas · 93 tablas · 1105 columnas · 184 foreign keys · sin enums (estados como `varchar`)
+
+
+## 📁 Schemas
+
+| Schema | Propósito | Tablas |
+|---|---|---|
+| `audit` | Auditoría: logs de acciones, GPS y alertas de desvío/vencimientos | 4 |
+| `auth` | Identidad: usuarios, roles, tokens, perfiles, códigos de verificación | 16 |
+| `comunicacion` | Mensajería entre usuarios y envío de emails | 3 |
+| `corporate` | Cuentas corrientes, facturación y pagos corporativos (empresas) | 4 |
+| `fleet` | Flota: vehículos, choferes, contratos, turnos, liquidaciones, gastos, neumáticos | 31 |
+| `geo` | Datos geográficos: país, provincia, ciudad | 3 |
+| `notification` | Notificaciones in-app | 1 |
+| `payment` | Pagos: billetera, tarifas, transacciones, QR de cobro | 10 |
+| `public` | Tablas sueltas del schema default (comercio, escaneo QR, vistas PostGIS) | 6 |
+| `rentabilidad` | Analítica de rentabilidad por vehículo (diaria/mensual, medios de pago) | 3 |
+| `tenant` | Multi-tenant: control bases, empresas, configuración, facturación de canon | 4 |
+| `trip` | Viajes: solicitudes, estados, calificaciones, pánico, broadcast a choferes | 8 |
+
+---
+## 📊 Tablas y columnas
+
+
+### Schema `audit`
+
+
+#### `audit.alerta_desvio`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NOT NULL | — |
+| `latitud` | numeric | NOT NULL | — |
+| `longitud` | numeric | NOT NULL | — |
+| `distancia_desvio_metros` | numeric | NOT NULL | — |
+| `ruta_esperada_json` | text | NULL | — |
+| `notificado` | boolean | NULL | false |
+| `resuelto` | boolean | NULL | false |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `audit.alertas_vencimiento`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `entidad_id` | uuid | NOT NULL | — |
+| `entidad_tipo` | character varying | NOT NULL | — |
+| `documento_id` | uuid | NOT NULL | — |
+| `mensaje` | text | NOT NULL | — |
+| `nivel` | character varying | NOT NULL | — |
+| `fecha_vencimiento` | date | NOT NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `audit.log_acciones`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NULL | — |
+| `email` | character varying | NOT NULL | — |
+| `accion` | character varying | NOT NULL | — |
+| `tabla_afectada` | character varying | NULL | — |
+| `registro_id` | uuid | NULL | — |
+| `datos_anteriores` | jsonb | NULL | — |
+| `datos_nuevos` | jsonb | NULL | — |
+| `control_base_id` | uuid | NULL | — |
+| `ip_address` | inet | NULL | — |
+| `user_agent` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `audit.log_gps`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NULL | — |
+| `usuario_id` | uuid | NOT NULL | — |
+| `latitud` | numeric | NOT NULL | — |
+| `longitud` | numeric | NOT NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+### Schema `auth`
+
+
+#### `auth.auditoria_email`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `email` | character varying | NOT NULL | — |
+| `valid` | boolean | NULL | false |
+| `reason` | text | NULL | — |
+| `domain` | character varying | NULL | — |
+| `mx_records` | text | NULL | — |
+| `smtp_response` | text | NULL | — |
+| `ip_address` | character varying | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `user_agent` | text | NULL | — |
+
+#### `auth.autorizacion_inicio`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `token` | character varying | NOT NULL | — |
+| `contrato_id` | uuid | NOT NULL | — |
+| `chofer_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `tipo_contrato` | character varying | NULL | — |
+| `turno_contractual` | character varying | NULL | — |
+| `dia_contractual` | character varying | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `expires_at` | timestamp without time zone | NULL | — |
+| `used_at` | timestamp without time zone | NULL | — |
+| `qr_referencia` | uuid | NULL | — |
+| `created_by` | uuid | NULL | — |
+
+#### `auth.codigo_metadatos`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `codigo_id` | uuid | NOT NULL | — |
+| `contrato_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `propietario_id` | uuid | NOT NULL | — |
+| `created_at` | timestamp with time zone | NOT NULL | now() |
+
+#### `auth.codigo_verificacion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `codigo` | character varying | NOT NULL | — |
+| `tipo` | character varying | NOT NULL | 'REGISTRO_CHOFER'::character v |
+| `usado` | boolean | NOT NULL | false |
+| `intentos` | integer | NOT NULL | 0 |
+| `creado_en` | timestamp with time zone | NOT NULL | now() |
+| `expira_en` | timestamp with time zone | NOT NULL | — |
+| `metadata` | jsonb | NULL | — |
+
+#### `auth.direccion_frecuente`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `nombre` | character varying | NULL | — |
+| `latitud` | numeric | NULL | — |
+| `longitud` | numeric | NULL | — |
+| `direccion_texto` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `telefono` | character varying | NULL | — |
+| `email` | character varying | NULL | — |
+
+#### `auth.perfil_general`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NULL | — |
+| `nombre` | character varying | NULL | — |
+| `apellido` | character varying | NULL | — |
+| `telefono` | character varying | NULL | — |
+| `documento` | character varying | NULL | — |
+| `ciudad_id` | uuid | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `direccion` | text | NULL | — |
+| `foto_perfil_url` | text | NULL | — |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `fecha_nacimiento` | date | NULL | — |
+| `barrio` | character varying | NULL | — |
+| `codigo_postal` | character varying | NULL | — |
+| `tipo_conductor` | character varying | NULL | — |
+| `agencia` | character varying | NULL | — |
+| `cuit_cuil` | character varying | NULL | — |
+| `condicion_impositiva` | character varying | NULL | — |
+
+#### `auth.plantilla_viaje`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `empresa_id` | uuid | NULL | — |
+| `nombre` | character varying | NOT NULL | — |
+| `direccion_origen` | text | NULL | — |
+| `latitud_origen` | numeric | NULL | — |
+| `longitud_origen` | numeric | NULL | — |
+| `direccion_destino` | text | NULL | — |
+| `latitud_destino` | numeric | NULL | — |
+| `longitud_destino` | numeric | NULL | — |
+| `paradas_intermedias` | jsonb | NULL | '[]'::jsonb |
+| `tipo_vehiculo` | character varying | NULL | — |
+| `metodo_pago` | character varying | NULL | — |
+| `cantidad_pasajeros` | integer | NULL | 1 |
+| `cantidad_equipaje` | integer | NULL | 0 |
+| `nota_conductor` | text | NULL | — |
+| `activo` | boolean | NOT NULL | true |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+
+#### `auth.prestadora_telefonica`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `nombre` | character varying | NOT NULL | — |
+| `codigo_pais` | character varying | NULL | '+54'::character varying |
+| `activo` | boolean | NOT NULL | true |
+| `created_at` | timestamp with time zone | NOT NULL | now() |
+| `updated_at` | timestamp with time zone | NOT NULL | now() |
+
+#### `auth.refresh_token`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `token` | character varying | NOT NULL | — |
+| `expiracion` | timestamp without time zone | NOT NULL | — |
+| `usado` | boolean | NULL | false |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `auth.reset_token`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `token` | character varying | NOT NULL | — |
+| `expiracion` | timestamp without time zone | NOT NULL | — |
+| `usado` | boolean | NULL | false |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `auth.taxista_favorito`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `pasajero_id` | uuid | NOT NULL | — |
+| `chofer_id` | uuid | NOT NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `auth.tipo_usuario`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `nombre` | character varying | NOT NULL | — |
+
+#### `auth.turno_empleado`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `empleado_id` | uuid | NOT NULL | — |
+| `empresa_id` | uuid | NOT NULL | — |
+| `fecha_inicio` | timestamp without time zone | NOT NULL | now() |
+| `fecha_fin` | timestamp without time zone | NULL | — |
+| `estado` | character varying | NOT NULL | 'ACTIVO'::character varying |
+| `viajes_gestionados` | integer | NULL | 0 |
+| `facturado_total` | numeric | NULL | 0.0 |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `auth.usuario`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NULL | — |
+| `tipo_usuario_id` | uuid | NULL | — |
+| `email` | character varying | NOT NULL | — |
+| `password_hash` | text | NOT NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `fecha_suspension` | timestamp without time zone | NULL | — |
+| `motivo_suspension` | text | NULL | — |
+| `suspendido_por` | uuid | NULL | — |
+
+#### `auth.usuario_empresa`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `empresa_id` | uuid | NOT NULL | — |
+| `usuario_id` | uuid | NOT NULL | — |
+| `rol` | character varying | NULL | 'recepcionista'::character var |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `auth.usuario_rol`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `tipo_usuario_id` | uuid | NOT NULL | — |
+| `activo` | boolean | NOT NULL | true |
+| `fecha_inicio` | date | NOT NULL | CURRENT_DATE |
+| `fecha_fin` | date | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+
+### Schema `comunicacion`
+
+
+#### `comunicacion.conversacion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `participante_1` | uuid | NOT NULL | — |
+| `participante_2` | uuid | NOT NULL | — |
+| `ultimo_mensaje` | text | NULL | — |
+| `ultimo_mensaje_en` | timestamp without time zone | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+
+#### `comunicacion.email_enviado`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NULL | — |
+| `destinatario_email` | character varying | NOT NULL | — |
+| `asunto` | character varying | NOT NULL | — |
+| `template_id` | character varying | NULL | — |
+| `estado` | character varying | NOT NULL | 'pendiente'::character varying |
+| `error_mensaje` | text | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `enviado_en` | timestamp without time zone | NULL | — |
+
+#### `comunicacion.mensaje`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `conversacion_id` | uuid | NOT NULL | — |
+| `remitente_id` | uuid | NOT NULL | — |
+| `viaje_id` | uuid | NULL | — |
+| `contenido` | text | NOT NULL | — |
+| `leido` | boolean | NOT NULL | false |
+| `leido_en` | timestamp without time zone | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+
+### Schema `corporate`
+
+
+#### `corporate.cuenta_corriente`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `empresa_id` | uuid | NOT NULL | — |
+| `saldo_actual` | numeric | NOT NULL | '0'::numeric |
+| `saldo_disponible` | numeric | NOT NULL | '0'::numeric |
+| `limite_credito` | numeric | NOT NULL | '0'::numeric |
+| `moneda` | character varying | NOT NULL | 'ARS'::character varying |
+| `ultima_actualizacion` | timestamp without time zone | NOT NULL | now() |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+| `titular_tipo` | character varying | NULL | — |
+| `estado` | character varying | NULL | 'activa'::character varying |
+| `periodo_facturacion` | character varying | NULL | 'mensual'::character varying |
+| `dia_cierre` | integer | NULL | 1 |
+| `responsable_cobro` | character varying | NULL | — |
+| `titular_id` | uuid | NULL | — |
+| `propietario_id` | uuid | NULL | — |
+| `fecha_apertura` | timestamp without time zone | NULL | now() |
+| `fecha_ultimo_pago` | timestamp without time zone | NULL | — |
+| `fecha_proximo_vencimiento` | timestamp without time zone | NULL | — |
+
+#### `corporate.factura_corporativa`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `empresa_id` | uuid | NOT NULL | — |
+| `numero_factura` | character varying | NOT NULL | — |
+| `periodo_desde` | date | NOT NULL | — |
+| `periodo_hasta` | date | NOT NULL | — |
+| `fecha_emision` | timestamp without time zone | NOT NULL | now() |
+| `fecha_vencimiento` | timestamp without time zone | NULL | — |
+| `subtotal` | numeric | NOT NULL | — |
+| `descuento` | numeric | NOT NULL | '0'::numeric |
+| `iva` | numeric | NOT NULL | '0'::numeric |
+| `total` | numeric | NOT NULL | — |
+| `estado` | character varying | NOT NULL | 'pendiente'::character varying |
+| `pdf_url` | text | NULL | — |
+| `observaciones` | text | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+| `saldo_anterior` | numeric | NULL | '0'::numeric |
+| `saldo_final` | numeric | NULL | '0'::numeric |
+| `total_cargos` | numeric | NULL | '0'::numeric |
+| `total_pagos` | numeric | NULL | '0'::numeric |
+
+#### `corporate.movimiento_cuenta`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `cuenta_id` | uuid | NOT NULL | — |
+| `viaje_id` | uuid | NULL | — |
+| `tipo_movimiento` | character varying | NOT NULL | — |
+| `concepto` | character varying | NOT NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `saldo_anterior` | numeric | NOT NULL | — |
+| `saldo_nuevo` | numeric | NOT NULL | — |
+| `referencia` | character varying | NULL | — |
+| `meta_data` | jsonb | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `tipo` | character varying | NULL | — |
+| `fecha_vencimiento` | timestamp without time zone | NULL | — |
+| `estado` | character varying | NULL | 'pendiente'::character varying |
+| `metodo_pago` | character varying | NULL | — |
+| `referencia_pago` | character varying | NULL | — |
+| `created_by` | uuid | NULL | — |
+
+#### `corporate.pago_corporativo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `empresa_id` | uuid | NOT NULL | — |
+| `factura_id` | uuid | NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `metodo_pago` | character varying | NOT NULL | — |
+| `referencia` | character varying | NULL | — |
+| `comprobante_url` | text | NULL | — |
+| `estado` | character varying | NOT NULL | 'pendiente'::character varying |
+| `fecha_pago` | timestamp without time zone | NOT NULL | now() |
+| `confirmado_por` | uuid | NULL | — |
+| `confirmado_en` | timestamp without time zone | NULL | — |
+| `observaciones` | text | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+| `movimiento_cc_id` | uuid | NULL | — |
+
+### Schema `fleet`
+
+
+#### `fleet.categoria_gasto`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NOT NULL | — |
+| `nombre` | character varying | NOT NULL | — |
+| `descripcion` | text | NULL | — |
+| `subcategorias` | jsonb | NOT NULL | '[]'::jsonb |
+| `aplica_a` | jsonb | NOT NULL | '[]'::jsonb |
+| `tratamiento_economico` | character varying | NOT NULL | 'configurable'::character vary |
+| `activo` | boolean | NOT NULL | true |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+
+#### `fleet.chofer_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `latitud` | numeric | NULL | — |
+| `longitud` | numeric | NULL | — |
+| `ubicacion` | USER-DEFINED | NULL | — |
+| `estado_laboral` | character varying | NULL | 'fuera_servicio'::character va |
+| `estado_panico` | boolean | NULL | false |
+| `calificacion_promedio` | numeric | NULL | 5.0 |
+| `total_calificaciones` | integer | NULL | 0 |
+| `ultima_conexion` | timestamp without time zone | NULL | now() |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `estado_aprobacion` | character varying | NULL | 'pendiente'::character varying |
+| `total_viajes` | integer | NULL | 0 |
+
+#### `fleet.contrato_qr`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `contrato_id` | uuid | NOT NULL | — |
+| `token` | character varying | NOT NULL | — |
+| `fecha_expiracion` | timestamp without time zone | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `created_by` | uuid | NULL | — |
+| `usos` | integer | NULL | 0 |
+
+#### `fleet.contrato_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NOT NULL | — |
+| `propietario_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `chofer_id` | uuid | NOT NULL | — |
+| `tipo_contrato` | character varying | NOT NULL | — |
+| `porcentaje_chofer` | numeric | NULL | — |
+| `monto_diario` | numeric | NULL | — |
+| `fecha_inicio` | timestamp without time zone | NOT NULL | now() |
+| `fecha_fin` | timestamp without time zone | NULL | — |
+| `activo` | boolean | NOT NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `estado_contrato` | character varying | NULL | 'PENDIENTE_CONFIGURACION'::cha |
+| `canon_diario` | numeric | NULL | — |
+| `km_incluidos_dia` | numeric | NULL | — |
+| `valor_km_excedente` | numeric | NULL | — |
+| `modalidad_computo` | character varying | NULL | 'DIARIO'::character varying |
+| `dias_contractuales` | jsonb | NULL | — |
+| `tratamiento_dia_no_trabajado` | character varying | NULL | 'POR_DISPONIBILIDAD'::characte |
+| `updated_at` | timestamp without time zone | NOT NULL | — |
+| `dia_inicio_semana` | character varying | NULL | — |
+| `hora_inicio` | time without time zone | NOT NULL | — |
+| `hora_fin` | time without time zone | NOT NULL | — |
+| `duracion_minima_horas` | integer | NOT NULL | 6 |
+| `permite_extension` | boolean | NOT NULL | false |
+| `hora_fin_extension` | time without time zone | NULL | — |
+| `compensacion_km` | character varying | NOT NULL | 'DIARIA'::character varying |
+
+#### `fleet.documento_propietario`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `propietario_id` | uuid | NOT NULL | — |
+| `tipo_documento` | character varying | NOT NULL | — |
+| `numero` | character varying | NOT NULL | — |
+| `fecha_emision` | date | NULL | — |
+| `fecha_vencimiento` | date | NULL | — |
+| `observaciones` | text | NULL | — |
+| `url_archivo` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.documento_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `tipo_documento` | character varying | NOT NULL | — |
+| `numero` | character varying | NOT NULL | — |
+| `fecha_emision` | date | NULL | — |
+| `fecha_vencimiento` | date | NULL | — |
+| `observaciones` | text | NULL | — |
+| `url_archivo` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `activo` | boolean | NOT NULL | true |
+| `notificar_dias` | integer | NOT NULL | 30 |
+| `marca` | character varying | NULL | — |
+| `modelo` | character varying | NULL | — |
+| `tipo_vehiculo` | character varying | NULL | — |
+| `uso` | character varying | NULL | — |
+| `chasis` | character varying | NULL | — |
+| `motor` | character varying | NULL | — |
+| `dominio` | character varying | NULL | — |
+| `vtv_fecha_vencimiento` | date | NULL | — |
+| `seguro_compania` | character varying | NULL | — |
+| `seguro_poliza` | character varying | NULL | — |
+| `seguro_fecha_emision` | date | NULL | — |
+| `seguro_fecha_vencimiento` | date | NULL | — |
+| `seguro_cobertura` | character varying | NULL | — |
+| `seguro_suma_asegurada` | character varying | NULL | — |
+| `seguro_tomador` | character varying | NULL | — |
+| `seguro_vehiculo` | character varying | NULL | — |
+
+#### `fleet.documentos_chofer`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `tipo_documento` | character varying | NOT NULL | — |
+| `url` | text | NOT NULL | — |
+| `subido_en` | timestamp without time zone | NULL | now() |
+| `fecha_vencimiento` | date | NULL | — |
+| `notificar_dias` | integer | NOT NULL | 30 |
+| `activo` | boolean | NOT NULL | true |
+| `numero` | character varying | NULL | — |
+
+#### `fleet.foto_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `url` | text | NOT NULL | — |
+| `public_id` | text | NOT NULL | — |
+| `descripcion` | text | NULL | — |
+| `orden` | integer | NULL | 0 |
+| `es_principal` | boolean | NULL | false |
+| `subida_por` | uuid | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.gasto_turno`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `turno_id` | uuid | NOT NULL | — |
+| `tipo_gasto` | character varying | NOT NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `km_registro` | numeric | NULL | — |
+| `url_comprobante` | character varying | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `categoria_id` | uuid | NULL | — |
+| `subcategoria` | character varying | NULL | — |
+
+#### `fleet.gasto_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `propietario_id` | uuid | NOT NULL | — |
+| `tipo_gasto` | character varying | NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `moneda` | character varying | NULL | 'ARS'::character varying |
+| `descripcion` | text | NULL | — |
+| `comprobante_url` | text | NULL | — |
+| `fecha_gasto` | date | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `categoria_id` | uuid | NULL | — |
+| `subcategoria` | character varying | NULL | — |
+| `km_registro` | numeric | NULL | — |
+
+#### `fleet.historial_chofer_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NULL | — |
+| `chofer_id` | uuid | NULL | — |
+| `fecha_inicio` | timestamp without time zone | NULL | — |
+| `fecha_fin` | timestamp without time zone | NULL | — |
+| `estado` | character varying | NULL | — |
+
+#### `fleet.ingreso_turno`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | — |
+| `turno_id` | uuid | NOT NULL | — |
+| `viaje_id` | uuid | NULL | — |
+| `tipo_ingreso` | character varying | NOT NULL | — |
+| `medio_pago` | character varying | NULL | — |
+| `origen` | character varying | NOT NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `moneda` | character varying | NOT NULL | — |
+| `fecha_hora` | timestamp without time zone | NOT NULL | — |
+| `declarado_por` | uuid | NULL | — |
+| `estado` | character varying | NOT NULL | — |
+| `observaciones` | text | NULL | — |
+| `referencia_pago` | character varying | NULL | — |
+| `transaccion_id` | uuid | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | — |
+| `updated_at` | timestamp without time zone | NOT NULL | — |
+
+#### `fleet.liquidacion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NOT NULL | — |
+| `turno_id` | uuid | NOT NULL | — |
+| `contrato_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `chofer_id` | uuid | NOT NULL | — |
+| `propietario_id` | uuid | NOT NULL | — |
+| `tipo_contrato` | character varying | NOT NULL | — |
+| `periodo_desde` | timestamp without time zone | NOT NULL | — |
+| `periodo_hasta` | timestamp without time zone | NOT NULL | — |
+| `monto_bruto` | numeric | NOT NULL | 0 |
+| `total_gastos` | numeric | NOT NULL | 0 |
+| `comision_chofer` | numeric | NOT NULL | 0 |
+| `canon` | numeric | NOT NULL | 0 |
+| `total_chofer` | numeric | NOT NULL | 0 |
+| `total_propietario` | numeric | NOT NULL | 0 |
+| `estado` | character varying | NOT NULL | 'BORRADOR'::character varying |
+| `version` | integer | NOT NULL | 1 |
+| `calculada_en` | timestamp without time zone | NOT NULL | now() |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+| `aprobada_por` | uuid | NULL | — |
+| `aprobada_en` | timestamp without time zone | NULL | — |
+| `rechazada_por` | uuid | NULL | — |
+| `rechazada_en` | timestamp without time zone | NULL | — |
+| `motivo_rechazo` | text | NULL | — |
+| `pagada_por` | uuid | NULL | — |
+| `pagada_en` | timestamp without time zone | NULL | — |
+| `metodo_pago` | character varying | NULL | — |
+| `referencia_pago` | character varying | NULL | — |
+| `km_excedentes` | numeric | NOT NULL | 0 |
+| `cargo_km_excedentes` | numeric | NOT NULL | 0 |
+| `saldo_chofer` | numeric | NOT NULL | 0 |
+| `saldo_propietario` | numeric | NOT NULL | 0 |
+
+#### `fleet.liquidacion_ajuste`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `liquidacion_id` | uuid | NOT NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `tipo_ajuste` | character varying | NOT NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `motivo` | text | NULL | — |
+| `usuario_id` | uuid | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+
+#### `fleet.liquidacion_detalle`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `liquidacion_id` | uuid | NOT NULL | — |
+| `tipo_linea` | character varying | NOT NULL | — |
+| `concepto` | character varying | NULL | — |
+| `fuente_tipo` | character varying | NULL | — |
+| `fuente_id` | uuid | NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `signo` | character varying | NOT NULL | — |
+| `meta_data` | jsonb | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+
+#### `fleet.liquidacion_estado_historial`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `liquidacion_id` | uuid | NOT NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `estado_anterior` | character varying | NULL | — |
+| `estado_nuevo` | character varying | NOT NULL | — |
+| `cambiado_por` | uuid | NULL | — |
+| `motivo` | text | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+
+#### `fleet.mantenimiento_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `propietario_id` | uuid | NOT NULL | — |
+| `tipo_servicio` | character varying | NULL | — |
+| `taller_nombre` | character varying | NULL | — |
+| `taller_direccion` | text | NULL | — |
+| `costo` | numeric | NULL | — |
+| `kilometraje` | integer | NULL | — |
+| `observaciones` | text | NULL | — |
+| `fecha_servicio` | date | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.marca`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `nombre` | character varying | NOT NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.modelo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `marca_id` | uuid | NOT NULL | — |
+| `nombre` | character varying | NOT NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.neumatico_historial_posicion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `neumatico_vehiculo_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `eje_posicion` | character varying | NOT NULL | — |
+| `km_montaje` | integer | NOT NULL | — |
+| `km_desmontaje` | integer | NULL | — |
+| `fecha_montaje` | timestamp without time zone | NOT NULL | now() |
+| `fecha_desmontaje` | timestamp without time zone | NULL | — |
+| `operacion_id` | uuid | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.neumatico_imagen`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NOT NULL | — |
+| `neumatico_vehiculo_id` | uuid | NULL | — |
+| `operacion_id` | uuid | NULL | — |
+| `cloudinary_public_id` | character varying | NOT NULL | — |
+| `cloudinary_url` | character varying | NOT NULL | — |
+| `cloudinary_secure_url` | character varying | NULL | — |
+| `tipo_imagen` | character varying | NOT NULL | — |
+| `descripcion` | text | NULL | — |
+| `peso_bytes` | integer | NULL | — |
+| `dimensiones` | character varying | NULL | — |
+| `subido_por` | uuid | NULL | — |
+| `fecha_subida` | timestamp without time zone | NULL | now() |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.neumatico_medicion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `historial_posicion_id` | uuid | NOT NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `profundidad_mm` | numeric | NOT NULL | — |
+| `fecha_medicion` | timestamp without time zone | NOT NULL | now() |
+| `medido_por` | uuid | NULL | — |
+| `observaciones` | text | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.neumatico_operacion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `tipo_operacion` | character varying | NOT NULL | — |
+| `descripcion` | text | NULL | — |
+| `km_vehiculo_actual` | integer | NOT NULL | — |
+| `fecha_operacion` | timestamp without time zone | NOT NULL | now() |
+| `costo` | numeric | NULL | — |
+| `moneda` | character varying | NULL | 'ARS'::character varying |
+| `proveedor` | character varying | NULL | — |
+| `observaciones` | text | NULL | — |
+| `creado_por` | uuid | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.neumatico_operacion_detalle`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `operacion_id` | uuid | NOT NULL | — |
+| `neumatico_vehiculo_id` | uuid | NOT NULL | — |
+| `posicion_antes` | character varying | NULL | — |
+| `posicion_despues` | character varying | NULL | — |
+| `km_neumatico_en_operacion` | integer | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.neumatico_sugerencia`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `tipo_sugerencia` | character varying | NOT NULL | — |
+| `neumatico_vehiculo_id` | uuid | NULL | — |
+| `mensaje` | text | NOT NULL | — |
+| `prioridad` | character varying | NOT NULL | — |
+| `km_actual` | integer | NULL | — |
+| `km_umbral` | integer | NULL | — |
+| `estado` | character varying | NULL | 'PENDIENTE'::character varying |
+| `fecha_generacion` | timestamp without time zone | NULL | now() |
+| `fecha_atendida` | timestamp without time zone | NULL | — |
+| `atendida_por` | uuid | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.neumatico_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+| `codigo_interno` | character varying | NOT NULL | — |
+| `marca` | character varying | NOT NULL | — |
+| `modelo_dibujo` | character varying | NULL | — |
+| `medida` | character varying | NULL | — |
+| `tipo_neumatico` | character varying | NOT NULL | — |
+| `fecha_fabricacion` | date | NULL | — |
+| `estado` | character varying | NOT NULL | 'ACTIVO'::character varying |
+| `km_totales_acumulados` | integer | NULL | 0 |
+| `fecha_alta` | timestamp without time zone | NULL | now() |
+| `fecha_baja` | timestamp without time zone | NULL | — |
+| `observaciones` | text | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.notificacion_vencimiento`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `documento_id` | uuid | NOT NULL | — |
+| `entidad_tipo` | character varying | NOT NULL | — |
+| `propietario_id` | uuid | NULL | — |
+| `tipo_documento` | character varying | NOT NULL | — |
+| `numero` | character varying | NOT NULL | — |
+| `nivel` | character varying | NOT NULL | — |
+| `dias_restantes` | integer | NOT NULL | — |
+| `fecha_vencimiento` | date | NOT NULL | — |
+| `email_enviado` | boolean | NULL | false |
+| `email_enviado_en` | timestamp without time zone | NULL | — |
+| `sms_enviado` | boolean | NULL | false |
+| `sms_enviado_en` | timestamp without time zone | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.propietario_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `propietario_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `porcentaje_participacion` | numeric | NULL | 100 |
+| `fecha_inicio` | date | NOT NULL | CURRENT_DATE |
+| `fecha_fin` | date | NULL | — |
+| `activo` | boolean | NOT NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `fleet.relacion_propietario_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NULL | — |
+| `propietario_id` | uuid | NULL | — |
+| `porcentaje_participacion` | numeric | NULL | 100 |
+| `fecha_inicio` | date | NULL | — |
+| `fecha_fin` | date | NULL | — |
+| `activo` | boolean | NULL | true |
+
+#### `fleet.turno_chofer`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `contrato_id` | uuid | NOT NULL | — |
+| `chofer_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `estado` | character varying | NOT NULL | 'ACTIVO'::character varying |
+| `km_inicial` | numeric | NOT NULL | — |
+| `km_final` | numeric | NULL | — |
+| `combustible_inicial` | character varying | NOT NULL | — |
+| `combustible_final` | character varying | NULL | — |
+| `inicio_turno` | timestamp without time zone | NOT NULL | now() |
+| `fin_turno` | timestamp without time zone | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `snapshot_dia_contractual` | character varying | NULL | — |
+| `snapshot_hora_inicio` | time without time zone | NULL | — |
+| `snapshot_hora_fin` | time without time zone | NULL | — |
+| `snapshot_duracion_minima_horas` | integer | NULL | — |
+| `snapshot_permite_extension` | boolean | NULL | — |
+| `snapshot_hora_fin_extension` | time without time zone | NULL | — |
+
+#### `fleet.vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NULL | — |
+| `patente` | character varying | NOT NULL | — |
+| `marca` | character varying | NULL | — |
+| `modelo` | character varying | NULL | — |
+| `anio` | integer | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `numero_licencia` | character varying | NULL | — |
+| `qr_uuid` | uuid | NULL | gen_random_uuid() |
+| `qr_activo` | boolean | NULL | true |
+| `desgaste_neumaticos` | integer | NULL | 0 |
+| `desgaste_manual` | integer | NULL | 0 |
+| `fecha_ultimo_cambio_neumaticos` | date | NULL | — |
+| `km_ultimo_cambio_neumaticos` | integer | NULL | — |
+| `parches_neumaticos` | integer | NULL | 0 |
+| `capacidad` | integer | NULL | 4 |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `capacidad_baul` | character varying | NOT NULL | 'sin_baul'::character varying |
+| `estado_vehiculo` | character varying | NOT NULL | 'bueno'::character varying |
+| `equipamiento` | jsonb | NOT NULL | '[]'::jsonb |
+| `estado_aprobacion` | character varying | NOT NULL | 'pendiente'::character varying |
+| `documentacion_completa` | boolean | NOT NULL | false |
+| `fecha_vencimiento_taxi` | date | NULL | — |
+| `override_antiguedad` | boolean | NOT NULL | false |
+| `en_revision_desde` | timestamp without time zone | NULL | — |
+| `en_revision_expira_en` | timestamp without time zone | NULL | — |
+| `aprobado_por` | uuid | NULL | — |
+| `aprobado_en` | timestamp without time zone | NULL | — |
+| `rechazado_por` | uuid | NULL | — |
+| `rechazado_en` | timestamp without time zone | NULL | — |
+| `motivo_rechazo` | text | NULL | — |
+
+### Schema `geo`
+
+
+#### `geo.ciudad`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `provincia_id` | uuid | NULL | — |
+| `nombre` | character varying | NOT NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `codigo_postal` | character varying | NULL | — |
+
+#### `geo.pais`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `nombre` | character varying | NOT NULL | — |
+| `codigo_iso` | character varying | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `geo.provincia`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `pais_id` | uuid | NULL | — |
+| `nombre` | character varying | NOT NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+### Schema `notification`
+
+
+#### `notification.notificacion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `titulo` | character varying | NULL | — |
+| `mensaje` | text | NOT NULL | — |
+| `tipo` | character varying | NOT NULL | — |
+| `leida` | boolean | NULL | false |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+### Schema `payment`
+
+
+#### `payment.billetera`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `saldo` | numeric | NULL | 0 |
+| `moneda` | character varying | NULL | 'ARS'::character varying |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `payment.configuracion_pasarela`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NOT NULL | — |
+| `pasarela` | character varying | NOT NULL | — |
+| `activa` | boolean | NOT NULL | true |
+| `credenciales` | jsonb | NOT NULL | '{}'::jsonb |
+| `comision_porcentaje` | numeric | NULL | '0'::numeric |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+
+#### `payment.configuracion_tarifa`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NOT NULL | — |
+| `nombre` | character varying | NULL | — |
+| `tarifa_base` | numeric | NULL | 0 |
+| `precio_por_km` | numeric | NULL | 0 |
+| `precio_por_minuto` | numeric | NULL | 0 |
+| `recargo_nocturno` | numeric | NULL | 1.0 |
+| `recargo_feriado` | numeric | NULL | 1.0 |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `modo_calculo` | character varying | NULL | 'por_km'::character varying |
+| `distancia_por_ficha` | numeric | NULL | 100 |
+| `precio_por_ficha` | numeric | NULL | 0 |
+| `precio_por_minuto_espera` | numeric | NULL | 0 |
+| `recargo_domingo` | numeric | NULL | 1.0 |
+| `hora_inicio_nocturno` | time without time zone | NULL | '22:00:00'::time without time |
+| `hora_fin_nocturno` | time without time zone | NULL | '06:00:00'::time without time |
+| `moneda` | character varying | NULL | 'ARS'::character varying |
+| `descripcion` | text | NULL | — |
+| `metros_por_ficha` | numeric | NOT NULL | '100'::numeric |
+| `seg_por_ficha_espera` | numeric | NOT NULL | '60'::numeric |
+| `velocidad_referencia_kmh` | numeric | NOT NULL | '30'::numeric |
+| `velocidad_umbral_kmh` | numeric | NOT NULL | '15'::numeric |
+| `modo_cobro_tiempo` | character varying | NOT NULL | 'detenido'::character varying |
+| `redondeo_comercial` | integer | NOT NULL | 100 |
+
+#### `payment.configuracion_tarifa_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `configuracion_tarifa_id` | uuid | NOT NULL | — |
+| `tipo_vehiculo_id` | character varying | NOT NULL | — |
+| `factor_precio` | numeric | NOT NULL | 1.0 |
+| `activo` | boolean | NOT NULL | true |
+| `created_at` | timestamp with time zone | NOT NULL | now() |
+
+#### `payment.cuenta_cobro`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `usuario_id` | uuid | NOT NULL | — |
+| `tipo` | character varying | NOT NULL | — |
+| `numero` | character varying | NOT NULL | — |
+| `alias` | character varying | NULL | — |
+| `banco` | character varying | NOT NULL | — |
+| `titular` | character varying | NULL | — |
+| `predeterminada` | boolean | NOT NULL | false |
+| `activo` | boolean | NOT NULL | true |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+
+#### `payment.factura_empresa`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `empresa_id` | uuid | NOT NULL | — |
+| `periodo` | date | NOT NULL | — |
+| `total` | numeric | NULL | — |
+| `descuento` | numeric | NULL | 0 |
+| `total_final` | numeric | NULL | — |
+| `estado` | character varying | NULL | 'pendiente'::character varying |
+| `pdf_url` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `pagada_at` | timestamp without time zone | NULL | — |
+
+#### `payment.metodo_pago`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `nombre` | character varying | NOT NULL | — |
+
+#### `payment.pago_empresa`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `empresa_id` | uuid | NOT NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `metodo_pago` | character varying | NOT NULL | — |
+| `referencia` | character varying | NULL | — |
+| `estado` | character varying | NULL | 'pendiente'::character varying |
+| `comprobante_url` | text | NULL | — |
+| `factura_id` | uuid | NULL | — |
+| `observaciones` | text | NULL | — |
+| `fecha_pago` | timestamp without time zone | NULL | now() |
+| `confirmado_en` | timestamp without time zone | NULL | — |
+| `confirmado_por` | uuid | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `payment.qr_cobro`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NOT NULL | — |
+| `token` | character varying | NOT NULL | — |
+| `monto` | numeric | NOT NULL | — |
+| `pasarela` | character varying | NULL | — |
+| `estado` | character varying | NOT NULL | 'pendiente'::character varying |
+| `url_pago` | text | NULL | — |
+| `id_transaccion_externa` | character varying | NULL | — |
+| `creado_en` | timestamp without time zone | NOT NULL | now() |
+| `expira_en` | timestamp without time zone | NOT NULL | — |
+| `pagado_en` | timestamp without time zone | NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+
+#### `payment.transaccion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NULL | — |
+| `metodo_pago_id` | uuid | NULL | — |
+| `monto` | numeric | NULL | — |
+| `estado` | character varying | NULL | — |
+| `external_reference` | character varying | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `tipo` | character varying | NULL | — |
+| `saldo_despues` | numeric | NULL | — |
+| `descripcion` | text | NULL | — |
+| `billetera_id` | uuid | NULL | — |
+
+### Schema `public`
+
+
+#### `public.alembic_version`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `version_num` | character varying | NOT NULL | — |
+
+#### `public.comercio`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `nombre` | character varying | NOT NULL | — |
+| `rubro` | character varying | NULL | — |
+| `direccion` | text | NOT NULL | — |
+| `latitud` | numeric | NOT NULL | — |
+| `longitud` | numeric | NOT NULL | — |
+| `codigo_qr` | character varying | NOT NULL | — |
+| `email_contacto` | character varying | NULL | — |
+| `telefono` | character varying | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `control_base_id` | uuid | NOT NULL | — |
+
+#### `public.escaneo_qr`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `comercio_id` | uuid | NULL | — |
+| `viaje_id` | uuid | NULL | — |
+| `user_agent` | text | NULL | — |
+| `ip_address` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `contrato_id` | uuid | NULL | — |
+| `tipo_qr` | character varying | NULL | 'OPERATIVO'::character varying |
+| `resultado` | character varying | NULL | — |
+| `motivo` | text | NULL | — |
+| `autorizacion_id` | uuid | NULL | — |
+
+#### `public.geography_columns`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `f_table_catalog` | name | NULL | — |
+| `f_table_schema` | name | NULL | — |
+| `f_table_name` | name | NULL | — |
+| `f_geography_column` | name | NULL | — |
+| `coord_dimension` | integer | NULL | — |
+| `srid` | integer | NULL | — |
+| `type` | text | NULL | — |
+
+#### `public.geometry_columns`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `f_table_catalog` | character varying | NULL | — |
+| `f_table_schema` | name | NULL | — |
+| `f_table_name` | name | NULL | — |
+| `f_geometry_column` | name | NULL | — |
+| `coord_dimension` | integer | NULL | — |
+| `srid` | integer | NULL | — |
+| `type` | character varying | NULL | — |
+
+#### `public.spatial_ref_sys`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `srid` | integer | NOT NULL | — |
+| `auth_name` | character varying | NULL | — |
+| `auth_srid` | integer | NULL | — |
+| `srtext` | character varying | NULL | — |
+| `proj4text` | character varying | NULL | — |
+
+### Schema `rentabilidad`
+
+
+#### `rentabilidad.analisis_medios_pago`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NULL | — |
+| `anio` | integer | NOT NULL | — |
+| `mes` | integer | NOT NULL | — |
+| `medio_pago` | character varying | NOT NULL | — |
+| `total_viajes` | integer | NULL | 0 |
+| `total_ingresos` | numeric | NULL | '0'::numeric |
+| `comision_aplicada` | numeric | NULL | '0'::numeric |
+| `costo_comisiones` | numeric | NULL | '0'::numeric |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `rentabilidad.rentabilidad_diaria_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `fecha` | date | NOT NULL | — |
+| `total_viajes` | integer | NULL | 0 |
+| `ingresos_brutos` | numeric | NULL | '0'::numeric |
+| `comisiones_bancarias` | numeric | NULL | '0'::numeric |
+| `costos_variables` | numeric | NULL | '0'::numeric |
+| `costos_fijos` | numeric | NULL | '0'::numeric |
+| `canon_taxip` | numeric | NULL | '0'::numeric |
+| `porcentaje_taxip` | numeric | NULL | '0'::numeric |
+| `utilidad_neta` | numeric | NULL | '0'::numeric |
+| `margen` | numeric | NULL | '0'::numeric |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+#### `rentabilidad.rentabilidad_mensual_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `vehiculo_id` | uuid | NOT NULL | — |
+| `anio` | integer | NOT NULL | — |
+| `mes` | integer | NOT NULL | — |
+| `total_viajes` | integer | NULL | 0 |
+| `ingresos_brutos` | numeric | NULL | '0'::numeric |
+| `comisiones_bancarias` | numeric | NULL | '0'::numeric |
+| `costos_variables` | numeric | NULL | '0'::numeric |
+| `costos_fijos` | numeric | NULL | '0'::numeric |
+| `canon_taxip` | numeric | NULL | '0'::numeric |
+| `porcentaje_taxip` | numeric | NULL | '0'::numeric |
+| `utilidad_neta` | numeric | NULL | '0'::numeric |
+| `margen` | numeric | NULL | '0'::numeric |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+
+### Schema `tenant`
+
+
+#### `tenant.configuracion_tenant`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NULL | — |
+| `moneda_default` | character varying | NULL | 'ARS'::character varying |
+| `timezone` | character varying | NULL | 'America/Argentina/Tucuman'::c |
+| `idioma` | character varying | NULL | 'es'::character varying |
+| `habilitar_fidelizacion` | boolean | NULL | false |
+| `habilitar_pagos_online` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `canon_mensual_por_vehiculo` | numeric | NULL | '10000'::numeric |
+| `porcentaje_taxip_por_viaje` | numeric | NULL | 1.5 |
+| `iva` | numeric | NULL | 21.0 |
+| `iibb` | numeric | NULL | 5.0 |
+| `idc` | numeric | NULL | 0.3 |
+| `mix_efectivo` | numeric | NULL | 40.0 |
+| `mix_transferencia` | numeric | NULL | 20.0 |
+| `mix_qr` | numeric | NULL | 25.0 |
+| `mix_debito` | numeric | NULL | 15.0 |
+| `mix_credito` | numeric | NULL | 0.0 |
+| `comision_qr` | numeric | NULL | 0.80 |
+| `comision_debito` | numeric | NULL | 1.00 |
+| `comision_credito` | numeric | NULL | 3.50 |
+| `costo_combustible_por_km` | numeric | NULL | 80.0 |
+| `costo_mantenimiento_por_dia` | numeric | NULL | 500.0 |
+| `costo_seguro_por_dia` | numeric | NULL | 300.0 |
+| `costo_impuesto_por_dia` | numeric | NULL | 200.0 |
+| `depreciacion_vehiculo_por_dia` | numeric | NULL | 400.0 |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `vida_util_neumaticos_km` | integer | NULL | 50000 |
+| `umbral_rotacion_neumaticos_km` | integer | NULL | 10000 |
+| `umbral_cambio_neumaticos_km` | integer | NULL | 45000 |
+| `profundidad_minima_neumaticos_mm` | numeric | NULL | 2.0 |
+| `factor_desgaste_delantero` | numeric | NULL | 1.5 |
+| `antiguedad_maxima_taxi_anios` | integer | NOT NULL | 10 |
+| `dias_revision_documentos` | integer | NOT NULL | 7 |
+
+#### `tenant.control_base`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `nombre` | character varying | NOT NULL | — |
+| `email` | character varying | NULL | — |
+| `telefono` | character varying | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `latitud` | numeric | NULL | — |
+| `longitud` | numeric | NULL | — |
+| `fecha_suspension` | timestamp without time zone | NULL | — |
+| `motivo_suspension` | text | NULL | — |
+| `suspendido_por` | uuid | NULL | — |
+| `ciudad_id` | uuid | NULL | — |
+| `direccion` | character varying | NULL | — |
+
+#### `tenant.empresa`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `nombre` | character varying | NOT NULL | — |
+| `tipo` | character varying | NULL | 'hotel'::character varying |
+| `email_facturacion` | character varying | NULL | — |
+| `telefono` | character varying | NULL | — |
+| `direccion` | text | NULL | — |
+| `latitud` | numeric | NULL | — |
+| `longitud` | numeric | NULL | — |
+| `tarifa_preferencial` | numeric | NULL | 0 |
+| `condiciones_pago` | character varying | NULL | 'mensual'::character varying |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `control_base_id` | uuid | NOT NULL | — |
+| `limite_credito` | numeric | NULL | 0.0 |
+| `contacto_nombre` | character varying | NULL | — |
+| `contacto_telefono` | character varying | NULL | — |
+| `contacto_email` | character varying | NULL | — |
+| `fecha_suspension` | timestamp without time zone | NULL | — |
+| `motivo_suspension` | text | NULL | — |
+| `suspendido_por` | uuid | NULL | — |
+
+#### `tenant.factura`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NOT NULL | — |
+| `periodo` | date | NOT NULL | — |
+| `vehiculos_activos` | integer | NOT NULL | 0 |
+| `canon_total` | numeric | NOT NULL | 0 |
+| `porcentaje_plataforma` | numeric | NOT NULL | 15 |
+| `total_a_pagar` | numeric | NOT NULL | 0 |
+| `estado` | character varying | NOT NULL | 'pendiente'::character varying |
+| `fecha_emision` | timestamp without time zone | NOT NULL | now() |
+| `fecha_vencimiento` | timestamp without time zone | NULL | — |
+| `pagada_at` | timestamp without time zone | NULL | — |
+| `pagada_por` | uuid | NULL | — |
+| `numero_factura` | character varying | NULL | — |
+| `observaciones` | text | NULL | — |
+| `created_at` | timestamp without time zone | NOT NULL | now() |
+| `updated_at` | timestamp without time zone | NOT NULL | now() |
+
+### Schema `trip`
+
+
+#### `trip.broadcast_log`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NOT NULL | — |
+| `chofer_id` | uuid | NOT NULL | — |
+| `vehiculo_id` | uuid | NULL | — |
+| `distancia_metros` | integer | NULL | — |
+| `emitido_en` | timestamp without time zone | NOT NULL | now() |
+| `respondido_en` | timestamp without time zone | NULL | — |
+| `respuesta` | character varying | NULL | — |
+| `motivo_exclusion` | character varying | NULL | — |
+| `tiempo_respuesta_segundos` | integer | NULL | — |
+| `control_base_id` | uuid | NOT NULL | — |
+
+#### `trip.calificacion`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NOT NULL | — |
+| `calificador_id` | uuid | NOT NULL | — |
+| `calificado_id` | uuid | NOT NULL | — |
+| `puntaje` | integer | NOT NULL | — |
+| `comentario` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `trip.foto_viaje`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NOT NULL | — |
+| `usuario_id` | uuid | NOT NULL | — |
+| `url` | text | NOT NULL | — |
+| `thumbnail_url` | text | NULL | — |
+| `metadata_json` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `trip.historial_estado_viaje`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NULL | — |
+| `estado` | character varying | NULL | — |
+| `observacion` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `latitud` | numeric | NULL | — |
+| `longitud` | numeric | NULL | — |
+
+#### `trip.objeto_olvidado`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NOT NULL | — |
+| `pasajero_id` | uuid | NOT NULL | — |
+| `chofer_id` | uuid | NOT NULL | — |
+| `descripcion` | text | NOT NULL | — |
+| `estado` | character varying | NULL | 'reportado'::character varying |
+| `foto_url` | text | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+
+#### `trip.panico`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `viaje_id` | uuid | NULL | — |
+| `ubicacion` | USER-DEFINED | NULL | — |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `usuario_id` | uuid | NULL | — |
+| `resuelto_en` | timestamp without time zone | NULL | — |
+
+#### `trip.tipo_vehiculo`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | character varying | NOT NULL | — |
+| `nombre` | character varying | NOT NULL | — |
+| `descripcion` | text | NULL | — |
+| `tarifa_base` | numeric | NOT NULL | 0 |
+| `tarifa_por_km` | numeric | NOT NULL | 0 |
+| `tarifa_por_minuto` | numeric | NOT NULL | 0 |
+| `capacidad_pasajeros` | integer | NULL | 4 |
+| `capacidad_equipaje` | integer | NULL | 2 |
+| `activo` | boolean | NULL | true |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `precio_por_ficha` | numeric | NULL | 0 |
+| `distancia_por_ficha` | numeric | NULL | 100 |
+| `precio_por_minuto_espera` | numeric | NULL | 0 |
+
+#### `trip.viaje_solicitado`
+
+| Columna | Tipo | Nulidad | Default |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | gen_random_uuid() |
+| `control_base_id` | uuid | NULL | — |
+| `pasajero_id` | uuid | NULL | — |
+| `chofer_id` | uuid | NULL | — |
+| `vehiculo_id` | uuid | NULL | — |
+| `origen` | USER-DEFINED | NULL | — |
+| `destino` | USER-DEFINED | NULL | — |
+| `estado` | character varying | NULL | 'pendiente'::character varying |
+| `precio_estimado` | numeric | NULL | — |
+| `created_at` | timestamp without time zone | NULL | now() |
+| `finalizado_at` | timestamp without time zone | NULL | — |
+| `fecha_programada` | timestamp without time zone | NULL | — |
+| `reserva_procesada` | boolean | NULL | false |
+| `procesado_en` | timestamp without time zone | NULL | — |
+| `direccion_origen` | text | NULL | — |
+| `direccion_destino` | text | NULL | — |
+| `tiempo_estimado_segundos` | integer | NULL | — |
+| `distancia_metros` | integer | NULL | — |
+| `url_seguimiento` | character varying | NULL | — |
+| `codigo_compartido` | character varying | NULL | — |
+| `aceptado_en` | timestamp without time zone | NULL | — |
+| `iniciado_en` | timestamp without time zone | NULL | — |
+| `finalizado_en` | timestamp without time zone | NULL | — |
+| `cancelado_en` | timestamp without time zone | NULL | — |
+| `cancelado_por` | character varying | NULL | — |
+| `motivo_cancelacion` | text | NULL | — |
+| `precio_final` | numeric | NULL | — |
+| `moneda` | character varying | NULL | 'ARS'::character varying |
+| `comercio_id` | uuid | NULL | — |
+| `empresa_id` | uuid | NULL | — |
+| `nombre_pasajero` | character varying | NULL | — |
+| `notas` | text | NULL | — |
+| `facturado` | boolean | NULL | false |
+| `turno_id` | uuid | NULL | — |
+| `chofer_vehiculo_id` | uuid | NULL | — |
+| `updated_at` | timestamp without time zone | NULL | now() |
+| `solicitado_en` | timestamp without time zone | NULL | now() |
+| `es_anonimo` | boolean | NOT NULL | false |
+| `pasajero_telefono` | character varying | NULL | — |
+| `lugar_subida` | character varying | NULL | — |
+| `cantidad_pasajeros` | integer | NULL | 1 |
+| `origen_tipo` | character varying | NULL | — |
+| `empleado_id` | uuid | NULL | — |
+| `turno_empleado_id` | uuid | NULL | — |
+| `centro_costo` | character varying | NULL | — |
+| `paradas_intermedias` | jsonb | NULL | '[]'::jsonb |
+| `subestado_despacho` | character varying | NULL | — |
+| `es_programado` | boolean | NULL | false |
+| `requiere_baul_grande` | boolean | NULL | false |
+| `cantidad_valijas` | integer | NULL | 0 |
+| `calidad_minima_vehiculo` | character varying | NULL | — |
+| `tipo_vehiculo_solicitado` | character varying | NULL | — |
+| `intentos_broadcast` | integer | NULL | 0 |
+| `radio_broadcast_metros` | integer | NULL | 2000 |
+| `fecha_publicacion` | timestamp without time zone | NULL | — |
+| `fecha_expiracion` | timestamp without time zone | NULL | — |
+| `qr_cobro_token` | character varying | NULL | — |
+| `qr_cobro_expira` | timestamp without time zone | NULL | — |
+| `cuenta_corriente_id` | uuid | NULL | — |
+| `cargado_a_cuenta` | boolean | NULL | false |
+| `responsable_cobro` | character varying | NULL | — |
+| `estado_cobro` | character varying | NULL | — |
+| `fecha_cobro` | timestamp without time zone | NULL | — |
+| `movimiento_cc_id` | uuid | NULL | — |
+| `metodo_pago` | character varying | NULL | — |
+| `llegado_en` | timestamp without time zone | NULL | — |
+
+---
+## 🔗 Relaciones (Foreign Keys)
+
+| Tabla (columna) | Referencia |
+|---|---|
+| `audit.alerta_desvio` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `audit.log_acciones` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `audit.log_acciones` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `audit.log_gps` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `audit.log_gps` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `auth.autorizacion_inicio` (`created_by`) | → `auth.usuario` (`id`) |
+| `auth.autorizacion_inicio` (`contrato_id`) | → `fleet.contrato_vehiculo` (`id`) |
+| `auth.autorizacion_inicio` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `auth.autorizacion_inicio` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `auth.autorizacion_inicio` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `auth.codigo_metadatos` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `auth.codigo_metadatos` (`codigo_id`) | → `auth.codigo_verificacion` (`id`) |
+| `auth.codigo_metadatos` (`contrato_id`) | → `fleet.contrato_vehiculo` (`id`) |
+| `auth.codigo_metadatos` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `auth.codigo_verificacion` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `auth.direccion_frecuente` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `auth.perfil_general` (`ciudad_id`) | → `geo.ciudad` (`id`) |
+| `auth.perfil_general` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `auth.plantilla_viaje` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `auth.plantilla_viaje` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `auth.refresh_token` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `auth.reset_token` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `auth.taxista_favorito` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `auth.taxista_favorito` (`pasajero_id`) | → `auth.usuario` (`id`) |
+| `auth.turno_empleado` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `auth.turno_empleado` (`empleado_id`) | → `auth.usuario` (`id`) |
+| `auth.usuario` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `auth.usuario` (`tipo_usuario_id`) | → `auth.tipo_usuario` (`id`) |
+| `auth.usuario` (`suspendido_por`) | → `auth.usuario` (`id`) |
+| `auth.usuario_empresa` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `auth.usuario_empresa` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `auth.usuario_rol` (`tipo_usuario_id`) | → `auth.tipo_usuario` (`id`) |
+| `auth.usuario_rol` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `comunicacion.conversacion` (`participante_2`) | → `auth.usuario` (`id`) |
+| `comunicacion.conversacion` (`participante_1`) | → `auth.usuario` (`id`) |
+| `comunicacion.email_enviado` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `comunicacion.mensaje` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `comunicacion.mensaje` (`conversacion_id`) | → `comunicacion.conversacion` (`id`) |
+| `comunicacion.mensaje` (`remitente_id`) | → `auth.usuario` (`id`) |
+| `corporate.cuenta_corriente` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `corporate.cuenta_corriente` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `corporate.factura_corporativa` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `corporate.movimiento_cuenta` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `corporate.movimiento_cuenta` (`created_by`) | → `auth.usuario` (`id`) |
+| `corporate.movimiento_cuenta` (`cuenta_id`) | → `corporate.cuenta_corriente` (`id`) |
+| `corporate.pago_corporativo` (`confirmado_por`) | → `auth.usuario` (`id`) |
+| `corporate.pago_corporativo` (`movimiento_cc_id`) | → `corporate.movimiento_cuenta` (`id`) |
+| `corporate.pago_corporativo` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `corporate.pago_corporativo` (`factura_id`) | → `corporate.factura_corporativa` (`id`) |
+| `fleet.categoria_gasto` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.chofer_vehiculo` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.chofer_vehiculo` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `fleet.chofer_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.contrato_qr` (`contrato_id`) | → `fleet.contrato_vehiculo` (`id`) |
+| `fleet.contrato_qr` (`created_by`) | → `auth.usuario` (`id`) |
+| `fleet.contrato_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.contrato_vehiculo` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.contrato_vehiculo` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `fleet.contrato_vehiculo` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `fleet.documento_propietario` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `fleet.documento_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.documentos_chofer` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `fleet.foto_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.foto_vehiculo` (`subida_por`) | → `auth.usuario` (`id`) |
+| `fleet.gasto_turno` (`turno_id`) | → `fleet.turno_chofer` (`id`) |
+| `fleet.gasto_turno` (`categoria_id`) | → `fleet.categoria_gasto` (`id`) |
+| `fleet.gasto_vehiculo` (`categoria_id`) | → `fleet.categoria_gasto` (`id`) |
+| `fleet.gasto_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.gasto_vehiculo` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `fleet.historial_chofer_vehiculo` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `fleet.historial_chofer_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.ingreso_turno` (`declarado_por`) | → `auth.usuario` (`id`) |
+| `fleet.ingreso_turno` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `fleet.ingreso_turno` (`turno_id`) | → `fleet.turno_chofer` (`id`) |
+| `fleet.ingreso_turno` (`transaccion_id`) | → `payment.transaccion` (`id`) |
+| `fleet.liquidacion` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `fleet.liquidacion` (`aprobada_por`) | → `auth.usuario` (`id`) |
+| `fleet.liquidacion` (`rechazada_por`) | → `auth.usuario` (`id`) |
+| `fleet.liquidacion` (`pagada_por`) | → `auth.usuario` (`id`) |
+| `fleet.liquidacion` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `fleet.liquidacion` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.liquidacion` (`turno_id`) | → `fleet.turno_chofer` (`id`) |
+| `fleet.liquidacion` (`contrato_id`) | → `fleet.contrato_vehiculo` (`id`) |
+| `fleet.liquidacion` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.liquidacion_ajuste` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `fleet.liquidacion_ajuste` (`liquidacion_id`) | → `fleet.liquidacion` (`id`) |
+| `fleet.liquidacion_ajuste` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.liquidacion_detalle` (`liquidacion_id`) | → `fleet.liquidacion` (`id`) |
+| `fleet.liquidacion_estado_historial` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.liquidacion_estado_historial` (`cambiado_por`) | → `auth.usuario` (`id`) |
+| `fleet.liquidacion_estado_historial` (`liquidacion_id`) | → `fleet.liquidacion` (`id`) |
+| `fleet.mantenimiento_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.mantenimiento_vehiculo` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `fleet.modelo` (`marca_id`) | → `fleet.marca` (`id`) |
+| `fleet.neumatico_historial_posicion` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.neumatico_historial_posicion` (`operacion_id`) | → `fleet.neumatico_operacion` (`id`) |
+| `fleet.neumatico_historial_posicion` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.neumatico_historial_posicion` (`neumatico_vehiculo_id`) | → `fleet.neumatico_vehiculo` (`id`) |
+| `fleet.neumatico_imagen` (`neumatico_vehiculo_id`) | → `fleet.neumatico_vehiculo` (`id`) |
+| `fleet.neumatico_imagen` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.neumatico_imagen` (`subido_por`) | → `auth.usuario` (`id`) |
+| `fleet.neumatico_imagen` (`operacion_id`) | → `fleet.neumatico_operacion` (`id`) |
+| `fleet.neumatico_medicion` (`historial_posicion_id`) | → `fleet.neumatico_historial_posicion` (`id`) |
+| `fleet.neumatico_medicion` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.neumatico_medicion` (`medido_por`) | → `auth.usuario` (`id`) |
+| `fleet.neumatico_operacion` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.neumatico_operacion` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.neumatico_operacion` (`creado_por`) | → `auth.usuario` (`id`) |
+| `fleet.neumatico_operacion_detalle` (`operacion_id`) | → `fleet.neumatico_operacion` (`id`) |
+| `fleet.neumatico_operacion_detalle` (`neumatico_vehiculo_id`) | → `fleet.neumatico_vehiculo` (`id`) |
+| `fleet.neumatico_sugerencia` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.neumatico_sugerencia` (`neumatico_vehiculo_id`) | → `fleet.neumatico_vehiculo` (`id`) |
+| `fleet.neumatico_sugerencia` (`atendida_por`) | → `auth.usuario` (`id`) |
+| `fleet.neumatico_sugerencia` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.neumatico_vehiculo` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.neumatico_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.notificacion_vencimiento` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `fleet.propietario_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.propietario_vehiculo` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `fleet.relacion_propietario_vehiculo` (`propietario_id`) | → `auth.usuario` (`id`) |
+| `fleet.relacion_propietario_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.turno_chofer` (`contrato_id`) | → `fleet.contrato_vehiculo` (`id`) |
+| `fleet.turno_chofer` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `fleet.turno_chofer` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `fleet.vehiculo` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `fleet.vehiculo` (`aprobado_por`) | → `auth.usuario` (`id`) |
+| `fleet.vehiculo` (`rechazado_por`) | → `auth.usuario` (`id`) |
+| `geo.ciudad` (`provincia_id`) | → `geo.provincia` (`id`) |
+| `geo.provincia` (`pais_id`) | → `geo.pais` (`id`) |
+| `notification.notificacion` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `payment.billetera` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `payment.configuracion_tarifa` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `payment.configuracion_tarifa_vehiculo` (`configuracion_tarifa_id`) | → `payment.configuracion_tarifa` (`id`) |
+| `payment.configuracion_tarifa_vehiculo` (`tipo_vehiculo_id`) | → `trip.tipo_vehiculo` (`id`) |
+| `payment.cuenta_cobro` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `payment.factura_empresa` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `payment.pago_empresa` (`confirmado_por`) | → `auth.usuario` (`id`) |
+| `payment.pago_empresa` (`factura_id`) | → `payment.factura_empresa` (`id`) |
+| `payment.pago_empresa` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `payment.qr_cobro` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `payment.transaccion` (`billetera_id`) | → `payment.billetera` (`id`) |
+| `payment.transaccion` (`metodo_pago_id`) | → `payment.metodo_pago` (`id`) |
+| `payment.transaccion` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `public.comercio` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `public.escaneo_qr` (`autorizacion_id`) | → `auth.autorizacion_inicio` (`id`) |
+| `public.escaneo_qr` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `public.escaneo_qr` (`comercio_id`) | → `public.comercio` (`id`) |
+| `public.escaneo_qr` (`contrato_id`) | → `fleet.contrato_vehiculo` (`id`) |
+| `rentabilidad.analisis_medios_pago` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `rentabilidad.rentabilidad_diaria_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `rentabilidad.rentabilidad_mensual_vehiculo` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `tenant.configuracion_tenant` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `tenant.control_base` (`suspendido_por`) | → `auth.usuario` (`id`) |
+| `tenant.control_base` (`ciudad_id`) | → `geo.ciudad` (`id`) |
+| `tenant.empresa` (`suspendido_por`) | → `auth.usuario` (`id`) |
+| `tenant.empresa` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `tenant.factura` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `tenant.factura` (`pagada_por`) | → `auth.usuario` (`id`) |
+| `trip.broadcast_log` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `trip.broadcast_log` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `trip.broadcast_log` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `trip.calificacion` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `trip.calificacion` (`calificado_id`) | → `auth.usuario` (`id`) |
+| `trip.calificacion` (`calificador_id`) | → `auth.usuario` (`id`) |
+| `trip.foto_viaje` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `trip.foto_viaje` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `trip.historial_estado_viaje` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `trip.objeto_olvidado` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `trip.objeto_olvidado` (`pasajero_id`) | → `auth.usuario` (`id`) |
+| `trip.objeto_olvidado` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `trip.panico` (`viaje_id`) | → `trip.viaje_solicitado` (`id`) |
+| `trip.panico` (`usuario_id`) | → `auth.usuario` (`id`) |
+| `trip.viaje_solicitado` (`control_base_id`) | → `tenant.control_base` (`id`) |
+| `trip.viaje_solicitado` (`chofer_vehiculo_id`) | → `fleet.chofer_vehiculo` (`id`) |
+| `trip.viaje_solicitado` (`turno_id`) | → `fleet.turno_chofer` (`id`) |
+| `trip.viaje_solicitado` (`movimiento_cc_id`) | → `corporate.movimiento_cuenta` (`id`) |
+| `trip.viaje_solicitado` (`cuenta_corriente_id`) | → `corporate.cuenta_corriente` (`id`) |
+| `trip.viaje_solicitado` (`empresa_id`) | → `tenant.empresa` (`id`) |
+| `trip.viaje_solicitado` (`turno_empleado_id`) | → `auth.turno_empleado` (`id`) |
+| `trip.viaje_solicitado` (`empleado_id`) | → `auth.usuario` (`id`) |
+| `trip.viaje_solicitado` (`chofer_id`) | → `auth.usuario` (`id`) |
+| `trip.viaje_solicitado` (`vehiculo_id`) | → `fleet.vehiculo` (`id`) |
+| `trip.viaje_solicitado` (`pasajero_id`) | → `auth.usuario` (`id`) |
+| `trip.viaje_solicitado` (`comercio_id`) | → `public.comercio` (`id`) |

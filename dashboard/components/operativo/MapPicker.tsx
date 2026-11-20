@@ -3,7 +3,7 @@
 'use client';
 
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
-import { GoogleMap, Marker, DirectionsRenderer } from '@react-google-maps/api';
+import { GoogleMap, Marker, DirectionsRenderer, Polyline } from '@react-google-maps/api';
 import { Loader2, Navigation, AlertCircle } from 'lucide-react';
 
 // Centro por defecto: San Miguel de Tucumán
@@ -39,6 +39,7 @@ interface MapPickerProps {
   center?: { lat: number; lng: number };
   disabled?: boolean;
   draggable?: boolean;
+  gpsPoints?: Array<{ lat: number; lng: number }>; // ✅ NUEVO
 }
 
 export function MapPicker({
@@ -54,6 +55,7 @@ export function MapPicker({
   center,
   disabled = false,
   draggable = true,
+  gpsPoints = [], // ✅ NUEVO
 }: MapPickerProps) {
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
@@ -143,7 +145,7 @@ export function MapPicker({
         avoidHighways: false,
       };
 
-            try {
+      try {
         if (!directionsServiceRef.current) {
           console.error("⚠️ El servicio de direcciones no está inicializado");
           return;
@@ -188,7 +190,8 @@ export function MapPicker({
     };
 
     fetchRoute();
-  }, [origin, destination, waypoints, onRouteChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin, destination, waypoints]);
 
   // Manejar fin de arrastre de marcador
   const handleMarkerDragEnd = useCallback(
@@ -313,25 +316,38 @@ export function MapPicker({
           );
         })}
 
-        {/* ✅ RUTA - Línea azul con puntos */}
+        {/* ✅ RUTA ESTIMADA (azul) */}
         {directions && (
           <DirectionsRenderer
             directions={directions}
             options={{
               polylineOptions: {
-                strokeColor: '#3b82f6', // Azul
+                strokeColor: '#3b82f6',
                 strokeWeight: 5,
                 strokeOpacity: 0.9,
               },
-              suppressMarkers: true, // Ocultar marcadores de DirectionsRenderer
+              suppressMarkers: true,
               preserveViewport: false,
+            }}
+          />
+        )}
+
+        {/* ✅ RECORRIDO REAL DEL GPS (violeta) */}
+        {gpsPoints && gpsPoints.length > 0 && (
+          <Polyline
+            path={gpsPoints}
+            options={{
+              strokeColor: '#8b5cf6',
+              strokeWeight: 4,
+              strokeOpacity: 0.8,
+              geodesic: true,
             }}
           />
         )}
       </GoogleMap>
 
-      {/* ✅ Indicador de carga de ruta */}
-      {isLoadingRoute && (
+      {/* ✅ Indicador de carga de ruta (solo si NO hay ruta dibujada) */}
+      {isLoadingRoute && !directions && !gpsPoints?.length && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-md flex items-center gap-2 z-10">
           <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
           <span className="text-sm">Calculando ruta...</span>
@@ -365,8 +381,14 @@ export function MapPicker({
           )}
           <div className="flex items-center gap-1.5 border-t border-gray-200 dark:border-gray-700 pt-1 mt-1">
             <div className="w-6 h-1 bg-blue-500 rounded" />
-            <span>Ruta</span>
+            <span>Ruta estimada</span>
           </div>
+          {gpsPoints && gpsPoints.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 h-1 bg-violet-500 rounded" />
+              <span>Recorrido real (GPS)</span>
+            </div>
+          )}
         </div>
       </div>
 

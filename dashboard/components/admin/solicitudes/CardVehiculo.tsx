@@ -25,13 +25,13 @@ interface Props {
   vehiculo: VehiculoPendiente;
 }
 
-const TIPOS_DOCS = ['SEGURO', 'VTV', 'CEDULA_VERDE', 'HABILITACION'] as const;
+const TIPOS_DOCS = ['seguro', 'vtv', 'cedula_verde', 'habilitacion'] as const;
 
 const DOCS_LABELS: Record<string, string> = {
-  SEGURO: 'Seguro',
-  VTV: 'VTV',
-  CEDULA_VERDE: 'Cédula Verde',
-  HABILITACION: 'Habilitación',
+  seguro: 'Seguro',
+  vtv: 'VTV',
+  cedula_verde: 'Cédula Verde',
+  habilitacion: 'Habilitación',
 };
 
 const TIPOS_DOCS_VEHICULO = TIPOS_DOCS.map((tipo) => ({
@@ -115,7 +115,8 @@ export default function CardVehiculo({ vehiculo }: Props) {
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <FileText className="h-3 w-3 text-muted-foreground" />
                 {TIPOS_DOCS.map((tipo) => {
-                  const doc = vehiculo.documentos[tipo];
+                  // ✅ Normalizamos la búsqueda de la clave
+                  const doc = vehiculo.documentos?.[tipo] || vehiculo.documentos?.[tipo.toUpperCase()];
                   const presente = !!doc;
                   return (
                     <Badge
@@ -184,7 +185,9 @@ export default function CardVehiculo({ vehiculo }: Props) {
         open={showDocs}
         onOpenChange={setShowDocs}
         titulo={`Documentos de ${vehiculo.patente}`}
-        documentos={vehiculo.documentos}
+        documentos={Object.fromEntries(
+          Object.entries(vehiculo.documentos || {}).map(([k, v]) => [k.toLowerCase(), v])
+        )}
         tiposRequeridos={TIPOS_DOCS_VEHICULO}
       />
     </>

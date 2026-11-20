@@ -605,7 +605,7 @@ async def check_in_directo(
     if not result.first():
         raise HTTPException(403, "No sos propietario de este vehículo")
 
-        # 3. Verificar que el vehículo no tenga turno activo
+    # 3. Verificar que el vehículo no tenga turno activo
     query_turno = text("""
         SELECT
             tc.id AS turno_id,
@@ -725,14 +725,27 @@ async def check_in_directo(
         turno_id = turno_row[0]
         inicio_turno = turno_row[1]
 
-        # 8. Actualizar estado laboral del chofer
+        # 8. Actualizar estado laboral Y ultima_conexion del chofer
         await db.execute(text("""
             UPDATE fleet.chofer_vehiculo
-            SET estado_laboral = 'libre', updated_at = NOW()
+            SET estado_laboral = 'libre', 
+                ultima_conexion = NOW(),
+                updated_at = NOW()
             WHERE usuario_id = :user_id
         """), {"user_id": user_id})
 
         await db.commit()
+
+                # 8.bis Actualizar el vehículo en chofer_vehiculo
+        await db.execute(text("""
+            UPDATE fleet.chofer_vehiculo
+            SET vehiculo_id = :vehiculo_id,
+                updated_at = NOW()
+            WHERE usuario_id = :user_id
+        """), {
+            "vehiculo_id": request.vehiculo_id,
+            "user_id": user_id
+        })
 
         # 9. Obtener datos del vehículo
         query_vehiculo = text("""
@@ -768,7 +781,6 @@ async def check_in_directo(
         await db.rollback()
         logger.error(f"Error en check-in-directo: {str(e)}")
         raise HTTPException(500, f"Error al iniciar turno: {str(e)}")
-
 
 @router.post("/check-out", response_model=CheckOutResponse)
 async def check_out_turno(
@@ -941,6 +953,7 @@ async def listar_viajes_huerfanos(
     "/viajes-huerfanos/{viaje_id}/cerrar",
     response_model=CerrarViajeHuerfanoResponse,
 )
+    
 async def cerrar_viaje_huerfano(
     viaje_id: UUID,
     request: CerrarViajeHuerfanoRequest,
@@ -948,38 +961,39 @@ async def cerrar_viaje_huerfano(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Cierra forzadamente un viaje huerfano del turno activo.
-
-    R17 - G67.
-
-    Reglas:
-    - Solo el chofer del turno puede cerrarlo.
-    - Solo viajes en estado 'aceptado' o 'en_curso'.
-    - 'aceptado' -> 'cancelado' (sin cobro).
-    - 'en_curso' -> 'finalizado' (con precio_estimado).
-    - Notifica al chofer y al propietario.
+    Cierra forzadamente un viaje huerfano (de este turno o de turnos anteriores).
     """
     user_id, control_base_id, email, tipo = current_user
 
-    # 1. Buscar turno activo del chofer
-    turno_query = text("""
-        SELECT id FROM fleet.turno_chofer
-        WHERE chofer_id = :user_id AND estado = 'ACTIVO'
-        ORDER BY inicio_turno DESC
-        LIMIT 1
+    # 1. Buscar el viaje y verificar que pertenece al chofer
+    viaje_query = text("""
+        SELECT id, turno_id, estado
+        FROM trip.viaje_solicitado
+        WHERE id = :viaje_id AND chofer_id = :user_id
     """)
-    turno_row = (await db.execute(turno_query, {"user_id": str(user_id)})).first()
+    viaje_row = (await db.execute(viaje_query, {
+        "viaje_id": str(viaje_id),
+        "user_id": str(user_id)
+    })).first()
 
-    if not turno_row:
-        raise HTTPException(400, "No tenes un turno activo")
+    if not viaje_row:
+        raise HTTPException(404, "Viaje no encontrado o no pertenece al chofer")
 
-    turno_id = turno_row[0]
+    viaje_id_db, viaje_turno_id, viaje_estado = viaje_row
 
-    # 2. Llamar al servicio
+    if not viaje_turno_id:
+        # Si el viaje no tiene turno, lo cerramos sin pasar por el servicio
+        # (o lo asignamos al turno actual). Por simplicidad, lo cerramos directo.
+        raise HTTPException(400, "El viaje no tiene un turno asociado. No se puede cerrar forzadamente.")
+
+    if viaje_estado not in ('aceptado', 'en_curso'):
+        raise HTTPException(400, f"El viaje no se puede cerrar. Estado actual: {viaje_estado}")
+
+    # 2. Llamar al servicio usando el turno_id DEL VIAJE
     try:
         resultado = await TurnoService.forzar_cierre_viaje(
             db=db,
-            turno_id=turno_id,
+            turno_id=viaje_turno_id,
             chofer_id=user_id,
             viaje_id=viaje_id,
             motivo=request.motivo,
@@ -1003,7 +1017,6 @@ async def cerrar_viaje_huerfano(
         puede_cerrar_turno=resultado["puede_cerrar_turno"],
         message="Viaje cerrado forzadamente",
     )
-
 
 
 @router.get("/historial")

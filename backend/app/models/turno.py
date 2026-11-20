@@ -11,7 +11,6 @@ from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 from app.database import Base
 
-
 class TurnoChofer(Base):
     __tablename__ = "turno_chofer"
     __table_args__ = (
@@ -23,6 +22,12 @@ class TurnoChofer(Base):
             "vehiculo_id",
             postgresql_where=text("(estado)::text = 'ACTIVO'::text"),
         ),
+                Index(
+            "idx_turno_chofer_km_sospechoso",
+            "km_sospechoso",
+            postgresql_where=text("km_sospechoso = true"),
+        ),
+
         CheckConstraint(
             "estado IN ('ACTIVO', 'PENDIENTE_CONFIRMACION', 'CON_DIFERENCIAS_PENDIENTES', 'EN_DISPUTA', 'CONCILIADO', 'CONCILIADO_AUTOMATICO', 'LIQUIDADO', 'CERRADO', 'CANCELADO')",
             name="estado",
@@ -31,15 +36,15 @@ class TurnoChofer(Base):
     )
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
+
     # Relaciones
     contrato_id = Column(PGUUID(as_uuid=True), ForeignKey("fleet.contrato_vehiculo.id"), nullable=False)
     chofer_id = Column(PGUUID(as_uuid=True), ForeignKey("auth.usuario.id"), nullable=False)
     vehiculo_id = Column(PGUUID(as_uuid=True), ForeignKey("fleet.vehiculo.id"), nullable=False)
-    
+
     # Estado del turno
     estado = Column(String(30), nullable=False, default='ACTIVO')
-    
+
     # Control de kilometraje y combustible
     km_inicial = Column(Numeric, nullable=False)
     km_final = Column(Numeric, nullable=True)
@@ -52,21 +57,7 @@ class TurnoChofer(Base):
         nullable=True,
         comment="Efectivo que el chofer declara haber entregado al propietario al cerrar el turno",
     )
-    
-    # ============================================
-    # ❌ ELIMINADOS - CAMPOS LEGACY DE RECAUDACIÓN
-    # ============================================
-    # recaudacion_app_efectivo = Column(Numeric(10,2), default=0)  # ELIMINADO
-    # recaudacion_app_debito = Column(Numeric(10,2), default=0)    # ELIMINADO
-    # recaudacion_ticketera_calle = Column(Numeric(10,2), default=0) # ELIMINADO
-    
-    # ============================================
-    # ❌ ELIMINADOS - CAMPOS LEGACY DE LIQUIDACIÓN
-    # ============================================
-    # monto_bruto_calculado = Column(Numeric(10,2), default=0)        # ELIMINADO
-    # comision_chofer_calculada = Column(Numeric(10,2), default=0)    # ELIMINADO
-    # utilidad_propietario_calculada = Column(Numeric(10,2), default=0) # ELIMINADO
-    
+
     # ============================================
     # SNAPSHOTS DE HORARIOS
     # ============================================
@@ -80,7 +71,7 @@ class TurnoChofer(Base):
         nullable=True,
         comment="Día contractual al inicio del turno (ej. LUNES, MARTES). Snapshot inmutable."
     )
-    
+
     # ============================================
     # MARCAS DE TIEMPO
     # ============================================
@@ -88,7 +79,38 @@ class TurnoChofer(Base):
     fin_turno = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    
+
+    # ============================================
+    # CONCILIACION (m3_031 / m3_036)
+    # ============================================
+    conciliado_por = Column(
+        PGUUID(as_uuid=True),
+        ForeignKey("auth.usuario.id"),
+        nullable=True,
+        comment="Usuario que concilió el turno (propietario o sistema)"
+    )
+    conciliado_en = Column(
+        DateTime,
+        nullable=True,
+        comment="Fecha y hora en que se cerró la conciliación"
+    )
+    tipo_conciliacion = Column(
+        String(30),
+        nullable=True,
+        server_default="AUTOMATICA",
+        comment="Tipo de conciliación aplicada al cerrar el turno (AUTOMATICA, MANUAL, etc.)"
+    )
+
+    # ============================================
+    # MANTENIMIENTO (m3_037)
+    # ============================================
+    km_sospechoso = Column(
+        Boolean,
+        nullable=False,
+        server_default="false",
+        doc="True si el turno tiene km inconsistente. El motor de km lo excluye.",
+    )
+
     # ============================================
     # RELATIONSHIPS
     # ============================================
@@ -96,24 +118,24 @@ class TurnoChofer(Base):
         "ContratoVehiculo",
         lazy="selectin"
     )
-    
+
     chofer = relationship(
         "Usuario",
         foreign_keys=[chofer_id],
         lazy="selectin"
     )
-    
+
     vehiculo = relationship(
         "Vehiculo",
         lazy="selectin"
     )
-    
+
     gastos = relationship(
         "GastoTurno",
         lazy="selectin",
         cascade="all, delete-orphan"
     )
-    
+
     # ============================================
     # NUEVAS RELATIONSHIPS
     # ============================================
@@ -122,12 +144,12 @@ class TurnoChofer(Base):
         lazy="selectin",
         cascade="all, delete-orphan"
     )
-    
+
     viajes = relationship(
         "ViajeSolicitado",
         lazy="selectin"
     )
-    
+
     liquidaciones = relationship(
         "Liquidacion",
         lazy="selectin"

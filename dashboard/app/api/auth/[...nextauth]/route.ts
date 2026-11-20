@@ -3,6 +3,47 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+// ============================================================
+// FUNCIÓN AUXILIAR PARA REFRESCAR EL TOKEN
+// ============================================================
+async function refreshAccessToken(token: any) {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        refresh_token: token.refreshToken,
+      }),
+    })
+
+    const refreshedTokens = await response.json()
+
+    if (!response.ok) {
+      throw refreshedTokens
+    }
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.access_token,
+      // Si el backend devuelve un nuevo refresh token, lo guardamos
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+      // Calculamos la nueva expiración (asumimos 30 minutos = 1800 segundos)
+      accessTokenExpires: Date.now() + 30 * 60 * 1000,
+    }
+  } catch (error) {
+    console.error('❌ Error refrescando token:', error)
+    return {
+      ...token,
+      error: 'RefreshAccessTokenError',
+    }
+  }
+}
+
+// ============================================================
+// CONFIGURACIÓN DE NEXTAUTH
+// ============================================================
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -12,50 +53,25 @@ const handler = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('🔐 authorize - credentials:', credentials)
-
-        if (!credentials?.email || !credentials?.password) {
-          console.log('❌ Faltan credenciales')
-          return null
-        }
+        // ... (tu código de authorize igual)
+        if (!credentials?.email || !credentials?.password) return null
 
         try {
-          const requestBody = JSON.stringify({
-            email: credentials.email.trim(),
-            password: credentials.password
-          })
-          
-          console.log('🔐 Enviando a:', `${API_URL}/api/auth/login`)
-          console.log('🔐 Body:', requestBody)
-
           const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: requestBody,
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+              email: credentials.email.trim(),
+              password: credentials.password
+            }),
           })
 
-          console.log('🔐 Status code:', response.status)
-          
           const data = await response.json()
-          console.log('🔐 Respuesta completa:', data)
 
-          if (!response.ok) {
-            console.error('❌ Login error:', data)
-            return null
-          }
-
-          if (!data.success || !data.access_token) {
-            console.error('❌ Respuesta sin token:', data)
-            return null
-          }
+          if (!response.ok || !data.success || !data.access_token) return null
 
           const tipoUsuario = data.tipo || data.tipo_usuario || 'pasajero'
           const controlBaseId = data.control_base_id || null
-
-          console.log('✅ Usuario autenticado:', data.email, 'tipo:', tipoUsuario)
 
           return {
             id: data.user_id,
@@ -67,17 +83,18 @@ const handler = NextAuth({
             refreshToken: data.refresh_token,
             controlBaseId: controlBaseId,
             control_base_id: controlBaseId,
+            // Guardamos cuándo expira (asumimos 30 min)
+            accessTokenExpires: Date.now() + 30 * 60 * 1000,
           }
-
         } catch (error) {
-          console.error('❌ Fetch error:', error)
           return null
         }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      // 1. Login inicial
       if (user) {
         token.id = user.id
         token.email = user.email
@@ -88,8 +105,18 @@ const handler = NextAuth({
         token.refreshToken = user.refreshToken
         token.controlBaseId = user.controlBaseId
         token.control_base_id = user.control_base_id
+        token.accessTokenExpires = user.accessTokenExpires
+        return token
       }
-      return token
+
+      // 2. Token aún válido
+      if (Date.now() < (token.accessTokenExpires as number)) {
+        return token
+      }
+
+      // 3. Token expirado -> Refrescar
+      console.log('🔄 Token expirado, refrescando...')
+      return refreshAccessToken(token)
     },
     async session({ session, token }) {
       if (token) {

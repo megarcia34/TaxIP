@@ -21,6 +21,7 @@ export function useChoferesPendientes(enabled: boolean = true) {
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     enabled,
+    refetchInterval: 30000, // ✅ Se actualiza cada 30 segundos
   });
 }
 
@@ -31,6 +32,7 @@ export function useVehiculosPendientes(enabled: boolean = true) {
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     enabled,
+    refetchInterval: 30000, // ✅ Se actualiza cada 30 segundos
   });
 }
 

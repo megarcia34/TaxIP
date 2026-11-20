@@ -198,7 +198,7 @@ def diff_schemas(db, orm):
     solo_orm = sorted(orm_schemas - db_schemas)
 
     for schema in solo_db:
-        if schema in ("public",):  # public solo aporta system tables
+        if schema in ("public","tiger", "topology"):  # public solo aporta system tables
             continue
         n_tables = len(db["schemas"][schema]["tables"])
         diff.append({

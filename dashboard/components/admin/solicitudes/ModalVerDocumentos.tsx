@@ -46,7 +46,7 @@ export default function ModalVerDocumentos({
             {tiposRequeridos.map(({ tipo, label }) => {
               const doc = documentos[tipo];
               // 👇 3. Cambiamos doc.url_archivo por doc.url (que es como se llama en solicitudesTenant.ts)
-              const urlCompleta = doc ? getDocumentoUrl(doc.url) : null; 
+              const urlCompleta = doc ? getDocumentoUrl((doc as any).url_archivo || (doc as any).url) : null;
               const presente = !!urlCompleta;
 
               return (

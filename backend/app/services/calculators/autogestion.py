@@ -41,14 +41,12 @@ class AutoGestionCalculator(LiquidacionCalculator):
             lineas.append(self._crear_linea_gasto_turno(gasto))
         
         # 3. Sumar gastos del vehículo (los absorbe el propietario)
+                # Son gastos estructurales del propietario (seguro, patente, cubiertas)
+        # y no deben impactar en la liquidación de un turno específico.
         total_gastos_vehiculo = Decimal(0)
-        for gasto in contexto.gastos_vehiculo:
-            total_gastos_vehiculo += gasto["monto"]
-            lineas.append(self._crear_linea_gasto_vehiculo(gasto))
 
         # 4. Calcular utilidad (ingresos - gastos totales)
         total_gastos = total_gastos_turno + total_gastos_vehiculo
-        utilidad = monto_bruto - total_gastos
         
         # Si la utilidad es negativa, se muestra como 0 (el propietario asume la pérdida)
         if utilidad < 0:

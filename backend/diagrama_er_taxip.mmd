@@ -1,0 +1,1478 @@
+erDiagram
+    %% TaxiP — taxip_db (generado 2026-11-18)
+    audit_alerta_desvio {
+        uuid id PK
+        uuid viaje_id
+        numeric latitud
+        numeric longitud
+        numeric distancia_desvio_metros
+        text ruta_esperada_json
+        bool notificado
+        bool resuelto
+        timestamp created_at
+    }
+    audit_alertas_vencimiento {
+        uuid id PK
+        uuid entidad_id
+        varchar entidad_tipo
+        uuid documento_id
+        text mensaje
+        varchar nivel
+        date fecha_vencimiento
+        timestamp created_at
+    }
+    audit_log_acciones {
+        uuid id PK
+        uuid usuario_id
+        varchar email
+        varchar accion
+        varchar tabla_afectada
+        uuid registro_id
+        jsonb datos_anteriores
+        jsonb datos_nuevos
+        uuid control_base_id
+        varchar ip_address
+        text user_agent
+        timestamp created_at
+    }
+    audit_log_gps {
+        uuid id PK
+        uuid viaje_id
+        uuid usuario_id
+        numeric latitud
+        numeric longitud
+        timestamp created_at
+    }
+    auth_auditoria_email {
+        uuid id PK
+        varchar email
+        bool valid
+        text reason
+        varchar domain
+        text mx_records
+        text smtp_response
+        varchar ip_address
+        timestamp created_at
+        text user_agent
+    }
+    auth_autorizacion_inicio {
+        uuid id PK
+        varchar token
+        uuid contrato_id
+        uuid chofer_id
+        uuid vehiculo_id
+        uuid control_base_id
+        varchar tipo_contrato
+        varchar turno_contractual
+        varchar dia_contractual
+        timestamp created_at
+        timestamp expires_at
+        timestamp used_at
+        uuid qr_referencia
+        uuid created_by
+    }
+    auth_codigo_metadatos {
+        uuid id PK
+        uuid codigo_id
+        uuid contrato_id
+        uuid vehiculo_id
+        uuid propietario_id
+        timestamptz created_at
+    }
+    auth_codigo_verificacion {
+        uuid id PK
+        uuid usuario_id
+        varchar codigo
+        varchar tipo
+        bool usado
+        int intentos
+        timestamptz creado_en
+        timestamptz expira_en
+        jsonb metadata
+    }
+    auth_direccion_frecuente {
+        uuid id PK
+        uuid usuario_id
+        varchar nombre
+        numeric latitud
+        numeric longitud
+        text direccion_texto
+        timestamp created_at
+        varchar telefono
+        varchar email
+    }
+    auth_perfil_general {
+        uuid id PK
+        uuid usuario_id
+        varchar nombre
+        varchar apellido
+        varchar telefono
+        varchar documento
+        uuid ciudad_id
+        timestamp created_at
+        text direccion
+        text foto_perfil_url
+        timestamp updated_at
+        date fecha_nacimiento
+        varchar barrio
+        varchar codigo_postal
+        varchar tipo_conductor
+        varchar agencia
+        varchar cuit_cuil
+        varchar condicion_impositiva
+    }
+    auth_plantilla_viaje {
+        uuid id PK
+        uuid usuario_id
+        uuid empresa_id
+        varchar nombre
+        text direccion_origen
+        numeric latitud_origen
+        numeric longitud_origen
+        text direccion_destino
+        numeric latitud_destino
+        numeric longitud_destino
+        jsonb paradas_intermedias
+        varchar tipo_vehiculo
+        varchar metodo_pago
+        int cantidad_pasajeros
+        int cantidad_equipaje
+        text nota_conductor
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+    }
+    auth_prestadora_telefonica {
+        uuid id PK
+        varchar nombre
+        varchar codigo_pais
+        bool activo
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    auth_refresh_token {
+        uuid id PK
+        uuid usuario_id
+        varchar token
+        timestamp expiracion
+        bool usado
+        timestamp created_at
+    }
+    auth_reset_token {
+        uuid id PK
+        uuid usuario_id
+        varchar token
+        timestamp expiracion
+        bool usado
+        timestamp created_at
+    }
+    auth_taxista_favorito {
+        uuid id PK
+        uuid pasajero_id
+        uuid chofer_id
+        timestamp created_at
+    }
+    auth_tipo_usuario {
+        uuid id PK
+        varchar nombre
+    }
+    auth_turno_empleado {
+        uuid id PK
+        uuid empleado_id
+        uuid empresa_id
+        timestamp fecha_inicio
+        timestamp fecha_fin
+        varchar estado
+        int viajes_gestionados
+        numeric facturado_total
+        timestamp created_at
+        timestamp updated_at
+    }
+    auth_usuario {
+        uuid id PK
+        uuid control_base_id
+        uuid tipo_usuario_id
+        varchar email
+        text password_hash
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+        timestamp fecha_suspension
+        text motivo_suspension
+        uuid suspendido_por
+    }
+    auth_usuario_empresa {
+        uuid id PK
+        uuid empresa_id
+        uuid usuario_id
+        varchar rol
+        bool activo
+        timestamp created_at
+    }
+    auth_usuario_rol {
+        uuid id PK
+        uuid usuario_id
+        uuid tipo_usuario_id
+        bool activo
+        date fecha_inicio
+        date fecha_fin
+        timestamp created_at
+        timestamp updated_at
+    }
+    comunicacion_conversacion {
+        uuid id PK
+        uuid participante_1
+        uuid participante_2
+        text ultimo_mensaje
+        timestamp ultimo_mensaje_en
+        timestamp created_at
+        timestamp updated_at
+    }
+    comunicacion_email_enviado {
+        uuid id PK
+        uuid usuario_id
+        varchar destinatario_email
+        varchar asunto
+        varchar template_id
+        varchar estado
+        text error_mensaje
+        timestamp created_at
+        timestamp enviado_en
+    }
+    comunicacion_mensaje {
+        uuid id PK
+        uuid conversacion_id
+        uuid remitente_id
+        uuid viaje_id
+        text contenido
+        bool leido
+        timestamp leido_en
+        timestamp created_at
+    }
+    corporate_cuenta_corriente {
+        uuid id PK
+        uuid empresa_id
+        numeric saldo_actual
+        numeric saldo_disponible
+        numeric limite_credito
+        varchar moneda
+        timestamp ultima_actualizacion
+        timestamp created_at
+        timestamp updated_at
+        varchar titular_tipo
+        varchar estado
+        varchar periodo_facturacion
+        int dia_cierre
+        varchar responsable_cobro
+        uuid titular_id
+        uuid propietario_id
+        timestamp fecha_apertura
+        timestamp fecha_ultimo_pago
+        timestamp fecha_proximo_vencimiento
+    }
+    corporate_factura_corporativa {
+        uuid id PK
+        uuid empresa_id
+        varchar numero_factura
+        date periodo_desde
+        date periodo_hasta
+        timestamp fecha_emision
+        timestamp fecha_vencimiento
+        numeric subtotal
+        numeric descuento
+        numeric iva
+        numeric total
+        varchar estado
+        text pdf_url
+        text observaciones
+        timestamp created_at
+        timestamp updated_at
+        numeric saldo_anterior
+        numeric saldo_final
+        numeric total_cargos
+        numeric total_pagos
+    }
+    corporate_movimiento_cuenta {
+        uuid id PK
+        uuid cuenta_id
+        uuid viaje_id
+        varchar tipo_movimiento
+        varchar concepto
+        numeric monto
+        numeric saldo_anterior
+        numeric saldo_nuevo
+        varchar referencia
+        jsonb meta_data
+        timestamp created_at
+        varchar tipo
+        timestamp fecha_vencimiento
+        varchar estado
+        varchar metodo_pago
+        varchar referencia_pago
+        uuid created_by
+    }
+    corporate_pago_corporativo {
+        uuid id PK
+        uuid empresa_id
+        uuid factura_id
+        numeric monto
+        varchar metodo_pago
+        varchar referencia
+        text comprobante_url
+        varchar estado
+        timestamp fecha_pago
+        uuid confirmado_por
+        timestamp confirmado_en
+        text observaciones
+        timestamp created_at
+        timestamp updated_at
+        uuid movimiento_cc_id
+    }
+    fleet_categoria_gasto {
+        uuid id PK
+        uuid control_base_id
+        varchar nombre
+        text descripcion
+        jsonb subcategorias
+        jsonb aplica_a
+        varchar tratamiento_economico
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+    }
+    fleet_chofer_vehiculo {
+        uuid id PK
+        uuid usuario_id
+        uuid vehiculo_id
+        uuid control_base_id
+        numeric latitud
+        numeric longitud
+        geometry ubicacion
+        varchar estado_laboral
+        bool estado_panico
+        numeric calificacion_promedio
+        int total_calificaciones
+        timestamp ultima_conexion
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+        varchar estado_aprobacion
+        int total_viajes
+    }
+    fleet_contrato_qr {
+        uuid id PK
+        uuid contrato_id
+        varchar token
+        timestamp fecha_expiracion
+        bool activo
+        timestamp created_at
+        uuid created_by
+        int usos
+    }
+    fleet_contrato_vehiculo {
+        uuid id PK
+        uuid control_base_id
+        uuid propietario_id
+        uuid vehiculo_id
+        uuid chofer_id
+        varchar tipo_contrato
+        numeric porcentaje_chofer
+        numeric monto_diario
+        timestamp fecha_inicio
+        timestamp fecha_fin
+        bool activo
+        timestamp created_at
+        varchar estado_contrato
+        numeric canon_diario
+        numeric km_incluidos_dia
+        numeric valor_km_excedente
+        varchar modalidad_computo
+        jsonb dias_contractuales
+        varchar tratamiento_dia_no_trabajado
+        timestamp updated_at
+        varchar dia_inicio_semana
+        time hora_inicio
+        time hora_fin
+        int duracion_minima_horas
+        bool permite_extension
+        time hora_fin_extension
+        varchar compensacion_km
+    }
+    fleet_documento_propietario {
+        uuid id PK
+        uuid propietario_id
+        varchar tipo_documento
+        varchar numero
+        date fecha_emision
+        date fecha_vencimiento
+        text observaciones
+        text url_archivo
+        timestamp created_at
+        timestamp updated_at
+    }
+    fleet_documento_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        varchar tipo_documento
+        varchar numero
+        date fecha_emision
+        date fecha_vencimiento
+        text observaciones
+        text url_archivo
+        timestamp created_at
+        timestamp updated_at
+        bool activo
+        int notificar_dias
+        varchar marca
+        varchar modelo
+        varchar tipo_vehiculo
+        varchar uso
+        varchar chasis
+        varchar motor
+        varchar dominio
+        date vtv_fecha_vencimiento
+        varchar seguro_compania
+        varchar seguro_poliza
+        date seguro_fecha_emision
+        date seguro_fecha_vencimiento
+        varchar seguro_cobertura
+        varchar seguro_suma_asegurada
+        varchar seguro_tomador
+        varchar seguro_vehiculo
+    }
+    fleet_documentos_chofer {
+        uuid id PK
+        uuid usuario_id
+        varchar tipo_documento
+        text url
+        timestamp subido_en
+        date fecha_vencimiento
+        int notificar_dias
+        bool activo
+        varchar numero
+    }
+    fleet_foto_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        text url
+        text public_id
+        text descripcion
+        int orden
+        bool es_principal
+        uuid subida_por
+        timestamp created_at
+    }
+    fleet_gasto_turno {
+        uuid id PK
+        uuid turno_id
+        varchar tipo_gasto
+        numeric monto
+        numeric km_registro
+        varchar url_comprobante
+        timestamp created_at
+        uuid categoria_id
+        varchar subcategoria
+    }
+    fleet_gasto_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        uuid propietario_id
+        varchar tipo_gasto
+        numeric monto
+        varchar moneda
+        text descripcion
+        text comprobante_url
+        date fecha_gasto
+        timestamp created_at
+        uuid categoria_id
+        varchar subcategoria
+        numeric km_registro
+    }
+    fleet_historial_chofer_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        uuid chofer_id
+        timestamp fecha_inicio
+        timestamp fecha_fin
+        varchar estado
+    }
+    fleet_ingreso_turno {
+        uuid id PK
+        uuid turno_id
+        uuid viaje_id
+        varchar tipo_ingreso
+        varchar medio_pago
+        varchar origen
+        numeric monto
+        varchar moneda
+        timestamp fecha_hora
+        uuid declarado_por
+        varchar estado
+        text observaciones
+        varchar referencia_pago
+        uuid transaccion_id
+        timestamp created_at
+        timestamp updated_at
+    }
+    fleet_liquidacion {
+        uuid id PK
+        uuid control_base_id
+        uuid turno_id
+        uuid contrato_id
+        uuid vehiculo_id
+        uuid chofer_id
+        uuid propietario_id
+        varchar tipo_contrato
+        timestamp periodo_desde
+        timestamp periodo_hasta
+        numeric monto_bruto
+        numeric total_gastos
+        numeric comision_chofer
+        numeric canon
+        numeric total_chofer
+        numeric total_propietario
+        varchar estado
+        int version
+        timestamp calculada_en
+        timestamp created_at
+        timestamp updated_at
+        uuid aprobada_por
+        timestamp aprobada_en
+        uuid rechazada_por
+        timestamp rechazada_en
+        text motivo_rechazo
+        uuid pagada_por
+        timestamp pagada_en
+        varchar metodo_pago
+        varchar referencia_pago
+        numeric km_excedentes
+        numeric cargo_km_excedentes
+        numeric saldo_chofer
+        numeric saldo_propietario
+    }
+    fleet_liquidacion_ajuste {
+        uuid id PK
+        uuid liquidacion_id
+        uuid control_base_id
+        varchar tipo_ajuste
+        numeric monto
+        text motivo
+        uuid usuario_id
+        timestamp created_at
+    }
+    fleet_liquidacion_detalle {
+        uuid id PK
+        uuid liquidacion_id
+        varchar tipo_linea
+        varchar concepto
+        varchar fuente_tipo
+        uuid fuente_id
+        numeric monto
+        varchar signo
+        jsonb meta_data
+        timestamp created_at
+    }
+    fleet_liquidacion_estado_historial {
+        uuid id PK
+        uuid liquidacion_id
+        uuid control_base_id
+        varchar estado_anterior
+        varchar estado_nuevo
+        uuid cambiado_por
+        text motivo
+        timestamp created_at
+    }
+    fleet_mantenimiento_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        uuid propietario_id
+        varchar tipo_servicio
+        varchar taller_nombre
+        text taller_direccion
+        numeric costo
+        int kilometraje
+        text observaciones
+        date fecha_servicio
+        timestamp created_at
+    }
+    fleet_marca {
+        uuid id PK
+        varchar nombre
+        timestamp created_at
+    }
+    fleet_modelo {
+        uuid id PK
+        uuid marca_id
+        varchar nombre
+        timestamp created_at
+    }
+    fleet_neumatico_historial_posicion {
+        uuid id PK
+        uuid neumatico_vehiculo_id
+        uuid vehiculo_id
+        uuid control_base_id
+        varchar eje_posicion
+        int km_montaje
+        int km_desmontaje
+        timestamp fecha_montaje
+        timestamp fecha_desmontaje
+        uuid operacion_id
+        bool activo
+        timestamp created_at
+    }
+    fleet_neumatico_imagen {
+        uuid id PK
+        uuid control_base_id
+        uuid neumatico_vehiculo_id
+        uuid operacion_id
+        varchar cloudinary_public_id
+        varchar cloudinary_url
+        varchar cloudinary_secure_url
+        varchar tipo_imagen
+        text descripcion
+        int peso_bytes
+        varchar dimensiones
+        uuid subido_por
+        timestamp fecha_subida
+        bool activo
+        timestamp created_at
+    }
+    fleet_neumatico_medicion {
+        uuid id PK
+        uuid historial_posicion_id
+        uuid control_base_id
+        numeric profundidad_mm
+        timestamp fecha_medicion
+        uuid medido_por
+        text observaciones
+        bool activo
+        timestamp created_at
+    }
+    fleet_neumatico_operacion {
+        uuid id PK
+        uuid vehiculo_id
+        uuid control_base_id
+        varchar tipo_operacion
+        text descripcion
+        int km_vehiculo_actual
+        timestamp fecha_operacion
+        numeric costo
+        varchar moneda
+        varchar proveedor
+        text observaciones
+        uuid creado_por
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+    }
+    fleet_neumatico_operacion_detalle {
+        uuid id PK
+        uuid operacion_id
+        uuid neumatico_vehiculo_id
+        varchar posicion_antes
+        varchar posicion_despues
+        int km_neumatico_en_operacion
+        bool activo
+        timestamp created_at
+    }
+    fleet_neumatico_sugerencia {
+        uuid id PK
+        uuid vehiculo_id
+        uuid control_base_id
+        varchar tipo_sugerencia
+        uuid neumatico_vehiculo_id
+        text mensaje
+        varchar prioridad
+        int km_actual
+        int km_umbral
+        varchar estado
+        timestamp fecha_generacion
+        timestamp fecha_atendida
+        uuid atendida_por
+        timestamp created_at
+        timestamp updated_at
+    }
+    fleet_neumatico_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        uuid control_base_id
+        varchar codigo_interno
+        varchar marca
+        varchar modelo_dibujo
+        varchar medida
+        varchar tipo_neumatico
+        date fecha_fabricacion
+        varchar estado
+        int km_totales_acumulados
+        timestamp fecha_alta
+        timestamp fecha_baja
+        text observaciones
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+    }
+    fleet_notificacion_vencimiento {
+        uuid id PK
+        uuid documento_id
+        varchar entidad_tipo
+        uuid propietario_id
+        varchar tipo_documento
+        varchar numero
+        varchar nivel
+        int dias_restantes
+        date fecha_vencimiento
+        bool email_enviado
+        timestamp email_enviado_en
+        bool sms_enviado
+        timestamp sms_enviado_en
+        timestamp created_at
+    }
+    fleet_propietario_vehiculo {
+        uuid id PK
+        uuid propietario_id
+        uuid vehiculo_id
+        numeric porcentaje_participacion
+        date fecha_inicio
+        date fecha_fin
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+    }
+    fleet_relacion_propietario_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        uuid propietario_id
+        numeric porcentaje_participacion
+        date fecha_inicio
+        date fecha_fin
+        bool activo
+    }
+    fleet_turno_chofer {
+        uuid id PK
+        uuid contrato_id
+        uuid chofer_id
+        uuid vehiculo_id
+        varchar estado
+        numeric km_inicial
+        numeric km_final
+        varchar combustible_inicial
+        varchar combustible_final
+        timestamp inicio_turno
+        timestamp fin_turno
+        timestamp created_at
+        timestamp updated_at
+        varchar snapshot_dia_contractual
+        time snapshot_hora_inicio
+        time snapshot_hora_fin
+        int snapshot_duracion_minima_horas
+        bool snapshot_permite_extension
+        time snapshot_hora_fin_extension
+    }
+    fleet_vehiculo {
+        uuid id PK
+        uuid control_base_id
+        varchar patente
+        varchar marca
+        varchar modelo
+        int anio
+        bool activo
+        timestamp created_at
+        varchar numero_licencia
+        uuid qr_uuid
+        bool qr_activo
+        int desgaste_neumaticos
+        int desgaste_manual
+        date fecha_ultimo_cambio_neumaticos
+        int km_ultimo_cambio_neumaticos
+        int parches_neumaticos
+        int capacidad
+        timestamp updated_at
+        varchar capacidad_baul
+        varchar estado_vehiculo
+        jsonb equipamiento
+        varchar estado_aprobacion
+        bool documentacion_completa
+        date fecha_vencimiento_taxi
+        bool override_antiguedad
+        timestamp en_revision_desde
+        timestamp en_revision_expira_en
+        uuid aprobado_por
+        timestamp aprobado_en
+        uuid rechazado_por
+        timestamp rechazado_en
+        text motivo_rechazo
+    }
+    geo_ciudad {
+        uuid id PK
+        uuid provincia_id
+        varchar nombre
+        timestamp created_at
+        varchar codigo_postal
+    }
+    geo_pais {
+        uuid id PK
+        varchar nombre
+        varchar codigo_iso
+        timestamp created_at
+    }
+    geo_provincia {
+        uuid id PK
+        uuid pais_id
+        varchar nombre
+        timestamp created_at
+    }
+    notification_notificacion {
+        uuid id PK
+        uuid usuario_id
+        varchar titulo
+        text mensaje
+        varchar tipo
+        bool leida
+        timestamp created_at
+    }
+    payment_billetera {
+        uuid id PK
+        uuid usuario_id
+        numeric saldo
+        varchar moneda
+        timestamp created_at
+        timestamp updated_at
+    }
+    payment_configuracion_pasarela {
+        uuid id PK
+        uuid control_base_id
+        varchar pasarela
+        bool activa
+        jsonb credenciales
+        numeric comision_porcentaje
+        timestamp created_at
+    }
+    payment_configuracion_tarifa {
+        uuid id PK
+        uuid control_base_id
+        varchar nombre
+        numeric tarifa_base
+        numeric precio_por_km
+        numeric precio_por_minuto
+        numeric recargo_nocturno
+        numeric recargo_feriado
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+        varchar modo_calculo
+        numeric distancia_por_ficha
+        numeric precio_por_ficha
+        numeric precio_por_minuto_espera
+        numeric recargo_domingo
+        time hora_inicio_nocturno
+        time hora_fin_nocturno
+        varchar moneda
+        text descripcion
+        numeric metros_por_ficha
+        numeric seg_por_ficha_espera
+        numeric velocidad_referencia_kmh
+        numeric velocidad_umbral_kmh
+        varchar modo_cobro_tiempo
+        int redondeo_comercial
+    }
+    payment_configuracion_tarifa_vehiculo {
+        uuid id PK
+        uuid configuracion_tarifa_id
+        varchar tipo_vehiculo_id
+        numeric factor_precio
+        bool activo
+        timestamptz created_at
+    }
+    payment_cuenta_cobro {
+        uuid id PK
+        uuid usuario_id
+        varchar tipo
+        varchar numero
+        varchar alias
+        varchar banco
+        varchar titular
+        bool predeterminada
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+    }
+    payment_factura_empresa {
+        uuid id PK
+        uuid empresa_id
+        date periodo
+        numeric total
+        numeric descuento
+        numeric total_final
+        varchar estado
+        text pdf_url
+        timestamp created_at
+        timestamp pagada_at
+    }
+    payment_metodo_pago {
+        uuid id PK
+        varchar nombre
+    }
+    payment_pago_empresa {
+        uuid id PK
+        uuid empresa_id
+        numeric monto
+        varchar metodo_pago
+        varchar referencia
+        varchar estado
+        text comprobante_url
+        uuid factura_id
+        text observaciones
+        timestamp fecha_pago
+        timestamp confirmado_en
+        uuid confirmado_por
+        timestamp created_at
+        timestamp updated_at
+    }
+    payment_qr_cobro {
+        uuid id PK
+        uuid viaje_id
+        varchar token
+        numeric monto
+        varchar pasarela
+        varchar estado
+        text url_pago
+        varchar id_transaccion_externa
+        timestamp creado_en
+        timestamp expira_en
+        timestamp pagado_en
+        uuid control_base_id
+    }
+    payment_transaccion {
+        uuid id PK
+        uuid viaje_id
+        uuid metodo_pago_id
+        numeric monto
+        varchar estado
+        varchar external_reference
+        timestamp created_at
+        varchar tipo
+        numeric saldo_despues
+        text descripcion
+        uuid billetera_id
+    }
+    public_alembic_version {
+        varchar version_num
+    }
+    public_comercio {
+        uuid id PK
+        varchar nombre
+        varchar rubro
+        text direccion
+        numeric latitud
+        numeric longitud
+        varchar codigo_qr
+        varchar email_contacto
+        varchar telefono
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+        uuid control_base_id
+    }
+    public_escaneo_qr {
+        uuid id PK
+        uuid comercio_id
+        uuid viaje_id
+        text user_agent
+        text ip_address
+        timestamp created_at
+        uuid contrato_id
+        varchar tipo_qr
+        varchar resultado
+        text motivo
+        uuid autorizacion_id
+    }
+    public_geography_columns {
+        varchar f_table_catalog
+        varchar f_table_schema
+        varchar f_table_name
+        varchar f_geography_column
+        int coord_dimension
+        int srid
+        text type
+    }
+    public_geometry_columns {
+        varchar f_table_catalog
+        varchar f_table_schema
+        varchar f_table_name
+        varchar f_geometry_column
+        int coord_dimension
+        int srid
+        varchar type
+    }
+    public_spatial_ref_sys {
+        int srid
+        varchar auth_name
+        int auth_srid
+        varchar srtext
+        varchar proj4text
+    }
+    rentabilidad_analisis_medios_pago {
+        uuid id PK
+        uuid vehiculo_id
+        int anio
+        int mes
+        varchar medio_pago
+        int total_viajes
+        numeric total_ingresos
+        numeric comision_aplicada
+        numeric costo_comisiones
+        timestamp created_at
+    }
+    rentabilidad_rentabilidad_diaria_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        date fecha
+        int total_viajes
+        numeric ingresos_brutos
+        numeric comisiones_bancarias
+        numeric costos_variables
+        numeric costos_fijos
+        numeric canon_taxip
+        numeric porcentaje_taxip
+        numeric utilidad_neta
+        numeric margen
+        timestamp created_at
+        timestamp updated_at
+    }
+    rentabilidad_rentabilidad_mensual_vehiculo {
+        uuid id PK
+        uuid vehiculo_id
+        int anio
+        int mes
+        int total_viajes
+        numeric ingresos_brutos
+        numeric comisiones_bancarias
+        numeric costos_variables
+        numeric costos_fijos
+        numeric canon_taxip
+        numeric porcentaje_taxip
+        numeric utilidad_neta
+        numeric margen
+        timestamp created_at
+        timestamp updated_at
+    }
+    tenant_configuracion_tenant {
+        uuid id PK
+        uuid control_base_id
+        varchar moneda_default
+        varchar timezone
+        varchar idioma
+        bool habilitar_fidelizacion
+        bool habilitar_pagos_online
+        timestamp created_at
+        numeric canon_mensual_por_vehiculo
+        numeric porcentaje_taxip_por_viaje
+        numeric iva
+        numeric iibb
+        numeric idc
+        numeric mix_efectivo
+        numeric mix_transferencia
+        numeric mix_qr
+        numeric mix_debito
+        numeric mix_credito
+        numeric comision_qr
+        numeric comision_debito
+        numeric comision_credito
+        numeric costo_combustible_por_km
+        numeric costo_mantenimiento_por_dia
+        numeric costo_seguro_por_dia
+        numeric costo_impuesto_por_dia
+        numeric depreciacion_vehiculo_por_dia
+        timestamp updated_at
+        int vida_util_neumaticos_km
+        int umbral_rotacion_neumaticos_km
+        int umbral_cambio_neumaticos_km
+        numeric profundidad_minima_neumaticos_mm
+        numeric factor_desgaste_delantero
+        int antiguedad_maxima_taxi_anios
+        int dias_revision_documentos
+    }
+    tenant_control_base {
+        uuid id PK
+        varchar nombre
+        varchar email
+        varchar telefono
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+        numeric latitud
+        numeric longitud
+        timestamp fecha_suspension
+        text motivo_suspension
+        uuid suspendido_por
+        uuid ciudad_id
+        varchar direccion
+    }
+    tenant_empresa {
+        uuid id PK
+        varchar nombre
+        varchar tipo
+        varchar email_facturacion
+        varchar telefono
+        text direccion
+        numeric latitud
+        numeric longitud
+        numeric tarifa_preferencial
+        varchar condiciones_pago
+        bool activo
+        timestamp created_at
+        timestamp updated_at
+        uuid control_base_id
+        numeric limite_credito
+        varchar contacto_nombre
+        varchar contacto_telefono
+        varchar contacto_email
+        timestamp fecha_suspension
+        text motivo_suspension
+        uuid suspendido_por
+    }
+    tenant_factura {
+        uuid id PK
+        uuid control_base_id
+        date periodo
+        int vehiculos_activos
+        numeric canon_total
+        numeric porcentaje_plataforma
+        numeric total_a_pagar
+        varchar estado
+        timestamp fecha_emision
+        timestamp fecha_vencimiento
+        timestamp pagada_at
+        uuid pagada_por
+        varchar numero_factura
+        text observaciones
+        timestamp created_at
+        timestamp updated_at
+    }
+    trip_broadcast_log {
+        uuid id PK
+        uuid viaje_id
+        uuid chofer_id
+        uuid vehiculo_id
+        int distancia_metros
+        timestamp emitido_en
+        timestamp respondido_en
+        varchar respuesta
+        varchar motivo_exclusion
+        int tiempo_respuesta_segundos
+        uuid control_base_id
+    }
+    trip_calificacion {
+        uuid id PK
+        uuid viaje_id
+        uuid calificador_id
+        uuid calificado_id
+        int puntaje
+        text comentario
+        timestamp created_at
+    }
+    trip_foto_viaje {
+        uuid id PK
+        uuid viaje_id
+        uuid usuario_id
+        text url
+        text thumbnail_url
+        text metadata_json
+        timestamp created_at
+    }
+    trip_historial_estado_viaje {
+        uuid id PK
+        uuid viaje_id
+        varchar estado
+        text observacion
+        timestamp created_at
+        numeric latitud
+        numeric longitud
+    }
+    trip_objeto_olvidado {
+        uuid id PK
+        uuid viaje_id
+        uuid pasajero_id
+        uuid chofer_id
+        text descripcion
+        varchar estado
+        text foto_url
+        timestamp created_at
+    }
+    trip_panico {
+        uuid id PK
+        uuid viaje_id
+        geometry ubicacion
+        bool activo
+        timestamp created_at
+        uuid usuario_id
+        timestamp resuelto_en
+    }
+    trip_tipo_vehiculo {
+        varchar id PK
+        varchar nombre
+        text descripcion
+        numeric tarifa_base
+        numeric tarifa_por_km
+        numeric tarifa_por_minuto
+        int capacidad_pasajeros
+        int capacidad_equipaje
+        bool activo
+        timestamp created_at
+        numeric precio_por_ficha
+        numeric distancia_por_ficha
+        numeric precio_por_minuto_espera
+    }
+    trip_viaje_solicitado {
+        uuid id PK
+        uuid control_base_id
+        uuid pasajero_id
+        uuid chofer_id
+        uuid vehiculo_id
+        geometry origen
+        geometry destino
+        varchar estado
+        numeric precio_estimado
+        timestamp created_at
+        timestamp finalizado_at
+        timestamp fecha_programada
+        bool reserva_procesada
+        timestamp procesado_en
+        text direccion_origen
+        text direccion_destino
+        int tiempo_estimado_segundos
+        int distancia_metros
+        varchar url_seguimiento
+        varchar codigo_compartido
+        timestamp aceptado_en
+        timestamp iniciado_en
+        timestamp finalizado_en
+        timestamp cancelado_en
+        varchar cancelado_por
+        text motivo_cancelacion
+        numeric precio_final
+        varchar moneda
+        uuid comercio_id
+        uuid empresa_id
+        varchar nombre_pasajero
+        text notas
+        bool facturado
+        uuid turno_id
+        uuid chofer_vehiculo_id
+        timestamp updated_at
+        timestamp solicitado_en
+        bool es_anonimo
+        varchar pasajero_telefono
+        varchar lugar_subida
+        int cantidad_pasajeros
+        varchar origen_tipo
+        uuid empleado_id
+        uuid turno_empleado_id
+        varchar centro_costo
+        jsonb paradas_intermedias
+        varchar subestado_despacho
+        bool es_programado
+        bool requiere_baul_grande
+        int cantidad_valijas
+        varchar calidad_minima_vehiculo
+        varchar tipo_vehiculo_solicitado
+        int intentos_broadcast
+        int radio_broadcast_metros
+        timestamp fecha_publicacion
+        timestamp fecha_expiracion
+        varchar qr_cobro_token
+        timestamp qr_cobro_expira
+        uuid cuenta_corriente_id
+        bool cargado_a_cuenta
+        varchar responsable_cobro
+        varchar estado_cobro
+        timestamp fecha_cobro
+        uuid movimiento_cc_id
+        varchar metodo_pago
+        timestamp llegado_en
+    }
+
+    trip_viaje_solicitado ||--o{ audit_alerta_desvio : "viaje_id"
+    auth_usuario ||--o{ audit_log_acciones : "usuario_id"
+    tenant_control_base ||--o{ audit_log_acciones : "control_base_id"
+    auth_usuario ||--o{ audit_log_gps : "usuario_id"
+    trip_viaje_solicitado ||--o{ audit_log_gps : "viaje_id"
+    auth_usuario ||--o{ auth_autorizacion_inicio : "created_by"
+    fleet_contrato_vehiculo ||--o{ auth_autorizacion_inicio : "contrato_id"
+    auth_usuario ||--o{ auth_autorizacion_inicio : "chofer_id"
+    fleet_vehiculo ||--o{ auth_autorizacion_inicio : "vehiculo_id"
+    tenant_control_base ||--o{ auth_autorizacion_inicio : "control_base_id"
+    auth_usuario ||--o{ auth_codigo_metadatos : "propietario_id"
+    auth_codigo_verificacion ||--o{ auth_codigo_metadatos : "codigo_id"
+    fleet_contrato_vehiculo ||--o{ auth_codigo_metadatos : "contrato_id"
+    fleet_vehiculo ||--o{ auth_codigo_metadatos : "vehiculo_id"
+    auth_usuario ||--o{ auth_codigo_verificacion : "usuario_id"
+    auth_usuario ||--o{ auth_direccion_frecuente : "usuario_id"
+    geo_ciudad ||--o{ auth_perfil_general : "ciudad_id"
+    auth_usuario ||--o{ auth_perfil_general : "usuario_id"
+    tenant_empresa ||--o{ auth_plantilla_viaje : "empresa_id"
+    auth_usuario ||--o{ auth_plantilla_viaje : "usuario_id"
+    auth_usuario ||--o{ auth_refresh_token : "usuario_id"
+    auth_usuario ||--o{ auth_reset_token : "usuario_id"
+    auth_usuario ||--o{ auth_taxista_favorito : "chofer_id"
+    auth_usuario ||--o{ auth_taxista_favorito : "pasajero_id"
+    tenant_empresa ||--o{ auth_turno_empleado : "empresa_id"
+    auth_usuario ||--o{ auth_turno_empleado : "empleado_id"
+    tenant_control_base ||--o{ auth_usuario : "control_base_id"
+    auth_tipo_usuario ||--o{ auth_usuario : "tipo_usuario_id"
+    auth_usuario ||--o{ auth_usuario : "suspendido_por"
+    auth_usuario ||--o{ auth_usuario_empresa : "usuario_id"
+    tenant_empresa ||--o{ auth_usuario_empresa : "empresa_id"
+    auth_tipo_usuario ||--o{ auth_usuario_rol : "tipo_usuario_id"
+    auth_usuario ||--o{ auth_usuario_rol : "usuario_id"
+    auth_usuario ||--o{ comunicacion_conversacion : "participante_2"
+    auth_usuario ||--o{ comunicacion_conversacion : "participante_1"
+    auth_usuario ||--o{ comunicacion_email_enviado : "usuario_id"
+    trip_viaje_solicitado ||--o{ comunicacion_mensaje : "viaje_id"
+    comunicacion_conversacion ||--o{ comunicacion_mensaje : "conversacion_id"
+    auth_usuario ||--o{ comunicacion_mensaje : "remitente_id"
+    auth_usuario ||--o{ corporate_cuenta_corriente : "propietario_id"
+    tenant_empresa ||--o{ corporate_cuenta_corriente : "empresa_id"
+    tenant_empresa ||--o{ corporate_factura_corporativa : "empresa_id"
+    trip_viaje_solicitado ||--o{ corporate_movimiento_cuenta : "viaje_id"
+    auth_usuario ||--o{ corporate_movimiento_cuenta : "created_by"
+    corporate_cuenta_corriente ||--o{ corporate_movimiento_cuenta : "cuenta_id"
+    auth_usuario ||--o{ corporate_pago_corporativo : "confirmado_por"
+    corporate_movimiento_cuenta ||--o{ corporate_pago_corporativo : "movimiento_cc_id"
+    tenant_empresa ||--o{ corporate_pago_corporativo : "empresa_id"
+    corporate_factura_corporativa ||--o{ corporate_pago_corporativo : "factura_id"
+    tenant_control_base ||--o{ fleet_categoria_gasto : "control_base_id"
+    tenant_control_base ||--o{ fleet_chofer_vehiculo : "control_base_id"
+    auth_usuario ||--o{ fleet_chofer_vehiculo : "usuario_id"
+    fleet_vehiculo ||--o{ fleet_chofer_vehiculo : "vehiculo_id"
+    fleet_contrato_vehiculo ||--o{ fleet_contrato_qr : "contrato_id"
+    auth_usuario ||--o{ fleet_contrato_qr : "created_by"
+    fleet_vehiculo ||--o{ fleet_contrato_vehiculo : "vehiculo_id"
+    tenant_control_base ||--o{ fleet_contrato_vehiculo : "control_base_id"
+    auth_usuario ||--o{ fleet_contrato_vehiculo : "chofer_id"
+    auth_usuario ||--o{ fleet_contrato_vehiculo : "propietario_id"
+    auth_usuario ||--o{ fleet_documento_propietario : "propietario_id"
+    fleet_vehiculo ||--o{ fleet_documento_vehiculo : "vehiculo_id"
+    auth_usuario ||--o{ fleet_documentos_chofer : "usuario_id"
+    fleet_vehiculo ||--o{ fleet_foto_vehiculo : "vehiculo_id"
+    auth_usuario ||--o{ fleet_foto_vehiculo : "subida_por"
+    fleet_turno_chofer ||--o{ fleet_gasto_turno : "turno_id"
+    fleet_categoria_gasto ||--o{ fleet_gasto_turno : "categoria_id"
+    fleet_categoria_gasto ||--o{ fleet_gasto_vehiculo : "categoria_id"
+    fleet_vehiculo ||--o{ fleet_gasto_vehiculo : "vehiculo_id"
+    auth_usuario ||--o{ fleet_gasto_vehiculo : "propietario_id"
+    auth_usuario ||--o{ fleet_historial_chofer_vehiculo : "chofer_id"
+    fleet_vehiculo ||--o{ fleet_historial_chofer_vehiculo : "vehiculo_id"
+    auth_usuario ||--o{ fleet_ingreso_turno : "declarado_por"
+    trip_viaje_solicitado ||--o{ fleet_ingreso_turno : "viaje_id"
+    fleet_turno_chofer ||--o{ fleet_ingreso_turno : "turno_id"
+    payment_transaccion ||--o{ fleet_ingreso_turno : "transaccion_id"
+    auth_usuario ||--o{ fleet_liquidacion : "chofer_id"
+    auth_usuario ||--o{ fleet_liquidacion : "aprobada_por"
+    auth_usuario ||--o{ fleet_liquidacion : "rechazada_por"
+    auth_usuario ||--o{ fleet_liquidacion : "pagada_por"
+    auth_usuario ||--o{ fleet_liquidacion : "propietario_id"
+    tenant_control_base ||--o{ fleet_liquidacion : "control_base_id"
+    fleet_turno_chofer ||--o{ fleet_liquidacion : "turno_id"
+    fleet_contrato_vehiculo ||--o{ fleet_liquidacion : "contrato_id"
+    fleet_vehiculo ||--o{ fleet_liquidacion : "vehiculo_id"
+    auth_usuario ||--o{ fleet_liquidacion_ajuste : "usuario_id"
+    fleet_liquidacion ||--o{ fleet_liquidacion_ajuste : "liquidacion_id"
+    tenant_control_base ||--o{ fleet_liquidacion_ajuste : "control_base_id"
+    fleet_liquidacion ||--o{ fleet_liquidacion_detalle : "liquidacion_id"
+    tenant_control_base ||--o{ fleet_liquidacion_estado_historial : "control_base_id"
+    auth_usuario ||--o{ fleet_liquidacion_estado_historial : "cambiado_por"
+    fleet_liquidacion ||--o{ fleet_liquidacion_estado_historial : "liquidacion_id"
+    fleet_vehiculo ||--o{ fleet_mantenimiento_vehiculo : "vehiculo_id"
+    auth_usuario ||--o{ fleet_mantenimiento_vehiculo : "propietario_id"
+    fleet_marca ||--o{ fleet_modelo : "marca_id"
+    tenant_control_base ||--o{ fleet_neumatico_historial_posicion : "control_base_id"
+    fleet_neumatico_operacion ||--o{ fleet_neumatico_historial_posicion : "operacion_id"
+    fleet_vehiculo ||--o{ fleet_neumatico_historial_posicion : "vehiculo_id"
+    fleet_neumatico_vehiculo ||--o{ fleet_neumatico_historial_posicion : "neumatico_vehiculo_id"
+    fleet_neumatico_vehiculo ||--o{ fleet_neumatico_imagen : "neumatico_vehiculo_id"
+    tenant_control_base ||--o{ fleet_neumatico_imagen : "control_base_id"
+    auth_usuario ||--o{ fleet_neumatico_imagen : "subido_por"
+    fleet_neumatico_operacion ||--o{ fleet_neumatico_imagen : "operacion_id"
+    fleet_neumatico_historial_posicion ||--o{ fleet_neumatico_medicion : "historial_posicion_id"
+    tenant_control_base ||--o{ fleet_neumatico_medicion : "control_base_id"
+    auth_usuario ||--o{ fleet_neumatico_medicion : "medido_por"
+    fleet_vehiculo ||--o{ fleet_neumatico_operacion : "vehiculo_id"
+    tenant_control_base ||--o{ fleet_neumatico_operacion : "control_base_id"
+    auth_usuario ||--o{ fleet_neumatico_operacion : "creado_por"
+    fleet_neumatico_operacion ||--o{ fleet_neumatico_operacion_detalle : "operacion_id"
+    fleet_neumatico_vehiculo ||--o{ fleet_neumatico_operacion_detalle : "neumatico_vehiculo_id"
+    fleet_vehiculo ||--o{ fleet_neumatico_sugerencia : "vehiculo_id"
+    fleet_neumatico_vehiculo ||--o{ fleet_neumatico_sugerencia : "neumatico_vehiculo_id"
+    auth_usuario ||--o{ fleet_neumatico_sugerencia : "atendida_por"
+    tenant_control_base ||--o{ fleet_neumatico_sugerencia : "control_base_id"
+    tenant_control_base ||--o{ fleet_neumatico_vehiculo : "control_base_id"
+    fleet_vehiculo ||--o{ fleet_neumatico_vehiculo : "vehiculo_id"
+    auth_usuario ||--o{ fleet_notificacion_vencimiento : "propietario_id"
+    fleet_vehiculo ||--o{ fleet_propietario_vehiculo : "vehiculo_id"
+    auth_usuario ||--o{ fleet_propietario_vehiculo : "propietario_id"
+    auth_usuario ||--o{ fleet_relacion_propietario_vehiculo : "propietario_id"
+    fleet_vehiculo ||--o{ fleet_relacion_propietario_vehiculo : "vehiculo_id"
+    fleet_contrato_vehiculo ||--o{ fleet_turno_chofer : "contrato_id"
+    auth_usuario ||--o{ fleet_turno_chofer : "chofer_id"
+    fleet_vehiculo ||--o{ fleet_turno_chofer : "vehiculo_id"
+    tenant_control_base ||--o{ fleet_vehiculo : "control_base_id"
+    auth_usuario ||--o{ fleet_vehiculo : "aprobado_por"
+    auth_usuario ||--o{ fleet_vehiculo : "rechazado_por"
+    geo_provincia ||--o{ geo_ciudad : "provincia_id"
+    geo_pais ||--o{ geo_provincia : "pais_id"
+    auth_usuario ||--o{ notification_notificacion : "usuario_id"
+    auth_usuario ||--o{ payment_billetera : "usuario_id"
+    tenant_control_base ||--o{ payment_configuracion_tarifa : "control_base_id"
+    payment_configuracion_tarifa ||--o{ payment_configuracion_tarifa_vehiculo : "configuracion_tarifa_id"
+    trip_tipo_vehiculo ||--o{ payment_configuracion_tarifa_vehiculo : "tipo_vehiculo_id"
+    auth_usuario ||--o{ payment_cuenta_cobro : "usuario_id"
+    tenant_empresa ||--o{ payment_factura_empresa : "empresa_id"
+    auth_usuario ||--o{ payment_pago_empresa : "confirmado_por"
+    payment_factura_empresa ||--o{ payment_pago_empresa : "factura_id"
+    tenant_empresa ||--o{ payment_pago_empresa : "empresa_id"
+    trip_viaje_solicitado ||--o{ payment_qr_cobro : "viaje_id"
+    payment_billetera ||--o{ payment_transaccion : "billetera_id"
+    payment_metodo_pago ||--o{ payment_transaccion : "metodo_pago_id"
+    trip_viaje_solicitado ||--o{ payment_transaccion : "viaje_id"
+    tenant_control_base ||--o{ public_comercio : "control_base_id"
+    auth_autorizacion_inicio ||--o{ public_escaneo_qr : "autorizacion_id"
+    trip_viaje_solicitado ||--o{ public_escaneo_qr : "viaje_id"
+    public_comercio ||--o{ public_escaneo_qr : "comercio_id"
+    fleet_contrato_vehiculo ||--o{ public_escaneo_qr : "contrato_id"
+    fleet_vehiculo ||--o{ rentabilidad_analisis_medios_pago : "vehiculo_id"
+    fleet_vehiculo ||--o{ rentabilidad_rentabilidad_diaria_vehiculo : "vehiculo_id"
+    fleet_vehiculo ||--o{ rentabilidad_rentabilidad_mensual_vehiculo : "vehiculo_id"
+    tenant_control_base ||--o{ tenant_configuracion_tenant : "control_base_id"
+    auth_usuario ||--o{ tenant_control_base : "suspendido_por"
+    geo_ciudad ||--o{ tenant_control_base : "ciudad_id"
+    auth_usuario ||--o{ tenant_empresa : "suspendido_por"
+    tenant_control_base ||--o{ tenant_empresa : "control_base_id"
+    tenant_control_base ||--o{ tenant_factura : "control_base_id"
+    auth_usuario ||--o{ tenant_factura : "pagada_por"
+    auth_usuario ||--o{ trip_broadcast_log : "chofer_id"
+    trip_viaje_solicitado ||--o{ trip_broadcast_log : "viaje_id"
+    fleet_vehiculo ||--o{ trip_broadcast_log : "vehiculo_id"
+    trip_viaje_solicitado ||--o{ trip_calificacion : "viaje_id"
+    auth_usuario ||--o{ trip_calificacion : "calificado_id"
+    auth_usuario ||--o{ trip_calificacion : "calificador_id"
+    trip_viaje_solicitado ||--o{ trip_foto_viaje : "viaje_id"
+    auth_usuario ||--o{ trip_foto_viaje : "usuario_id"
+    trip_viaje_solicitado ||--o{ trip_historial_estado_viaje : "viaje_id"
+    trip_viaje_solicitado ||--o{ trip_objeto_olvidado : "viaje_id"
+    auth_usuario ||--o{ trip_objeto_olvidado : "pasajero_id"
+    auth_usuario ||--o{ trip_objeto_olvidado : "chofer_id"
+    trip_viaje_solicitado ||--o{ trip_panico : "viaje_id"
+    auth_usuario ||--o{ trip_panico : "usuario_id"
+    tenant_control_base ||--o{ trip_viaje_solicitado : "control_base_id"
+    fleet_chofer_vehiculo ||--o{ trip_viaje_solicitado : "chofer_vehiculo_id"
+    fleet_turno_chofer ||--o{ trip_viaje_solicitado : "turno_id"
+    corporate_movimiento_cuenta ||--o{ trip_viaje_solicitado : "movimiento_cc_id"
+    corporate_cuenta_corriente ||--o{ trip_viaje_solicitado : "cuenta_corriente_id"
+    tenant_empresa ||--o{ trip_viaje_solicitado : "empresa_id"
+    auth_turno_empleado ||--o{ trip_viaje_solicitado : "turno_empleado_id"
+    auth_usuario ||--o{ trip_viaje_solicitado : "empleado_id"
+    auth_usuario ||--o{ trip_viaje_solicitado : "chofer_id"
+    fleet_vehiculo ||--o{ trip_viaje_solicitado : "vehiculo_id"
+    auth_usuario ||--o{ trip_viaje_solicitado : "pasajero_id"
+    public_comercio ||--o{ trip_viaje_solicitado : "comercio_id"

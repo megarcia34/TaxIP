@@ -15,7 +15,8 @@ declare module 'next-auth' {
     image?: string | null
     controlBaseId?: string | null
     control_base_id?: string | null
-    tipo_usuario?: string // ✅ AGREGADO: Para el Sidebar
+    tipo_usuario?: string
+    accessTokenExpires?: number // ✅ AGREGADO: Para el refresh automático
   }
 
   interface Session {
@@ -33,7 +34,7 @@ declare module 'next-auth' {
       image?: string | null
       controlBaseId?: string | null
       control_base_id?: string | null
-      tipo_usuario?: string // ✅ AGREGADO: Para el Sidebar
+      tipo_usuario?: string
     }
   }
 }
@@ -53,6 +54,7 @@ declare module 'next-auth/jwt' {
     image?: string | null
     controlBaseId?: string | null
     control_base_id?: string | null
-    tipo_usuario?: string // ✅ AGREGADO: Para el Sidebar
+    tipo_usuario?: string
+    accessTokenExpires?: number // ✅ AGREGADO: Para el refresh automático
   }
 }

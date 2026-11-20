@@ -72,11 +72,6 @@ async def obtener_fotos_vehiculo(
         for row in rows
     ]
 
-
-# ============================================================
-# SUBIR NUEVA FOTO
-# ============================================================
-
 @router.post("/vehiculos/{vehiculo_id}")
 async def subir_foto(
     vehiculo_id: str,
@@ -180,9 +175,9 @@ async def subir_foto(
         try:
             query_insert = text("""
                 INSERT INTO fleet.foto_vehiculo (
-                    vehiculo_id, url, public_id, descripcion, orden, es_principal, subida_por
+                    id, vehiculo_id, url, public_id, descripcion, orden, es_principal, subida_por
                 ) VALUES (
-                    :vehiculo_id, :url, :public_id, :descripcion, :orden, :es_principal, :subida_por
+                    gen_random_uuid(), :vehiculo_id, :url, :public_id, :descripcion, :orden, :es_principal, :subida_por
                 )
                 RETURNING id, url, public_id, descripcion, orden, es_principal, created_at
             """)
@@ -233,8 +228,6 @@ async def subir_foto(
         logger.error("=" * 60)
         await db.rollback()
         raise HTTPException(500, f"Error interno: {str(e)}")
-
-
 # ============================================================
 # ACTUALIZAR DESCRIPCIÓN DE FOTO (CORREGIDO - RECIBE JSON)
 # ============================================================

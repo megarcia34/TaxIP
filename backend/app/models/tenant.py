@@ -6,7 +6,7 @@ Tablas: control_base, configuracion_tenant, empresa
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, Text, Integer, Date, Index, CheckConstraint
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, Text, Integer, Date, Index, CheckConstraint,  UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -322,4 +322,42 @@ class Factura(Base):
 
     # Relationships
     control_base: Mapped["ControlBase"] = relationship("ControlBase", lazy="selectin")
-    pagado_por_usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin")
+    pagado_por_usuario: Mapped["Usuario"] = relationship("Usuario", lazy="selectin") # type: ignore
+
+class TenantConfiguracionMantenimiento(Base):
+    """
+    Configuracion de umbrales de mantenimiento por tenant.
+    Defaults: 2000/30 (proximo), 500/7 (critico), 30/60 (limites), 7 (stale).
+    Tabla: tenant.configuracion_mantenimiento (m3_038)
+    """
+    __tablename__ = "configuracion_mantenimiento"
+    __table_args__ = (
+        UniqueConstraint("control_base_id", name="control_base_id"),
+        {"schema": "tenant"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    control_base_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.control_base.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    umbral_proximo_km: Mapped[int] = mapped_column(Integer, nullable=False, server_default="2000")
+    umbral_proximo_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="30")
+    umbral_critico_km: Mapped[int] = mapped_column(Integer, nullable=False, server_default="500")
+    umbral_critico_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="7")
+    limite_servicio_limitado_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="30")
+    limite_fuera_servicio_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="60")
+    stale_km_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="7")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    control_base = relationship("ControlBase", lazy="selectin")

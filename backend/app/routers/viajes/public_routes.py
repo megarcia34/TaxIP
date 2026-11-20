@@ -278,21 +278,25 @@ async def solicitar_viaje_publico(
 
         insert_viaje = text("""
             INSERT INTO trip.viaje_solicitado (
-                id, control_base_id, pasajero_id,
+                id, control_base_id, codigo, pasajero_id,
                 direccion_origen, direccion_destino,
                 origen, destino,
                 estado, precio_estimado, created_at, nombre_pasajero,
                 distancia_metros, tiempo_estimado_segundos,
-                origen_tipo
+                origen_tipo,
+                metodo_pago 
             )
             VALUES (
-                :id, :control_base_id, :pasajero_id,
+                :id, :control_base_id,
+                trip.generar_codigo_viaje(:control_base_id, NOW()),
+                :pasajero_id,
                 :direccion_origen, :direccion_destino,
                 ST_SetSRID(ST_MakePoint(:origen_lng, :origen_lat), 4326),
                 ST_SetSRID(ST_MakePoint(:destino_lng, :destino_lat), 4326),
                 'pendiente', :precio_estimado, NOW(), :nombre_pasajero,
                 :distancia_metros, :tiempo_estimado_segundos,
-                'plataforma'  -- ✅ Valor correcto para landing
+                'plataforma',  -- ✅ Valor correcto para landing
+                :metodo_pago 
             )
             RETURNING id
         """)
@@ -310,7 +314,8 @@ async def solicitar_viaje_publico(
             "precio_estimado": request.precio_estimado or 0,
             "nombre_pasajero": request.nombre_pasajero or "Usuario Web",
             "distancia_metros": distancia_metros,
-            "tiempo_estimado_segundos": tiempo_estimado_segundos
+            "tiempo_estimado_segundos": tiempo_estimado_segundos,
+            "metodo_pago": request.metodo_pago or "efectivo"
         })
         
         await db.commit()

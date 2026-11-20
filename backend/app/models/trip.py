@@ -14,7 +14,6 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from geoalchemy2 import Geography
 from app.database import Base
 
-
 class ViajeSolicitado(Base):
     """
     Viaje solicitado por cualquier canal (calle, landing, qr, corporativo, despacho).
@@ -47,6 +46,18 @@ class ViajeSolicitado(Base):
     __tablename__ = "viaje_solicitado"
     __table_args__ = (
         CheckConstraint(
+            "estado <> 'cancelado' OR precio_final IS NULL OR precio_final = 0",
+            name="cancelado_sin_precio",
+        ),
+        CheckConstraint(
+            "estado <> 'finalizado' OR precio_final IS NOT NULL",
+            name="finalizado_con_precio",
+        ),
+        CheckConstraint(
+            "codigo ~ '^VJ-[0-9]{4}-[0-9]{6}$'",
+            name="codigo_formato",
+        ),
+        CheckConstraint(
             "((calidad_minima_vehiculo IS NULL) OR ((calidad_minima_vehiculo)::text = ANY ((ARRAY['regular'::character varying, 'bueno'::character varying, 'excelente'::character varying])::text[])))",
             name="ck_viaje_calidad_min",
         ),
@@ -78,6 +89,7 @@ class ViajeSolicitado(Base):
             "((metodo_pago IS NULL) OR ((metodo_pago)::text = ANY ((ARRAY['efectivo'::character varying, 'tarjeta_debito'::character varying, 'qr'::character varying, 'transferencia'::character varying])::text[])))",
             name="metodo_pago",
         ),
+        
         Index("idx_viaje_aceptado", "aceptado_en", postgresql_where=text("(estado)::text = 'aceptado'::text")),
         Index("idx_viaje_chofer", "chofer_id"),
         Index("idx_viaje_comercio", "comercio_id"),
@@ -98,6 +110,8 @@ class ViajeSolicitado(Base):
         Index("ix_viaje_fecha_expiracion_publicado", "fecha_expiracion", postgresql_where=text("(estado)::text = 'publicado'::text")),
         Index("ix_viaje_qr_cobro_token", "qr_cobro_token"),
         Index("ix_viaje_solicitado_turno_id", "turno_id"),
+        Index("ix_viaje_solicitado_codigo", "codigo"),
+        Index("uq_viaje_solicitado_codigo", "codigo", unique=True),
         {"schema": "trip"},    
     )
 
@@ -139,6 +153,13 @@ class ViajeSolicitado(Base):
         comment="Turno al que pertenece el viaje; puede ser NULL para viajes históricos no atribuibles o pendientes de inicio"
     )
 
+    codigo: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        unique=True,
+        comment="Codigo persistente del viaje (VJ-YYYY-NNNNNN). Inmutable. Generado por trip.generar_codigo_viaje."
+    )
+
     # PostGIS Geography points
     # FIX R10: spatial_index=False en origen. La DB tiene idx_viaje_origen_gist
     # (manual, declarado en __table_args__). Sin esto, GeoAlchemy2 auto-genera
@@ -171,7 +192,7 @@ class ViajeSolicitado(Base):
     codigo_compartido: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     # Timestamps
-     # Timestamp de NEGOCIO. Ver docstring de clase. No confundir con created_at.
+    # Timestamp de NEGOCIO. Ver docstring de clase. No confundir con created_at.
     solicitado_en: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now,
@@ -532,6 +553,17 @@ class ObjetoOlvidado(Base):
     estado: Mapped[str] = mapped_column(String(20), default='reportado', nullable=True)
     foto_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=True)
+    # ============================================================
+    # COLUMNAS AGREGADAS EN R25 (alineacion ORM <-> DB, m3_040)
+    # 2 columnas que estaban en DB pero faltaban en ORM.
+    # ============================================================
+    observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        server_default=func.now(),
+        onupdate=func.now()
+    )
 
     viaje: Mapped["ViajeSolicitado"] = relationship(back_populates="objetos_olvidados")
     pasajero: Mapped["Usuario"] = relationship(foreign_keys=[pasajero_id])
@@ -664,3 +696,27 @@ class BroadcastLog(Base):
     motivo_exclusion: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
     tiempo_respuesta_segundos: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     control_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+
+class ViajeCorrelativo(Base):
+    """
+    Control de correlativos de viajes por tenant y anio.
+    Fuente de verdad del ultimo numero asignado por tenant+anio.
+    Ver funcion trip.generar_codigo_viaje (plpgsql, atomica).
+    """
+    __tablename__ = "viaje_correlativo"
+    __table_args__ = {"schema": "trip"}
+
+    control_base_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.control_base.id"),
+        primary_key=True,
+    )
+    anio: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+    )
+    ultimo_numero: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default="0",
+    )
