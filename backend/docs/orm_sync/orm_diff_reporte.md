@@ -1,26 +1,16 @@
 # Reporte de Diff ORM vs DB
 
-**Fecha:** 2026-11-02T12:56:44.904645+00:00
+**Fecha:** 2026-11-21T12:53:22.807875+00:00
 
 ## Resumen ejecutivo
 
-- **1 diferencias** en total.
-- **Tier 2**: 1 items.
+- **0 diferencias** en total.
 - **0 items requieren decision manual.**
 
 ### Por clasificacion
 
 | Clasificacion | Cantidad |
 |---|---|
-| indice_falta | 1 |
-
----
-
-## Tier 2 — 1 items
-
-### indice_falta (1)
-
-- `D-07f6e37e` — payment.cuenta_cobro
 
 ---
 

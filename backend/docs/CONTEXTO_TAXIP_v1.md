@@ -1,9 +1,9 @@
 # CONTEXTO TAXIP 2.0 — Estado y Deuda Pendiente
 
-**Ultima actualizacion:** 2026-11-02 (post R24)
-**Alembic head:** m3_031
-**Diff BD <-> ORM:** 1 item (indice preexistente en payment.py — deuda aceptada)
-**Tag activo:** ronda24-conciliacion
+**Ultima actualizacion:** 2026-11-21 (post R25)
+**Alembic head:** m3_041
+**Diff BD <-> ORM:** 0
+**Tag activo:** ronda25-Mantenimiento
 **Repo:** github.com/megarcia34/TaxIP (main)
 
 **Reglas de alineacion BD <-> ORM:** ver `docs/REGLAS_ALINEACION_BD_ORM.md`.
@@ -15,7 +15,7 @@
 
 ## Resumen ejecutivo
 
-- **Alineacion estructural BD <-> ORM:** 1 item pendiente (preexistente, deuda aceptada).
+- **Alineacion estructural BD <-> ORM:** 0 items pendientes.
 - **Deuda alta prioridad:** 0 items.
 - **Deuda media prioridad:** ~13 items.
 - **Deuda baja prioridad:** ~21 items.
@@ -39,6 +39,8 @@
 - **R23.2:** **Banner dinámico y Finanzas con estimación.** El Banner del Home ahora muestra 3 slides dinámicos según la modalidad contractual (Porcentaje, Alquiler, Autogestión). El backend calcula el `banner_info` (título, subtítulo, color) en `chofer_turnos.py`. La pantalla de Finanzas ahora separa efectivo vs electrónico, muestra el desglose por canal y la tarjeta de "ESTIMACIÓN (Pendiente de Conciliación)" con el cálculo del motor de liquidación (`estimar()`). Se agregó la migración `m3_026` con `tratamiento_gastos` en `contrato_vehiculo`. Se eliminó el bucle de reconexión del WebSocket.
 
 - **R24:** **Modelo de Conciliacion y Liquidacion Automatica.** Implementación completa del flujo de conciliación de turnos. Backend: check-out exige `efectivo_declarado` para contratos PORCENTAJE (P1); motor de conciliación (`ConciliacionService`) que aprueba/rechaza gastos, calcula diferencias de efectivo y genera deudas (`ConciliacionDiferencia`); cierre de conciliación que invoca al `LiquidacionEngine` y persiste la liquidación final; blindaje anti-duplicados. App Chofer: modal de Check-out con input condicional para efectivo. Frontend Propietario: pantalla de Conciliaciones con bandeja de pendientes e historial, detalle con aprobación de gastos y botón de cierre. Migraciones `m3_030` (estado_aprobacion y descripcion en gasto_turno) y `m3_031` (conciliado_por, conciliado_en, tipo_conciliacion en turno_chofer). Fix del bug de diferencia negativa en turnos viejos (NULL -> 0).
+
+- **R25:** **Modulo de Mantenimiento de Flotas (cimientos).** 10 migraciones (`m3_032` a `m3_041`). Modelo de datos completo: 12 tablas nuevas de mantenimiento (catálogo global, encargado, config vehículo, config tenant, planes, override, kilometraje_correccion) + 5 columnas nuevas en tablas existentes (`estado_operativo`, `habilitado_para_operar`, `verificacion_tecnica_pendiente`, `control_base_id`, `km_sospechoso`). Seed del catálogo: 15 sistemas, 59 subsistemas, 100 componentes, 7 controles, 16 ítems de checklist. Alineación ORM ↔ DB: `diff.py = 0`. Limpieza: `trip.py` (2 columnas + 3 índices), `turno.py` (1 columna), `fleet.py` (15 modelos + 4 columnas). Refactor: `diff.py` ignora `tiger` y `topology` (PostGIS).
 
 ## ALTA PRIORIDAD
 
@@ -146,10 +148,6 @@ El `orm_snapshot.json` puede quedar desactualizado si se editan archivos del ORM
 ### orm.diff_falsos_positivos_tipo_cambio
 
 Cuando se cambia el tipo o nullable de una columna, `diff.py` puede reportarla como `columna_falta` en el proximo diff.
-
-### payment.indice_falta (preexistente)
-
-`diff.py` reporta 1 item `indice_falta` en `app/models/payment.py`. **Deuda aceptada** en R20. No es critica.
 
 ### rentabilidad.comision_credito_corporativo
 
@@ -309,9 +307,16 @@ La app en el celular apunta a 192.168.1.14:8081 (Metro dev). Para pruebas en ter
 **Síntoma:** El cálculo del `banner_info` está en `chofer_turnos.py` (acoplado al endpoint del resumen). Si se agrega una nueva modalidad contractual, hay que modificar ese archivo.
 **Acción futura:** Extraer la lógica del `banner_info` a un servicio (`banner_service.py`) para desacoplarla del router.
 
+## DEUDAS SALDADAS EN R25
+
+- **`payment.indice_falta (preexistente)`** — Saldada. El diff da 0 items (el índice `uq_cuenta_cobro_predeterminada` se agregó al ORM en algún momento de R25 o el `diff.py` lo reconoce por columns matching).
+- **`orm.foto_viaje_out_of_scope`** — Saldada. `trip.py` ahora tiene `observaciones` y `updated_at` en `ObjetoOlvidado`.
+- **`viaje.codigo`** — Saldada. El código persistente (`VJ-YYYY-NNNNNN`) tiene formato, índice único, y está alineado ORM ↔ DB.
+- **`turno.km_sospechoso`** — Saldada. Columna nueva para marcar turnos con km inconsistente (rechazados en check-in/check-out).
+- **`vehiculo.estado_operativo`** — Saldada. Columna nueva con `sin_verificar`, `en_servicio`, `servicio_limitado`, `fuera_servicio`.
+
 ---
-| Categoria | Cantidad |
-|---|---|
+| Categoria | Cantidad ||---|---|
 | Alta prioridad | 0 |
 | Media prioridad | ~19 |
 | Baja prioridad | ~21 |
