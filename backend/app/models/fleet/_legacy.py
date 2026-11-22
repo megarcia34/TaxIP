@@ -1304,59 +1304,7 @@ class NotificacionVencimiento(Base):
 # MODELOS MARCA Y MODELO - CATÃLOGO DE VEHÃCULOS
 # ============================================================
 
-class Marca(Base):
-    """
-    Vehicle brands catalog
-    Tabla: fleet.marca
-    """
-    __tablename__ = "marca"
-    __table_args__ = {"schema": "fleet"}
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
-    nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
-
-    # Relationships
-    modelos: Mapped[list["Modelo"]] = relationship(
-        "Modelo",
-        back_populates="marca",
-        lazy="selectin"
-    )
-
-
-class Modelo(Base):
-    """
-    Vehicle models catalog
-    Tabla: fleet.modelo
-    """
-    __tablename__ = "modelo"
-    __table_args__ = (
-        Index(
-            "modelo_marca_id_nombre_key",
-            "marca_id", "nombre",
-            unique=True,
-        ),
-        {"schema": "fleet"},
-    )
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
-    )
-    marca_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("fleet.marca.id"),
-        nullable=False
-    )
-    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
-    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now, nullable=True)
-    # Relationships
-    marca: Mapped["Marca"] = relationship("Marca", back_populates="modelos", lazy="selectin")
 
 # ============================================================
 # MODELO INGRESO_TURNO - RECAUDACIÃ“N POR JORNADA
