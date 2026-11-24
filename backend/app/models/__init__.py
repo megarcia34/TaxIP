@@ -43,6 +43,8 @@ from app.models.tenant import (
     Configuracion,
     Empresa,
     Factura as FacturaTenant,
+    # Nuevo de R25
+    TenantConfiguracionMantenimiento,
 )
 
 # Audit
@@ -55,6 +57,7 @@ from app.models.audit import (
 
 # Fleet
 from app.models.fleet import (
+    # Legacy
     Vehiculo,
     ChoferVehiculo,
     GastoVehiculo,
@@ -66,8 +69,28 @@ from app.models.fleet import (
     DocumentoPropietario,
     HistorialChoferVehiculo,
     RelacionPropietarioVehiculo,
+    FotoVehiculo,
+    NotificacionVencimiento,
+    ContratoQr,
+    DocumentosChofer,
+    Marca,
+    Modelo,
+    IngresoTurno,
+    # Nuevos de R25
+    MantenimientoCatalogoSistema,
+    MantenimientoCatalogoSubsistema,
+    MantenimientoCatalogoComponente,
+    MantenimientoCatalogoControl,
+    MantenimientoCatalogoComponenteCompatibilidad,
+    MantenimientoChecklistInspeccion,
+    Encargado,
+    MantenimientoVehiculoConfig,
+    MantenimientoCatalogoOverride,
+    MantenimientoPlanGrupo,
+    KilometrajeCorreccion,
 )
 
+# Conciliacion
 from app.models.conciliacion import (
     ConciliacionDiferencia,
     ConciliacionDisputa,
@@ -95,6 +118,7 @@ from app.models.payment import (
     ConfiguracionPasarela,
     QrCobro,
     CuentaCobro,
+    VinculacionMP,
 )
 
 # Trip
@@ -124,12 +148,14 @@ from app.models.gasto_turno import GastoTurno
 # Foto Viaje
 from app.models.foto_viaje import FotoViaje
 
-# Comunicacion (nuevo, Fase 4c)
+# Comunicacion
 from app.models.comunicacion import (
     Conversacion,
     EmailEnviado,
     Mensaje,
 )
+
+# Rentabilidad
 from app.models.rentabilidad import (
     AnalisisMediosPago,
     RentabilidadDiariaVehiculo,
@@ -173,6 +199,7 @@ __all__ = [
     "Configuracion",
     "Empresa",
     "FacturaTenant",
+    "TenantConfiguracionMantenimiento",
 
     # Audit
     "LogGps",
@@ -183,7 +210,7 @@ __all__ = [
     # Conciliacion
     "ConciliacionDiferencia",
     "ConciliacionDisputa",
-    
+
     # Fleet
     "Vehiculo",
     "ChoferVehiculo",
@@ -196,6 +223,25 @@ __all__ = [
     "DocumentoPropietario",
     "HistorialChoferVehiculo",
     "RelacionPropietarioVehiculo",
+    "FotoVehiculo",
+    "NotificacionVencimiento",
+    "ContratoQr",
+    "DocumentosChofer",
+    "Marca",
+    "Modelo",
+    "IngresoTurno",
+    # Nuevos de R25
+    "MantenimientoCatalogoSistema",
+    "MantenimientoCatalogoSubsistema",
+    "MantenimientoCatalogoComponente",
+    "MantenimientoCatalogoControl",
+    "MantenimientoCatalogoComponenteCompatibilidad",
+    "MantenimientoChecklistInspeccion",
+    "Encargado",
+    "MantenimientoVehiculoConfig",
+    "MantenimientoCatalogoOverride",
+    "MantenimientoPlanGrupo",
+    "KilometrajeCorreccion",
 
     # Geo
     "Pais",
@@ -214,6 +260,7 @@ __all__ = [
     "ConfiguracionPasarela",
     "QrCobro",
     "CuentaCobro",
+    "VinculacionMP",
 
     # Trip
     "ViajeSolicitado",
