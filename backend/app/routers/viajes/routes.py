@@ -287,7 +287,7 @@ async def solicitar_viaje_calle(
 
     insert_query = text("""
         INSERT INTO trip.viaje_solicitado (
-            id, control_base_id,
+            id, control_base_id,codigo,
             pasajero_id,
             chofer_id, vehiculo_id, chofer_vehiculo_id, turno_id,
             origen, destino,
@@ -299,6 +299,7 @@ async def solicitar_viaje_calle(
         )
         VALUES (
             :id, :control_base_id,
+            trip.generar_codigo_viaje(:control_base_id, NOW()),
             NULL,
             :chofer_id, :vehiculo_id, :chofer_vehiculo_id, :turno_id,
             ST_SetSRID(ST_MakePoint(:origen_lng, :origen_lat), 4326)::geography,
