@@ -33,6 +33,7 @@ interface Viaje {
   fuente_label: string;
   direccion_origen: string;
   direccion_destino: string;
+  fecha: string | null;
   iniciado_en: string | null;
   finalizado_en: string | null;
   duracion_minutos: number | null;
@@ -63,21 +64,27 @@ const getFuenteIcon = (tipo: string) => {
 // COMPONENTE PRINCIPAL
 // ============================================
 export function ViajesTable({ 
-  estadoFiltro, 
+  estadoFiltro,
+  desdeFiltro,
+  hastaFiltro,
   onVerRuta 
 }: { 
-  estadoFiltro?: string | null; 
+  estadoFiltro?: string | null;
+  desdeFiltro?: string | null;
+  hastaFiltro?: string | null;
   onVerRuta?: (id: string) => void; 
 }) {
   const [viajeSeleccionado, setViajeSeleccionado] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["viajes", "historial", estadoFiltro],
+    queryKey: ["viajes", "historial", estadoFiltro, desdeFiltro, hastaFiltro],
     queryFn: async () => {
-      const url = estadoFiltro 
-        ? `/viajes/historial?estado=${estadoFiltro}` 
-        : "/viajes/historial";
-      const { data } = await api.get(url);
+      const params = new URLSearchParams();
+      if (estadoFiltro) params.append("estado", estadoFiltro);
+      if (desdeFiltro) params.append("desde", desdeFiltro);
+      if (hastaFiltro) params.append("hasta", hastaFiltro);
+      
+      const { data } = await api.get(`/viajes/historial?${params.toString()}`);
       return data.viajes as Viaje[];
     },
     refetchInterval: 30000,
@@ -88,9 +95,9 @@ export function ViajesTable({
   // ============================================
   const exportarExcel = () => {
     if (!data || data.length === 0) return;
-    const headers = ['ID Viaje', 'Estado', 'Chofer', 'Patente', 'Pasajero', 'Origen', 'Destino', 'Inicio', 'Fin', 'Duración', 'Distancia', 'Monto', 'Metodo Pago'];
+    const headers = ['ID Viaje', 'Fecha', 'Estado', 'Chofer', 'Patente', 'Pasajero', 'Origen', 'Destino', 'Inicio', 'Fin', 'Duración', 'Distancia', 'Monto', 'Metodo Pago'];
     const rows = data.map(v => [
-      v.codigo_correlativo, v.estado_label, v.chofer_nombre, v.patente, v.pasajero_nombre,
+      v.codigo_correlativo, v.fecha || '', v.estado_label, v.chofer_nombre, v.patente, v.pasajero_nombre,
       `"${v.direccion_origen || ''}"`, `"${v.direccion_destino || ''}"`,
       v.iniciado_en ? format(new Date(v.iniciado_en), "HH:mm") : '',
       v.finalizado_en ? format(new Date(v.finalizado_en), "HH:mm") : '',
@@ -163,7 +170,7 @@ export function ViajesTable({
               <TableHead>Pasajero</TableHead>
               <TableHead>Origen</TableHead>
               <TableHead>Destino</TableHead>
-              <TableHead>Inicio</TableHead>
+              <TableHead>Fecha / Inicio</TableHead>
               <TableHead>Fin</TableHead>
               <TableHead>Duración</TableHead>
               <TableHead>Distancia</TableHead>
@@ -175,7 +182,7 @@ export function ViajesTable({
             {data?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">
-                  No hay viajes para mostrar en esta pestaña.
+                  No hay viajes para mostrar en este rango de fechas.
                 </TableCell>
               </TableRow>
             )}
@@ -204,7 +211,15 @@ export function ViajesTable({
                     <span className="text-xs text-muted-foreground truncate" title={viaje.direccion_destino}>{viaje.direccion_destino?.split(',')[1] || "—"}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{viaje.iniciado_en ? format(new Date(viaje.iniciado_en), "HH:mm", { locale: es }) : "—"}</TableCell>
+                {/* FECHA Y HORA JUNTAS */}
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{viaje.fecha || "—"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {viaje.iniciado_en ? format(new Date(viaje.iniciado_en), "HH:mm", { locale: es }) : "—"}
+                    </span>
+                  </div>
+                </TableCell>
                 <TableCell className="text-sm">{viaje.finalizado_en ? format(new Date(viaje.finalizado_en), "HH:mm", { locale: es }) : "—"}</TableCell>
                 <TableCell className="text-sm">{viaje.duracion_minutos ? `${viaje.duracion_minutos} min` : "—"}</TableCell>
                 <TableCell className="text-sm">{viaje.distancia_metros ? `${(viaje.distancia_metros / 1000).toFixed(1)} km` : "—"}</TableCell>

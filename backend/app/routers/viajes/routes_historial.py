@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from uuid import UUID
 from typing import Optional
+from datetime import datetime, timedelta
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -114,6 +115,8 @@ async def obtener_historial_viajes(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     estado: Optional[str] = None,
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
     current_user: tuple = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -152,6 +155,17 @@ async def obtener_historial_viajes(
     if estado:
         filters.append("vs.estado = :estado")
         params["estado"] = estado
+
+    # FILTRO DE FECHAS
+    if desde:
+        filters.append("vs.created_at >= :desde")
+        params["desde"] = datetime.strptime(desde, "%Y-%m-%d")
+
+    if hasta:
+        # Le sumamos un día para incluir todo el día "hasta"
+        fecha_hasta = datetime.strptime(hasta, "%Y-%m-%d") + timedelta(days=1)
+        filters.append("vs.created_at < :hasta")
+        params["hasta"] = fecha_hasta
 
     where_clause = " AND ".join(filters)
 
