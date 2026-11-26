@@ -346,10 +346,7 @@ class TenantConfiguracionMantenimiento(Base):
         ForeignKey("tenant.control_base.id", ondelete="CASCADE"),
         nullable=False
     )
-    umbral_proximo_km: Mapped[int] = mapped_column(Integer, nullable=False, server_default="2000")
-    umbral_proximo_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="30")
-    umbral_critico_km: Mapped[int] = mapped_column(Integer, nullable=False, server_default="500")
-    umbral_critico_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="7")
+    
     limite_servicio_limitado_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="30")
     limite_fuera_servicio_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="60")
     stale_km_dias: Mapped[int] = mapped_column(Integer, nullable=False, server_default="7")

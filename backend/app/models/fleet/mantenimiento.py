@@ -23,8 +23,9 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 
 from app.database import Base
 
@@ -134,6 +135,11 @@ class MantenimientoCatalogoComponente(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
+    
+    # NUEVOS CAMPOS R26 (m3_044): Sugerencias para el propietario
+    intervalo_km_sugerido: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    intervalo_dias_sugerido: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    intervalo_meses_sugerido: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     subsistema = relationship("MantenimientoCatalogoSubsistema", back_populates="componentes", lazy="selectin")
     controles = relationship(
@@ -548,6 +554,11 @@ class MantenimientoPlanItem(Base):
     __table_args__ = (
         CheckConstraint("prioridad IN ('alta', 'media', 'baja')", name="prioridad"),
         CheckConstraint("criticidad IN ('critica', 'importante', 'normal')", name="criticidad"),
+        # NUEVO R26 m3_044:
+        CheckConstraint(
+            "intervalo_km IS NOT NULL OR intervalo_dias IS NOT NULL OR intervalo_meses IS NOT NULL", 
+            name="intervalo_requerido"
+        ),
         Index("idx_plan_item_plan", "plan_id"),
         Index("idx_plan_item_componente", "componente_id"),
         {"schema": "fleet"},
@@ -695,10 +706,111 @@ class MantenimientoVencimiento(Base):
     calculado_en: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
+    
+    # NUEVO CAMPO (m3_044):
+    advertencias: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
 
     # Relaciones
     plan_item = relationship("MantenimientoPlanItem", back_populates="vencimientos", lazy="selectin")
     vehiculo = relationship("Vehiculo", lazy="selectin")
+
+
+# ============================================================
+# MODELOS DE MANTENIMIENTO - INTERVENCIONES Y CHECKLIST (R26 / m3_044)
+# ============================================================
+
+class MantenimientoIntervencion(Base):
+    """
+    Registro de una intervencion real de mantenimiento.
+    Base para el cierre manual en R26 y para las Ordenes de Trabajo en R28.
+    """
+    __tablename__ = "mantenimiento_intervencion"
+    __table_args__ = (
+        Index("idx_intervencion_vehiculo", "vehiculo_id"),
+        Index("idx_intervencion_plan_item", "plan_item_id"),
+        Index("idx_intervencion_control_base", "control_base_id"),
+        {"schema": "fleet"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    control_base_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenant.control_base.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    vehiculo_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.vehiculo.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    plan_item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.mantenimiento_plan_item.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    vencimiento_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.mantenimiento_vencimiento.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    km_real: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    fecha_real: Mapped[date] = mapped_column(Date, nullable=False)
+    costo: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    taller_nombre: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    registrado_por: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # Relaciones
+    plan_item = relationship("MantenimientoPlanItem", lazy="selectin")
+    vehiculo = relationship("Vehiculo", lazy="selectin")
+
+
+class MantenimientoChecklistRespuesta(Base):
+    """
+    Respuestas del chofer al checklist de inspeccion diaria (R27).
+    """
+    __tablename__ = "mantenimiento_checklist_respuesta"
+    __table_args__ = (
+        Index("idx_checklist_respuesta_turno", "turno_id"),
+        {"schema": "fleet"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+    turno_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.turno_chofer.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    checklist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("fleet.mantenimiento_checklist_inspeccion.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    respuesta: Mapped[str] = mapped_column(String(100), nullable=False)
+    severidad: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    observaciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # Relaciones
+    checklist = relationship("MantenimientoChecklistInspeccion", lazy="selectin")
+
 
 __all__ = [
     "MantenimientoCatalogoSistema",
@@ -715,4 +827,6 @@ __all__ = [
     "MantenimientoPlanItem",
     "MantenimientoPlanVehiculo",
     "MantenimientoVencimiento",
+    "MantenimientoIntervencion",
+    "MantenimientoChecklistRespuesta",
 ]
