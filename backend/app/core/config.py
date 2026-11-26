@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_FROM: Optional[str] = None
+
+    # ============================================================
+    # Fona Horaria
+    # ============================================================
+    TIMEZONE: str = "America/Argentina/Buenos_Aires"
     
     # ============================================================
     # CLOUDINARY
@@ -62,6 +67,17 @@ class Settings(BaseSettings):
     CLOUDINARY_UPLOAD_PRESET: str = os.getenv("CLOUDINARY_UPLOAD_PRESET", "documentos_preset")
     CLOUDINARY_FOLDER: str = os.getenv("CLOUDINARY_FOLDER", "documentos")
     CLOUDINARY_URL: str = os.getenv("CLOUDINARY_URL", "")
+    
+    # ============================================================
+    # MERCADO PAGO OAUTH Y COBRO DIRECTO
+    # ============================================================
+    MP_APP_ID: str = "4866870622732729"
+    MP_CLIENT_ID: str = ""  # Si está vacío, el servicio usará MP_APP_ID
+    MP_CLIENT_SECRET: str = ""
+    MP_REDIRECT_URI: str = "https://decor-aberdeen-mambo-liable.trycloudflare.com/api/pagos/mp/callback"
+    MP_WEBHOOK_URL: str = "https://decor-aberdeen-mambo-liable.trycloudflare.com/api/pagos/webhook/mercadopago"
+    MP_WEBHOOK_SECRET: str = ""
+    MP_EXCLUDED_PAYMENT_TYPES: str = "credit_card"
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

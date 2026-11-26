@@ -9,6 +9,7 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
+      TZ: America/Argentina/Buenos_Aires
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -21,26 +22,33 @@ services:
 
   backend:
     build: ./backend
-    container_name: taxip_backend
+    container_name: taxip_backend    
     restart: always
     depends_on:
       db:
         condition: service_healthy
     env_file:
       - .env
-    ports:
-      - "8000:8000"
+    environment:
+      MP_APP_ID: "4866870622732729"
+      MP_CLIENT_ID: "4866870622732729"
+      MP_CLIENT_SECRET: "s0cFANyPbW9FEmWxudQXX6cSE3IEndBW"
+      MP_REDIRECT_URI: "https://vmi3714439.tailaee576.ts.net/api/pagos/mp/callback"
+      MP_WEBHOOK_URL: "https://vmi3714439.tailaee576.ts.net/api/pagos/webhook/mercadopago"
+      MP_WEBHOOK_SECRET: "815e6b7231d7b5d23021cbe99fe8136463d5e8821dd18a790633f0feb9a34390"
+      MP_EXCLUDED_PAYMENT_TYPES: "credit_card"
+   # ports:
+      #- "8000:8000"
     volumes:
       - ./backend:/app
       - ./backend/uploads:/app/uploads
 
   dashboard:
-    build: 
+    build:
       context: ./dashboard
       args:
         NEXT_PUBLIC_API_URL: http://147.93.4.216:8000
         NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: AIzaSyBI3_ZcSKrsbz9xKUWJGNGazgIQwshVz6o
-        # NUEVAS VARIABLES PARA CLOUDINARY (Build)
         NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: sfy4qupi
         NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: documentos_preset
     container_name: taxip_dashboard
@@ -48,21 +56,21 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - TZ=America/Argentina/Buenos_Aires
       - NEXT_PUBLIC_API_URL=http://147.93.4.216:8000
       - NEXTAUTH_URL=http://147.93.4.216:3000
       - NEXTAUTH_SECRET=TaxipNextAuthSecretSuperSeguro2026
       - AUTH_TRUST_HOST=true
       - BACKEND_INTERNAL_URL=http://backend:8000
-      - DATABASE_URL=postgresql://taxip_admin:TaxipProd2026SecurePass@db:5432/taxip_db?sslmode=disable 
+      - DATABASE_URL=postgresql://taxip_admin:TaxipProd2026SecurePass@db:5432/taxip_db?sslmode=disable
       - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBI3_ZcSKrsbz9xKUWJGNGazgIQwshVz6o
-      # NUEVAS VARIABLES PARA CLOUDINARY (Runtime)
       - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=sfy4qupi
       - NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=documentos_preset
     depends_on:
       - backend
 
   landing:
-    build: 
+    build:
       context: ./landing
       args:
         NEXT_PUBLIC_API_URL: http://147.93.4.216:8000
@@ -73,8 +81,9 @@ services:
     ports:
       - "3001:3000"
     environment:
+      - TZ=America/Argentina/Buenos_Aires
       - NEXT_PUBLIC_API_URL=http://147.93.4.216:8000
-      - NEXT_PUBLIC_DASHBOARD_URL=http://147.93.4.216:3000 
+      - NEXT_PUBLIC_DASHBOARD_URL=http://147.93.4.216:3000
       - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBI3_ZcSKrsbz9xKUWJGNGazgIQwshVz6o
     depends_on:
       - backend
