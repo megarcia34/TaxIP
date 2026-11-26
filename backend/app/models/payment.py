@@ -13,6 +13,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
+from sqlalchemy import (
+    String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, BigInteger, Date, Time,
+    Index, UniqueConstraint, CheckConstraint, text, func,
+)
 
 
 class MetodoPago(Base):
@@ -578,4 +582,55 @@ class CuentaCobro(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
+    )
+
+class VinculacionMP(Base):
+    """Vinculacion OAuth de cuenta de Mercado Pago para cobro directo."""
+
+    __tablename__ = "vinculacion_mp"
+    __table_args__ = (
+        Index("uq_vinculacion_mp_usuario_id", "usuario_id", unique=True),
+        Index("ix_payment_vinculacion_mp_mp_user_id", "mp_user_id"),
+        Index("ix_payment_vinculacion_mp_estado", "estado"),
+        CheckConstraint(
+            "estado IN ('vinculada', 'expirada', 'revocada', 'error')",
+            name="estado_check",
+        ),
+        {"schema": "payment"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
+    )
+    usuario_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("auth.usuario.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    mp_user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    mp_email: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    mp_nickname: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    refresh_token: Mapped[str] = mapped_column(Text, nullable=False)
+    public_key: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    token_type: Mapped[str] = mapped_column(
+        String(40), nullable=False, server_default=text("'Bearer'")
+    )
+    expires_in: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=False), nullable=True
+    )
+    scope: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    estado: Mapped[str] = mapped_column(
+        String(25), nullable=False, server_default=text("'vinculada'")
+    )
+    ultimo_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
     )
