@@ -823,7 +823,6 @@ async def check_out_turno(
     if request.km_final < km_inicial:
         raise HTTPException(400, f"El kilometraje final ({request.km_final}) no puede ser menor al inicial ({km_inicial})")
 
-
     # 4. Verificar que no tenga viaje activo.
     # R17 - G67: si los hay, indicar al chofer como cerrarlos forzadamente.
     # NOTA: el estado real de un viaje en curso en TaxIP es 'en_curso'.
@@ -853,12 +852,12 @@ async def check_out_turno(
             km_final=request.km_final,
             combustible_final=request.combustible_final,
             recaudacion_ticketera=request.recaudacion_ticketera,
-            efectivo_declarado=request.efectivo_declarado # NUEVO R24
+            efectivo_declarado=request.efectivo_declarado  # NUEVO R24
         )
 
         # 6. J16: resetear estado_laboral del chofer a 'fuera_servicio'.
         # TurnoService.check_out hace su propio commit, por eso este UPDATE
-        # va en una segunda transacción. Deuda: unificar en una sola.
+        # va en una segunda transaccion. Deuda: unificar en una sola.
         await db.execute(text("""
             UPDATE fleet.chofer_vehiculo
             SET estado_laboral = 'fuera_servicio',
@@ -870,6 +869,21 @@ async def check_out_turno(
             "control_base_id": control_base_id,
         })
         await db.commit()
+
+        # ============================================================
+        # R26 FASE 5: Refrescar vencimientos de mantenimiento
+        # ============================================================
+        # Se ejecuta en try/except para no bloquear el checkout
+        # si el motor de mantenimiento falla.
+        try:
+            from app.services.mantenimiento_engine import MantenimientoEngine
+            await MantenimientoEngine.refrescar_vencimientos(db, vehiculo_id)
+        except Exception as e:
+            logger.warning(
+                f"Error al refrescar vencimientos en checkout "
+                f"(turno={turno_id}, vehiculo={vehiculo_id}): {e}"
+            )
+        # ============================================================
 
         km_recorridos = float(request.km_final) - float(km_inicial)
         duracion_minutos, _ = calcular_duracion(inicio_turno)
