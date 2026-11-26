@@ -492,7 +492,7 @@ class MantenimientoPlan(Base):
     __tablename__ = "mantenimiento_plan"
     __table_args__ = (
         UniqueConstraint("control_base_id", "propietario_id", "nombre", name="uq_mantenimiento_plan_tenant_propietario_nombre"),
-        CheckConstraint("tipo IN ('preventivo', 'correctivo', 'predictivo')", name="ck_mantenimiento_plan_tipo"),
+        CheckConstraint("tipo IN ('preventivo', 'correctivo', 'predictivo')", name="tipo"),
         Index("idx_plan_control_base", "control_base_id"),
         Index("idx_plan_propietario", "propietario_id"),
         {"schema": "fleet"},
@@ -546,8 +546,8 @@ class MantenimientoPlanItem(Base):
     """
     __tablename__ = "mantenimiento_plan_item"
     __table_args__ = (
-        CheckConstraint("prioridad IN ('alta', 'media', 'baja')", name="ck_mantenimiento_plan_item_prioridad"),
-        CheckConstraint("criticidad IN ('critica', 'importante', 'normal')", name="ck_mantenimiento_plan_item_criticidad"),
+        CheckConstraint("prioridad IN ('alta', 'media', 'baja')", name="prioridad"),
+        CheckConstraint("criticidad IN ('critica', 'importante', 'normal')", name="criticidad"),
         Index("idx_plan_item_plan", "plan_id"),
         Index("idx_plan_item_componente", "componente_id"),
         {"schema": "fleet"},
@@ -660,7 +660,7 @@ class MantenimientoVencimiento(Base):
     __tablename__ = "mantenimiento_vencimiento"
     __table_args__ = (
         UniqueConstraint("control_base_id", "vehiculo_id", "plan_item_id", name="uq_mantenimiento_vencimiento_tenant_vehiculo_plan_item"),
-        CheckConstraint("estado IN ('normal', 'proximo', 'critico', 'vencido')", name="ck_mantenimiento_vencimiento_estado"),
+        CheckConstraint("estado IN ('normal', 'proximo', 'critico', 'vencido')", name="estado"),
         Index("idx_vencimiento_vehiculo", "vehiculo_id"),
         Index("idx_vencimiento_estado", "estado"),
         Index("idx_vencimiento_plan_item", "plan_item_id"),
