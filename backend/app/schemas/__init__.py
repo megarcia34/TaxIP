@@ -8,5 +8,20 @@ from app.schemas.payment_schemas import *
 from app.schemas.propietario_schemas import *
 from app.schemas.tenant import *
 
+# Mantenimiento (R26)
+from app.schemas.mantenimiento_schemas import (
+    PlanCreate,
+    PlanUpdate,
+    PlanResponse,
+    PlanItemCreate,
+    PlanItemResponse,
+    AsignarPlanRequest,
+    AsignarPlanResponse,
+    PlanVehiculoResponse,
+    VencimientoResponse,
+    VencimientoListResponse,
+    ResolverVencimientoRequest,
+)
+
 # NOTA: Los schemas de viajes están en app/routers/viajes/schemas.py
 # y se importan directamente desde allí en los routers
