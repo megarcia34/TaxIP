@@ -519,6 +519,58 @@ async def procesar_conciliaciones_vencidas():
             logger.error(f"Error en procesar_conciliaciones_vencidas: {e}")
             await db.rollback()
 
+# ============================================================
+# JOB 9: Mantenimiento (cada 6hs)
+# ============================================================
+async def procesar_vencimientos_mantenimiento():
+    """
+    Calcula y refresca los vencimientos de mantenimiento para todos
+    los vehiculos activos. Corre cada 6h.
+    """
+    from app.services.mantenimiento_engine import MantenimientoEngine
+
+    logger.info("Procesando vencimientos de mantenimiento...")
+
+    try:
+        async with AsyncSessionLocal() as db:
+            # 1. Buscar vehiculos activos (no fuera de servicio).
+            query = text("""
+                SELECT id
+                FROM fleet.vehiculo
+                WHERE habilitado_para_operar = true
+                  AND estado_operativo != 'fuera_servicio'
+            """)
+            result = await db.execute(query)
+            vehiculos = result.scalars().all()
+
+            if not vehiculos:
+                logger.info("No hay vehiculos activos para procesar")
+                return
+
+            logger.info(f"Procesando vencimientos para {len(vehiculos)} vehiculos")
+
+            total_vencimientos = 0
+            errores = 0
+
+            for vehiculo_id in vehiculos:
+                try:
+                    vencimientos = await MantenimientoEngine.refrescar_vencimientos(
+                        db, vehiculo_id
+                    )
+                    total_vencimientos += len(vencimientos)
+                except Exception as e:
+                    errores += 1
+                    logger.error(
+                        f"Error procesando vehiculo {vehiculo_id}: {e}"
+                    )
+
+            logger.info(
+                f"Vencimientos calculados: {total_vencimientos}, "
+                f"errores: {errores}"
+            )
+
+    except Exception as e:
+        logger.error(f"Error en procesar_vencimientos_mantenimiento: {e}")
 
 # ============================================================
 # LOOP PRINCIPAL DEL SCHEDULER
@@ -538,6 +590,7 @@ async def scheduler_loop():
     logger.info("   Turnos colgados: cada 1h")
     logger.info("   Vencimientos: cada 6h")
     logger.info("   Pendientes vencidos (sin moviles): cada 60s")
+    logger.info("   Vencimientos: cada 6h (24/7)")
 
     seconds_counter = 0
 
@@ -582,6 +635,10 @@ async def scheduler_loop():
             logger.error(f"Error en scheduler loop: {e}")
 
         await asyncio.sleep(5)
+
+        # Cada 21600s (6h): vencimientos de mantenimiento
+        if seconds_counter % 21600 == 0 and seconds_counter > 0:
+              await procesar_vencimientos_mantenimiento()
 
 
 def start_scheduler():

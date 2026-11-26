@@ -606,6 +606,7 @@ class MantenimientoPlanItem(Base):
 
     # Relaciones
     plan = relationship("MantenimientoPlan", back_populates="items", lazy="selectin")
+    componente = relationship("MantenimientoCatalogoComponente", lazy="selectin")
     vencimientos = relationship(
         "MantenimientoVencimiento",
         back_populates="plan_item",
