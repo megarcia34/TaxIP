@@ -4,8 +4,6 @@ from .documentos import router as documentos_router
 from .finanzas import router as finanzas_router
 from .gastos import router as gastos_router
 from .ingresos import router as ingresos_router
-# LEGACY (Fase 7 lo elimina)
-# from .mantenimientos import router as mantenimientos_router
 from .reportes import router as reportes_router
 from .turnos import router as turnos_router
 from .vehiculos import router as vehiculos_router
@@ -30,8 +28,6 @@ router.include_router(documentos_router)
 router.include_router(finanzas_router)
 router.include_router(gastos_router)
 router.include_router(ingresos_router)
-# LEGACY (Fase 7 lo elimina)
-# router.include_router(mantenimientos_router)
 router.include_router(reportes_router)
 router.include_router(turnos_router)
 router.include_router(vehiculos_router)

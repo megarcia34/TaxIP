@@ -606,6 +606,18 @@ async def ultimos_viajes(
 # 9. PRÓXIMOS MANTENIMIENTOS
 # ============================================================
 
+# ANTES (legacy hardcodeado)
+@router.get("/proximos-mantenimientos")
+async def proximos_mantenimientos(
+    limit: int = Query(5, ge=1, le=20),
+    propietario_id: UUID = Depends(get_propietario_id),
+    current_user: tuple = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    ... (query SQL raw con mantenimiento_vehiculo)
+
+
+# DESPUÉS (usa MantenimientoEngine)
 @router.get("/proximos-mantenimientos")
 async def proximos_mantenimientos(
     limit: int = Query(5, ge=1, le=20),
@@ -614,69 +626,75 @@ async def proximos_mantenimientos(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Lista de próximos mantenimientos programados.
+    Lista de proximos mantenimientos, calculados por MantenimientoEngine.
     """
-    query = text("""
-        SELECT DISTINCT ON (v.id)
-            v.id as vehiculo_id,
-            v.patente,
-            v.marca,
-            v.modelo,
-            m.tipo_servicio as ultimo_servicio,
-            m.fecha_servicio as ultima_fecha,
-            m.kilometraje as ultimo_km,
-            COALESCE((
-                SELECT km_inicial FROM fleet.turno_chofer 
-                WHERE vehiculo_id = v.id AND estado = 'ACTIVO' 
-                ORDER BY inicio_turno DESC LIMIT 1
-            ), m.kilometraje) as km_actual
-        FROM fleet.vehiculo v
-        JOIN fleet.propietario_vehiculo pv ON pv.vehiculo_id = v.id
-        LEFT JOIN fleet.mantenimiento_vehiculo m ON m.vehiculo_id = v.id
-            AND m.fecha_servicio = (
-                SELECT MAX(fecha_servicio) 
-                FROM fleet.mantenimiento_vehiculo 
-                WHERE vehiculo_id = v.id
+    from app.models.fleet import (
+        MantenimientoVencimiento,
+        MantenimientoPlanItem,
+        MantenimientoCatalogoComponente,
+        Vehiculo,
+        PropietarioVehiculo,
+    )
+    from sqlalchemy import select, desc
+
+    # Query de vencimientos (normal, proximo, critico, vencido)
+    query = (
+        select(MantenimientoVencimiento)
+        .join(Vehiculo, Vehiculo.id == MantenimientoVencimiento.vehiculo_id)
+        .join(PropietarioVehiculo, PropietarioVehiculo.vehiculo_id == Vehiculo.id)
+        .where(
+            MantenimientoVencimiento.control_base_id == current_user[1],
+            MantenimientoVencimiento.vigente == True,
+            PropietarioVehiculo.propietario_id == propietario_id,
+            PropietarioVehiculo.activo == True,
+        )
+        .where(
+            MantenimientoVencimiento.estado.in_(["proximo", "critico", "vencido"])
+        )
+        .order_by(
+            desc(MantenimientoVencimiento.estado == "vencido"),
+            desc(MantenimientoVencimiento.estado == "critico"),
+            desc(MantenimientoVencimiento.estado == "proximo"),
+            MantenimientoVencimiento.fecha_proximo.asc().nullslast(),
+        )
+        .limit(limit)
+    )
+    result = await db.execute(query)
+    vencimientos = result.scalars().all()
+
+    # Enriquecer con datos del vehiculo y componente
+    items = []
+    for v in vencimientos:
+        vehiculo = await db.scalar(
+            select(Vehiculo).where(Vehiculo.id == v.vehiculo_id)
+        )
+        plan_item = await db.scalar(
+            select(MantenimientoPlanItem).where(
+                MantenimientoPlanItem.id == v.plan_item_id
             )
-        WHERE pv.propietario_id = :propietario_id
-          AND pv.activo = true
-          AND v.activo = true
-        ORDER BY v.id, m.fecha_servicio DESC NULLS LAST
-        LIMIT :limit
-    """)
-    result = await db.execute(query, {
-        "propietario_id": propietario_id,
-        "limit": limit * 2
-    })
-    rows = result.all()
-    
-    mantenimientos = []
-    for row in rows:
-        # CORREGIDO: row[6] es el kilometraje, row[5] es la fecha
-        km_actual = int(row[7] or 0)      # columna 7 = km_actual
-        ultimo_km = int(row[6] or 0)      # columna 6 = ultimo_km (kilometraje)
-        proximo_km = ultimo_km + 5000
-        km_restante = max(0, proximo_km - km_actual)
-        
-        if km_restante <= 2000:
-            mantenimientos.append({
-                "vehiculo_id": str(row[0]),
-                "patente": row[1],
-                "marca": row[2] or "",
-                "modelo": row[3] or "",
-                "ultimo_servicio": row[4] or "Sin mantenimientos",
-                "ultima_fecha": row[5].isoformat() if row[5] else None,
-                "km_actual": km_actual,
-                "proximo_km": proximo_km,
-                "km_restante": km_restante,
-                "urgencia": "alta" if km_restante <= 500 else "media" if km_restante <= 1000 else "baja"
-            })
-    
-    # Ordenar por urgencia
-    orden_urgencia = {"alta": 0, "media": 1, "baja": 2}
-    mantenimientos.sort(key=lambda x: orden_urgencia.get(x["urgencia"], 2))
-    
-    return mantenimientos[:limit]
+        )
+        componente = None
+        if plan_item:
+            componente = await db.scalar(
+                select(MantenimientoCatalogoComponente).where(
+                    MantenimientoCatalogoComponente.id == plan_item.componente_id
+                )
+            )
+
+        items.append({
+            "vehiculo_id": str(v.vehiculo_id),
+            "patente": vehiculo.patente if vehiculo else "",
+            "marca": vehiculo.marca if vehiculo else "",
+            "modelo": vehiculo.modelo if vehiculo else "",
+            "componente": componente.nombre if componente else "",
+            "estado": v.estado,
+            "km_actual": float(v.km_actual) if v.km_actual else None,
+            "km_proximo": float(v.km_proximo) if v.km_proximo else None,
+            "fecha_proximo": v.fecha_proximo.isoformat() if v.fecha_proximo else None,
+            "advertencias": [],
+        })
+
+    return items
 
 
 # ============================================================
