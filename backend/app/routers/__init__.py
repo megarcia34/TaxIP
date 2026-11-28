@@ -17,7 +17,9 @@ from app.routers import empresa
 from app.routers.propietario import router as propietario_router
 from app.routers.public import qr as public_qr_router
 from .choferes_public import router as choferes_public_router
-from . import liquidacion  # <--- NUEVO
+from . import liquidacion
+# NUEVO R26: catalogo de mantenimiento (componentes + controles)
+from . import mantenimiento_catalogo
 
 # app/routers/__init__.py - AGREGAR
 
@@ -61,7 +63,8 @@ __all__ = [
     "choferes_public_router",
     "public_viajes_router",
     "geo",
-    "liquidacion",  # <--- NUEVO
+    "liquidacion",
+    "mantenimiento_catalogo",  # NUEVO R26
 ]
 
 
@@ -83,12 +86,13 @@ routers = [
     empresa.router,
     comercio.router,
     catalogo.router,
-    propietario_router,         # <--- Incluye todos los submódulos del propietario (incluyendo dashboard)
+    propietario_router,
     public_qr_router,
     propietarios_router,
     empresas_router,
     empresa_dashboard_router,
     choferes_public_router,
     geo.router,                 # /api/geo
-    liquidacion.router,         # <--- NUEVO - /api/liquidacion
+    liquidacion.router,
+    mantenimiento_catalogo.router,  # NUEVO R26
 ]
